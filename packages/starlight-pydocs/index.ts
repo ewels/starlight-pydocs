@@ -1,7 +1,10 @@
+import { fileURLToPath } from 'node:url';
+
 import type { StarlightPlugin } from '@astrojs/starlight/types';
 
-import type { PydocsContext } from './lib/context.ts';
-import { stripLeadingAndTrailingSlashes } from './lib/paths.ts';
+import type { PydocsUserConfig } from './lib/config.ts';
+import { normalizeConfig } from './lib/config.ts';
+import { createContext } from './lib/context.ts';
 import { getDefaultPlaceholderLabel, getSidebarGroupsPlaceholder } from './libs/starlight.ts';
 import { vitePluginStarlightPydocs } from './libs/vite.ts';
 
@@ -12,36 +15,26 @@ import { vitePluginStarlightPydocs } from './libs/vite.ts';
  */
 export const pydocsSidebarGroup = getSidebarGroupsPlaceholder();
 
-export interface StarlightPydocsPackageOptions {
-  /** Python import name of the package to document. */
-  name: string;
-  /** URL base for the generated pages. Defaults to `api/<name>`. */
-  base?: string;
-}
+export type { PydocsUserConfig as StarlightPydocsOptions };
 
-export interface StarlightPydocsOptions {
-  packages: StarlightPydocsPackageOptions[];
-}
-
-export default function starlightPydocs(options: StarlightPydocsOptions): StarlightPlugin {
+export default function starlightPydocs(options: PydocsUserConfig): StarlightPlugin {
   return {
     name: 'starlight-pydocs',
     hooks: {
       'config:setup'({ addIntegration, addRouteMiddleware, astroConfig, command }) {
         if (command !== 'build' && command !== 'dev') return;
 
-        const context: PydocsContext = {
-          packages: options.packages.map((pkg) => ({
-            name: pkg.name,
-            base: stripLeadingAndTrailingSlashes(pkg.base ?? `api/${pkg.name}`),
-            dumpPath: '',
-          })),
-          siteBase: stripLeadingAndTrailingSlashes(astroConfig.base ?? '')
-            ? `/${stripLeadingAndTrailingSlashes(astroConfig.base ?? '')}`
-            : '',
-          starlight: true,
+        const config = normalizeConfig(options, fileURLToPath(astroConfig.root));
+
+        // Spike-level wiring (ROADMAP items 2-3): extraction, inventory loading
+        // and the real routes land with the renderer in item 5, which fills in
+        // `dumpPaths` and `inventories` here.
+        const context = createContext(config, {
+          dumpPaths: new Map(),
+          siteBase: astroConfig.base,
           trailingSlash: astroConfig.trailingSlash,
-        };
+          starlight: true,
+        });
 
         addRouteMiddleware({ entrypoint: 'starlight-pydocs/middleware', order: 'post' });
 
