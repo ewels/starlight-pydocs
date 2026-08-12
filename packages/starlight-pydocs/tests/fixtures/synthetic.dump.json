@@ -1,0 +1,169 @@
+{
+  "_comment": [
+    "Hand-written dump for cases the real fixtures cannot cover.",
+    "griffe 2.1.0 does not serialise `overloads` (Function.as_dict omits it), so the",
+    "overload collection path needs a synthetic dump; the same file covers a diamond",
+    "inheritance graph, an unresolvable external base, and griffe's own `source_link`."
+  ],
+  "ovpkg": {
+    "kind": "module",
+    "name": "ovpkg",
+    "path": "ovpkg",
+    "relative_filepath": "src/ovpkg/__init__.py",
+    "is_public": true,
+    "docstring": {
+      "value": "Synthetic package.",
+      "parsed": [{ "kind": "text", "value": "Synthetic package." }]
+    },
+    "members": {
+      "render": {
+        "kind": "function",
+        "name": "render",
+        "path": "ovpkg.render",
+        "lineno": 10,
+        "endlineno": 14,
+        "is_public": true,
+        "relative_filepath": "src/ovpkg/__init__.py",
+        "source_link": "https://example.dev/o/r/blob/abc123/src/ovpkg/__init__.py#L10-L14",
+        "parameters": [
+          { "name": "value", "annotation": { "cls": "ExprName", "name": "str" }, "kind": "positional or keyword" }
+        ],
+        "returns": { "cls": "ExprName", "name": "str" },
+        "docstring": {
+          "value": "Render a value.",
+          "parsed": [{ "kind": "text", "value": "Render a value." }]
+        },
+        "overloads": [
+          {
+            "kind": "function",
+            "name": "render",
+            "path": "ovpkg.render",
+            "parameters": [
+              { "name": "value", "annotation": { "cls": "ExprName", "name": "str" }, "kind": "positional or keyword" }
+            ],
+            "returns": { "cls": "ExprName", "name": "str" }
+          },
+          {
+            "kind": "function",
+            "name": "render",
+            "path": "ovpkg.render",
+            "parameters": [
+              {
+                "name": "value",
+                "annotation": {
+                  "cls": "ExprSubscript",
+                  "left": { "cls": "ExprName", "name": "list" },
+                  "slice": { "cls": "ExprName", "name": "str" }
+                },
+                "kind": "positional or keyword"
+              }
+            ],
+            "returns": {
+              "cls": "ExprSubscript",
+              "left": { "cls": "ExprName", "name": "list" },
+              "slice": { "cls": "ExprName", "name": "str" }
+            }
+          }
+        ]
+      },
+      "D": {
+        "kind": "class",
+        "name": "D",
+        "path": "ovpkg.D",
+        "is_public": true,
+        "bases": [],
+        "members": {
+          "from_d": {
+            "kind": "function",
+            "name": "from_d",
+            "path": "ovpkg.D.from_d",
+            "is_public": true,
+            "parameters": [{ "name": "self", "kind": "positional or keyword" }]
+          }
+        }
+      },
+      "B": {
+        "kind": "class",
+        "name": "B",
+        "path": "ovpkg.B",
+        "is_public": true,
+        "bases": [{ "cls": "ExprName", "name": "D" }],
+        "members": {
+          "from_b": {
+            "kind": "function",
+            "name": "from_b",
+            "path": "ovpkg.B.from_b",
+            "is_public": true,
+            "parameters": [{ "name": "self", "kind": "positional or keyword" }]
+          }
+        }
+      },
+      "C": {
+        "kind": "class",
+        "name": "C",
+        "path": "ovpkg.C",
+        "is_public": true,
+        "bases": [{ "cls": "ExprName", "name": "D" }],
+        "members": {
+          "from_c": {
+            "kind": "function",
+            "name": "from_c",
+            "path": "ovpkg.C.from_c",
+            "is_public": true,
+            "parameters": [{ "name": "self", "kind": "positional or keyword" }]
+          },
+          "from_d": {
+            "kind": "function",
+            "name": "from_d",
+            "path": "ovpkg.C.from_d",
+            "is_public": true,
+            "parameters": [{ "name": "self", "kind": "positional or keyword" }]
+          }
+        }
+      },
+      "A": {
+        "kind": "class",
+        "name": "A",
+        "path": "ovpkg.A",
+        "is_public": true,
+        "bases": [
+          { "cls": "ExprName", "name": "B" },
+          { "cls": "ExprName", "name": "C" }
+        ],
+        "members": {
+          "own": {
+            "kind": "function",
+            "name": "own",
+            "path": "ovpkg.A.own",
+            "is_public": true,
+            "parameters": [{ "name": "self", "kind": "positional or keyword" }]
+          }
+        }
+      },
+      "External": {
+        "kind": "class",
+        "name": "External",
+        "path": "ovpkg.External",
+        "is_public": true,
+        "bases": [
+          {
+            "cls": "ExprAttribute",
+            "values": [
+              { "cls": "ExprName", "name": "other" },
+              { "cls": "ExprName", "name": "Base" }
+            ]
+          }
+        ],
+        "members": {}
+      },
+      "outside": {
+        "kind": "alias",
+        "name": "outside",
+        "path": "ovpkg.outside",
+        "target_path": "third_party.helper",
+        "is_public": true,
+        "is_imported": true
+      }
+    }
+  }
+}
