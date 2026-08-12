@@ -1,0 +1,16 @@
+**/dist/**
+**/node_modules/**
+**/.astro/**
+docs/playwright-report/**
+docs/test-results/**
+pnpm-lock.yaml
+CHANGELOG.md
+**/CHANGELOG.md
+
+# Checked-in griffe dumps are machine output; reformatting them creates noise
+# against `pnpm gen:dumps` regeneration.
+fixtures/**/*.json
+
+# MDX mixes JSX components with whitespace-sensitive markdown examples.
+# Prettier's MDX formatter reflows them, so MDX is formatted by hand.
+**/*.mdx

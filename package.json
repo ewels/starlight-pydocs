@@ -1,0 +1,44 @@
+{
+  "name": "starlight-pydocs-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": "Phil Ewels",
+  "description": "Private development monorepo for starlight-pydocs — the published package lives in packages/starlight-pydocs.",
+  "homepage": "https://ewels.github.io/starlight-pydocs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ewels/starlight-pydocs.git"
+  },
+  "bugs": "https://github.com/ewels/starlight-pydocs/issues",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "dev": "pnpm --filter starlight-pydocs-docs dev",
+    "build": "pnpm --filter starlight-pydocs-docs build",
+    "preview": "pnpm --filter starlight-pydocs-docs preview",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write --cache --ignore-unknown .",
+    "format:check": "prettier --check --cache --ignore-unknown .",
+    "test": "pnpm --filter starlight-pydocs test",
+    "test:e2e": "pnpm --filter starlight-pydocs-docs test:e2e",
+    "gen:dumps": "node --experimental-strip-types fixtures/generate-dumps.ts",
+    "release": "pnpm --filter starlight-pydocs publish --access public --no-git-checks"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.0.1",
+    "eslint": "^10.6.0",
+    "eslint-plugin-astro": "^2.1.1",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "globals": "^17.7.0",
+    "prettier": "^3.8.5",
+    "prettier-plugin-astro": "^0.14.1",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.62.0"
+  }
+}

@@ -74,8 +74,13 @@ starlight-typedoc's mtime games: nothing pollutes the user's content directory, 
 The load-bearing assumption — that an injected route can populate the table of
 contents and be indexed by Pagefind — is proven by starlight-openapi in production:
 `StarlightPage` accepts a `headings` prop and renders the standard page shell,
-including the `data-pagefind-body` content container. ROADMAP item 1 re-proves this
-in-repo as a spike before anything else is built on it.
+including the `data-pagefind-body` content container. **Spike outcome (ROADMAP
+item 2, verified in-repo 2026-08-12): confirmed on all counts.** An injected
+`[...pydocsSlug]` route rendered `StarlightPage` with dotted-path heading IDs
+(`demopkg.spike.generate`); the built HTML contains those IDs verbatim in the ToC
+links (no slugger mangling), the page carries `data-pagefind-body`, the Pagefind
+fragment index contains the page text, and the middleware sidebar swap renders the
+generated group. Astro 7.0.3, Starlight 0.41.1.
 
 Rejected alternative: generating `.md`/`.mdx` files (starlight-typedoc's approach).
 Simpler to implement and it composes with every content-collection consumer for free,
@@ -89,14 +94,14 @@ decisions 10 and 11 instead.
 Following starlight-quiz: a single published package with `@astrojs/starlight` as an
 optional peer dependency. Subpath exports:
 
-| Export | Contents |
-| --- | --- |
-| `starlight-pydocs` | Starlight plugin (default export), `pydocsSidebarGroup`, `createStarlightPydocs()` for multi-instance |
-| `starlight-pydocs/astro` | vanilla Astro integration (no Starlight imports anywhere in its module graph) |
-| `starlight-pydocs/loader` | Astro Content Layer loader emitting one entry per documented object |
-| `starlight-pydocs/components` | `<Autodoc>` and the presentational component set |
-| `starlight-pydocs/styles` | theme CSS |
-| `starlight-pydocs/middleware`, `starlight-pydocs/routes/*` | internal entrypoints referenced by string from the plugin/integration |
+| Export                                                     | Contents                                                                                              |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `starlight-pydocs`                                         | Starlight plugin (default export), `pydocsSidebarGroup`, `createStarlightPydocs()` for multi-instance |
+| `starlight-pydocs/astro`                                   | vanilla Astro integration (no Starlight imports anywhere in its module graph)                         |
+| `starlight-pydocs/loader`                                  | Astro Content Layer loader emitting one entry per documented object                                   |
+| `starlight-pydocs/components`                              | `<Autodoc>` and the presentational component set                                                      |
+| `starlight-pydocs/styles`                                  | theme CSS                                                                                             |
+| `starlight-pydocs/middleware`, `starlight-pydocs/routes/*` | internal entrypoints referenced by string from the plugin/integration                                 |
 
 Hard rule inherited from starlight-quiz: `lib/` never imports `astro` or
 `@astrojs/starlight`. Components never import `@astrojs/starlight` either (unlike
@@ -222,7 +227,7 @@ touches Starlight.
 
 - **Consume:** `inventories: [{ url | file, base }]` parses `objects.inv` (Sphinx v2
   format: four header lines then zlib-compressed `name domain:role priority uri
-  dispname` lines) with `node:zlib`. Parsed entries feed annotation resolution
+dispname` lines) with `node:zlib`. Parsed entries feed annotation resolution
   (decision 6) so `pandas.DataFrame` links out to pandas' docs. Fetched inventories
   cache to the cache dir (this sandbox cannot reach docs.python.org, so tests use
   checked-in fixtures and a local server; a `python` preset ships the stdlib base
@@ -267,20 +272,21 @@ symbol heading. Ships only if the core lands first (ROADMAP item 9).
 ### 13. Everything else follows starlight-quiz conventions
 
 pnpm workspace (`packages/starlight-pydocs` + `docs` + `examples/vanilla`), Node
->= 22.12, pnpm 10.33, no build step, `astro/tsconfigs/strictest` +
-`verbatimModuleSyntax` + `allowImportingTsExtensions` (Node-executed files import
-with `.ts` extensions), Vitest for `lib/`, Playwright e2e against the built docs
-site and the vanilla example (Playwright `webServer` array serves both), prek
-running prettier → eslint → typecheck, CI = prek + unit + e2e + zizmor, docs deploy
-to GitHub Pages, release via manual changelog + tag + OIDC trusted publishing.
-`styles.css` is wrapped in `@layer starlight-pydocs`; theme tokens are
-`--pydocs-*` custom properties that default to Starlight's `--sl-*` tokens with
-static fallbacks for vanilla sites. Starlight colour tokens are contrast tokens that
-flip between modes, so mappings follow the LinkButton pattern
-(`background: var(--sl-color-text-accent)`, `color: var(--sl-color-black)`), never
-`--sl-color-white` as "white". i18n mirrors quiz: `lib/strings.ts` holds English
-defaults, `translations.ts` holds locale tables injected via `i18n:setup`, and every
-component accepts label props as the vanilla override.
+
+> = 22.12, pnpm 10.33, no build step, `astro/tsconfigs/strictest` +
+> `verbatimModuleSyntax` + `allowImportingTsExtensions` (Node-executed files import
+> with `.ts` extensions), Vitest for `lib/`, Playwright e2e against the built docs
+> site and the vanilla example (Playwright `webServer` array serves both), prek
+> running prettier → eslint → typecheck, CI = prek + unit + e2e + zizmor, docs deploy
+> to GitHub Pages, release via manual changelog + tag + OIDC trusted publishing.
+> `styles.css` is wrapped in `@layer starlight-pydocs`; theme tokens are
+> `--pydocs-*` custom properties that default to Starlight's `--sl-*` tokens with
+> static fallbacks for vanilla sites. Starlight colour tokens are contrast tokens that
+> flip between modes, so mappings follow the LinkButton pattern
+> (`background: var(--sl-color-text-accent)`, `color: var(--sl-color-black)`), never
+> `--sl-color-white` as "white". i18n mirrors quiz: `lib/strings.ts` holds English
+> defaults, `translations.ts` holds locale tables injected via `i18n:setup`, and every
+> component accepts label props as the vanilla override.
 
 ## Configuration surface (1.0)
 
@@ -343,11 +349,11 @@ route render (per page, prerender or SSR)
 
 ## Risks and mitigations
 
-| Risk | Mitigation |
-| --- | --- |
-| StarlightPage headings/Pagefind assumption breaks in a future Starlight | Spike proves it now; e2e asserts ToC entries and search hits so regressions surface in CI |
-| Griffe dump format drift | Loader validates the handful of fields we consume and fails with the griffe version in the message; schema copy vendored; unit tests run against checked-in dumps plus a live-regeneration test when uv is present |
-| Huge packages slow builds | Dump cached by content key; model built once per process; pages render from shared indexes |
-| No Python on docs host | Pre-generated dump file/URL path is first-class and CI-documented |
-| Windows | No shell-string exec (argv arrays), `node:path` throughout, no symlink tricks |
-| Sandbox cannot reach external doc sites | Inventory tests use fixtures + local HTTP server; live URLs only in user builds |
+| Risk                                                                    | Mitigation                                                                                                                                                                                                         |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| StarlightPage headings/Pagefind assumption breaks in a future Starlight | Spike proves it now; e2e asserts ToC entries and search hits so regressions surface in CI                                                                                                                          |
+| Griffe dump format drift                                                | Loader validates the handful of fields we consume and fails with the griffe version in the message; schema copy vendored; unit tests run against checked-in dumps plus a live-regeneration test when uv is present |
+| Huge packages slow builds                                               | Dump cached by content key; model built once per process; pages render from shared indexes                                                                                                                         |
+| No Python on docs host                                                  | Pre-generated dump file/URL path is first-class and CI-documented                                                                                                                                                  |
+| Windows                                                                 | No shell-string exec (argv arrays), `node:path` throughout, no symlink tricks                                                                                                                                      |
+| Sandbox cannot reach external doc sites                                 | Inventory tests use fixtures + local HTTP server; live URLs only in user builds                                                                                                                                    |

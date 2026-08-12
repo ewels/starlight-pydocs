@@ -1,0 +1,40 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import context from 'virtual:starlight-pydocs/context';
+
+// Spike route (ROADMAP item 2): proves that an injected route can render the
+// Starlight shell with a `headings` prop feeding the table of contents, and
+// that the output is indexed by Pagefind. Replaced by the real model-driven
+// renderer in ROADMAP item 5. Prerendering comes from the injectRoute call.
+
+export function getStaticPaths() {
+  return context.packages.flatMap((pkg) => [
+    { params: { pydocsSlug: pkg.base }, props: { pkg, page: 'root' } },
+    { params: { pydocsSlug: `${pkg.base}/spike` }, props: { pkg, page: 'spike' } },
+  ]);
+}
+
+const { pkg, page } = Astro.props;
+
+const headings =
+  page === 'root'
+    ? [{ depth: 2, slug: `${pkg.name}.Report`, text: 'Report' }]
+    : [
+        { depth: 2, slug: `${pkg.name}.spike.generate`, text: 'generate' },
+        { depth: 2, slug: `${pkg.name}.spike.render`, text: 'render' },
+      ];
+---
+
+<StarlightPage frontmatter={{ title: page === 'root' ? pkg.name : `${pkg.name}.spike` }} headings={headings}>
+  <p>Spike page for <code>{pkg.name}</code> — pydocs-spike-marker-{page}.</p>
+  {
+    headings.map((heading) => (
+      <section>
+        <h2 id={heading.slug}>{heading.text}</h2>
+        <p>
+          Placeholder body for {heading.slug}, uniquely findable via pagefind: pydocsneedle{heading.text}.
+        </p>
+      </section>
+    ))
+  }
+</StarlightPage>
