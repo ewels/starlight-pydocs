@@ -1,0 +1,58 @@
+name: Release
+
+# Publishes the package to npm when a GitHub release is published. Uses npm
+# trusted publishing (OIDC), so no NPM_TOKEN secret is needed — the trusted
+# publisher is configured once in the package settings on npmjs.com.
+#
+# The very first publish must be done manually (see the Contributing guide),
+# because a trusted publisher can only be added to a package that already
+# exists on npm.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm trusted publishing + provenance
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing needs npm >= 11.5.1; Node 22 ships an older npm.
+      - run: npm install --global npm@latest
+
+      # On a release, refuse to publish if the tag doesn't match the version
+      # we are about to ship (tag v1.0.0 must match package.json 1.0.0).
+      - name: Check release tag matches package version
+        if: github.event_name == 'release'
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          pkg=$(node -p "require('./packages/starlight-pydocs/package.json').version")
+          tag="${REF_NAME#v}"
+          if [ "$pkg" != "$tag" ]; then
+            echo "::error::Release tag '$REF_NAME' does not match package version '$pkg'."
+            exit 1
+          fi
+
+      # prepack copies README/CHANGELOG/LICENSE in from the repo root, and
+      # provenance is attached via the id-token permission above.
+      - name: Publish
+        working-directory: packages/starlight-pydocs
+        run: npm publish --provenance --access public

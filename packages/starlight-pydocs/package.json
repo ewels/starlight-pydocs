@@ -1,0 +1,98 @@
+{
+  "name": "starlight-pydocs",
+  "version": "1.0.0",
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": "Phil Ewels",
+  "description": "Python API reference documentation for Astro and Starlight, extracted with Griffe.",
+  "homepage": "https://ewels.github.io/starlight-pydocs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ewels/starlight-pydocs.git",
+    "directory": "packages/starlight-pydocs"
+  },
+  "bugs": "https://github.com/ewels/starlight-pydocs/issues",
+  "keywords": [
+    "starlight",
+    "starlight-plugin",
+    "astro",
+    "astro-integration",
+    "withastro",
+    "documentation",
+    "python",
+    "api-reference",
+    "griffe",
+    "mkdocstrings",
+    "autodoc"
+  ],
+  "sideEffects": [
+    "*.css",
+    "*.astro"
+  ],
+  "exports": {
+    ".": "./index.ts",
+    "./astro": "./astro.ts",
+    "./loader": "./loader.ts",
+    "./components": "./components/index.ts",
+    "./styles": "./styles.css",
+    "./middleware": "./middleware.ts",
+    "./routes/starlight": "./routes/starlight.astro",
+    "./routes/vanilla": "./routes/vanilla.astro",
+    "./routes/symbols": "./routes/symbols.ts",
+    "./routes/inventory": "./routes/inventory.ts",
+    "./routes/llms": "./routes/llms.ts",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.ts",
+    "astro.ts",
+    "loader.ts",
+    "middleware.ts",
+    "components",
+    "lib",
+    "libs",
+    "routes",
+    "styles.css",
+    "translations.ts",
+    "env.d.ts",
+    "virtual.d.ts",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "prepack": "cp ../../README.md ./README.md && cp ../../CHANGELOG.md ./CHANGELOG.md && cp ../../LICENSE ./LICENSE",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@astrojs/markdown-remark": "^7.2.0"
+  },
+  "peerDependencies": {
+    "@astrojs/starlight": ">=0.41.0",
+    "astro": ">=7.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@astrojs/starlight": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@astrojs/starlight": "^0.41.1",
+    "@types/node": "^26.0.1",
+    "@vitest/coverage-v8": "^4.1.9",
+    "astro": "^7.0.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

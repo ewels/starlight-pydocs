@@ -1,0 +1,8 @@
+packages:
+  - 'docs'
+  - 'packages/*'
+  - 'examples/*'
+
+onlyBuiltDependencies:
+  - sharp
+  - esbuild

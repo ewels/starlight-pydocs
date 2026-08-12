@@ -31,7 +31,7 @@ sequencing.
   (curl exit 000), so inventory tests use checked-in fixtures and a local HTTP
   server; nothing in the test suite fetches external doc sites.
 - `griffe-pydantic` works fully statically (`uvx --with griffe-pydantic --from griffe
-  griffe dump -e griffe_pydantic …`) — the fixture model gets the `pydantic-model`
+griffe dump -e griffe_pydantic …`) — the fixture model gets the `pydantic-model`
   label without pydantic importable. Verified 2026-08-12 with griffe resolved by uv.
 - Playwright must use the pre-installed Chromium at `/opt/pw-browsers/chromium`
   (config handles the fallback), and `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` is set —
@@ -51,4 +51,15 @@ sequencing.
 
 ## Stuck points and workarounds
 
-(recorded as they happen)
+- eslint's `astro/no-prerender-export-outside-pages` rejects
+  `export const prerender = true` in injected-route `.astro` files (they live in the
+  package, not `src/pages`). The `prerender: true` flag on `injectRoute` is
+  sufficient — verified the built output prerenders — so the export is omitted.
+
+## Progress log
+
+- 2026-08-12: planning docs committed; workspace scaffolded (mirrors starlight-quiz;
+  `pnpm install`, `lint`, `typecheck`, docs build all green in-sandbox); spike passed
+  — injected route + StarlightPage `headings` prop feeds the ToC with dotted-path
+  anchors intact, Pagefind indexes the pages, middleware sidebar swap works
+  (details in PLAN.md decision 1).

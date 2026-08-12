@@ -1,0 +1,34 @@
+#:schema https://www.schemastore.org/prek.json
+# Configuration for prek (https://prek.j178.dev), a fast Rust pre-commit runner.
+# Install the git hook with `prek install`; CI runs `prek run --all-files`.
+# All formatting, linting and type-checking lives here so it stays in one place.
+
+default_stages = ["pre-commit"]
+
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "prettier"
+name = "prettier"
+entry = "pnpm exec prettier --write --cache --ignore-unknown"
+language = "system"
+pass_filenames = true
+files = '\.(ts|tsx|js|jsx|mjs|cjs|json|ya?ml|md|css|astro)$'
+exclude = '^fixtures/.*\.json$'
+
+[[repos.hooks]]
+id = "eslint"
+name = "eslint"
+entry = "pnpm exec eslint --fix"
+language = "system"
+pass_filenames = true
+files = '\.(ts|tsx|js|jsx|mjs|cjs|astro)$'
+
+[[repos.hooks]]
+id = "typecheck"
+name = "typecheck"
+entry = "pnpm run typecheck"
+language = "system"
+pass_filenames = false
+always_run = true
