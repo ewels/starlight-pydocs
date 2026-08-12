@@ -1,0 +1,3169 @@
+{
+  "demopkg": {
+    "analysis": "static",
+    "docstring": {
+      "endlineno": 18,
+      "lineno": 1,
+      "parsed": [
+        {
+          "kind": "text",
+          "value": "Demo package used by the starlight-pydocs test suite.\n\n`demopkg` exists to exercise every feature of the documentation renderer:\ngoogle-style docstring sections, inheritance, overloads, positional-only and\nkeyword-only parameters, re-exports through `__all__`, pydantic models,\ndeprecations and private members that must stay hidden.\n\nThe public surface is declared explicitly in `__all__`, so anything not listed\nthere is invisible to the default member filter."
+        },
+        {
+          "kind": "examples",
+          "value": [
+            [
+              "text",
+              "Build a report and write it to disk:"
+            ],
+            [
+              "examples",
+              ">>> from demopkg import Report\n>>> report = Report(\"weekly\")\n>>> report.generate(\"summary\", title=\"Weekly\")\nPosixPath('weekly.txt')"
+            ]
+          ]
+        }
+      ],
+      "value": "Demo package used by the starlight-pydocs test suite.\n\n`demopkg` exists to exercise every feature of the documentation renderer:\ngoogle-style docstring sections, inheritance, overloads, positional-only and\nkeyword-only parameters, re-exports through `__all__`, pydantic models,\ndeprecations and private members that must stay hidden.\n\nThe public surface is declared explicitly in `__all__`, so anything not listed\nthere is invisible to the default member filter.\n\nExamples:\n    Build a report and write it to disk:\n\n    >>> from demopkg import Report\n    >>> report = Report(\"weekly\")\n    >>> report.generate(\"summary\", title=\"Weekly\")\n    PosixPath('weekly.txt')"
+    },
+    "exports": [
+      "Report",
+      "generate_report",
+      "DEFAULT_TIMEOUT",
+      "models",
+      "utils"
+    ],
+    "filepath": "fixtures/demopkg/src/demopkg/__init__.py",
+    "imports": {
+      "Report": "demopkg.report.Report",
+      "generate_report": "demopkg.report.generate_report"
+    },
+    "is_class_private": false,
+    "is_deprecated": false,
+    "is_exported": false,
+    "is_imported": false,
+    "is_private": false,
+    "is_public": true,
+    "is_special": false,
+    "is_wildcard_exposed": false,
+    "kind": "module",
+    "members": {
+      "DEFAULT_TIMEOUT": {
+        "analysis": "static",
+        "annotation": {
+          "cls": "ExprName",
+          "member": null,
+          "name": "float"
+        },
+        "docstring": {
+          "endlineno": 24,
+          "lineno": 21,
+          "parsed": [
+            {
+              "kind": "text",
+              "value": "Seconds to wait for report generation before giving up.\n\nUsed as the default for [`Report.generate`][demopkg.report.Report.generate]."
+            }
+          ],
+          "value": "Seconds to wait for report generation before giving up.\n\nUsed as the default for [`Report.generate`][demopkg.report.Report.generate]."
+        },
+        "endlineno": 20,
+        "filepath": "fixtures/demopkg/src/demopkg/__init__.py",
+        "is_class_private": false,
+        "is_deprecated": false,
+        "is_exported": true,
+        "is_imported": false,
+        "is_private": false,
+        "is_public": true,
+        "is_special": false,
+        "is_wildcard_exposed": true,
+        "kind": "attribute",
+        "labels": [
+          "module-attribute"
+        ],
+        "lineno": 20,
+        "name": "DEFAULT_TIMEOUT",
+        "path": "demopkg.DEFAULT_TIMEOUT",
+        "relative_filepath": "fixtures/demopkg/src/demopkg/__init__.py",
+        "relative_package_filepath": "demopkg/__init__.py",
+        "runtime": true,
+        "value": "30.0"
+      },
+      "Report": {
+        "analysis": "static",
+        "endlineno": 26,
+        "inherited": false,
+        "is_class_private": false,
+        "is_deprecated": false,
+        "is_exported": true,
+        "is_imported": true,
+        "is_private": false,
+        "is_public": true,
+        "is_special": false,
+        "is_wildcard_exposed": true,
+        "kind": "alias",
+        "lineno": 26,
+        "name": "Report",
+        "path": "demopkg.Report",
+        "runtime": true,
+        "target_path": "demopkg.report.Report"
+      },
+      "__all__": {
+        "analysis": "static",
+        "endlineno": 28,
+        "filepath": "fixtures/demopkg/src/demopkg/__init__.py",
+        "is_class_private": false,
+        "is_deprecated": false,
+        "is_exported": false,
+        "is_imported": false,
+        "is_private": false,
+        "is_public": false,
+        "is_special": true,
+        "is_wildcard_exposed": false,
+        "kind": "attribute",
+        "labels": [
+          "module-attribute"
+        ],
+        "lineno": 28,
+        "name": "__all__",
+        "path": "demopkg.__all__",
+        "relative_filepath": "fixtures/demopkg/src/demopkg/__init__.py",
+        "relative_package_filepath": "demopkg/__init__.py",
+        "runtime": true,
+        "value": {
+          "cls": "ExprList",
+          "elements": [
+            "'Report'",
+            "'generate_report'",
+            "'DEFAULT_TIMEOUT'",
+            "'models'",
+            "'utils'"
+          ]
+        }
+      },
+      "_internal": {
+        "analysis": "static",
+        "docstring": {
+          "endlineno": 1,
+          "lineno": 1,
+          "parsed": [
+            {
+              "kind": "text",
+              "value": "Private module. Filtered out of the navigation by default."
+            }
+          ],
+          "value": "Private module. Filtered out of the navigation by default."
+        },
+        "filepath": "fixtures/demopkg/src/demopkg/_internal.py",
+        "is_class_private": false,
+        "is_deprecated": false,
+        "is_exported": false,
+        "is_imported": false,
+        "is_private": true,
+        "is_public": false,
+        "is_special": false,
+        "is_wildcard_exposed": false,
+        "kind": "module",
+        "members": {
+          "SECRET": {
+            "analysis": "static",
+            "docstring": {
+              "endlineno": 4,
+              "lineno": 4,
+              "parsed": [
+                {
+                  "kind": "text",
+                  "value": "A constant nobody should see in the rendered docs."
+                }
+              ],
+              "value": "A constant nobody should see in the rendered docs."
+            },
+            "endlineno": 3,
+            "filepath": "fixtures/demopkg/src/demopkg/_internal.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "attribute",
+            "labels": [
+              "module-attribute"
+            ],
+            "lineno": 3,
+            "name": "SECRET",
+            "path": "demopkg._internal.SECRET",
+            "relative_filepath": "fixtures/demopkg/src/demopkg/_internal.py",
+            "relative_package_filepath": "demopkg/_internal.py",
+            "runtime": true,
+            "value": "'not documented'"
+          },
+          "internal_only": {
+            "analysis": "static",
+            "decorators": [],
+            "docstring": {
+              "endlineno": 15,
+              "lineno": 8,
+              "parsed": [
+                {
+                  "kind": "text",
+                  "value": "Do something nobody needs to read about."
+                },
+                {
+                  "kind": "parameters",
+                  "value": [
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": "internal_only",
+                        "name": "str"
+                      },
+                      "description": "Anything at all.",
+                      "name": "value"
+                    }
+                  ]
+                },
+                {
+                  "kind": "returns",
+                  "value": [
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": "internal_only",
+                        "name": "str"
+                      },
+                      "description": "The value, unchanged.",
+                      "name": ""
+                    }
+                  ]
+                }
+              ],
+              "value": "Do something nobody needs to read about.\n\nArgs:\n    value: Anything at all.\n\nReturns:\n    The value, unchanged."
+            },
+            "endlineno": 16,
+            "filepath": "fixtures/demopkg/src/demopkg/_internal.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "function",
+            "lineno": 7,
+            "name": "internal_only",
+            "parameters": [
+              {
+                "annotation": {
+                  "cls": "ExprName",
+                  "member": "internal_only",
+                  "name": "str"
+                },
+                "default": null,
+                "kind": "positional or keyword",
+                "name": "value"
+              }
+            ],
+            "path": "demopkg._internal.internal_only",
+            "relative_filepath": "fixtures/demopkg/src/demopkg/_internal.py",
+            "relative_package_filepath": "demopkg/_internal.py",
+            "returns": {
+              "cls": "ExprName",
+              "member": "internal_only",
+              "name": "str"
+            },
+            "runtime": true
+          }
+        },
+        "name": "_internal",
+        "path": "demopkg._internal",
+        "relative_filepath": "fixtures/demopkg/src/demopkg/_internal.py",
+        "relative_package_filepath": "demopkg/_internal.py",
+        "runtime": true
+      },
+      "compat": {
+        "analysis": "static",
+        "docstring": {
+          "endlineno": 6,
+          "lineno": 1,
+          "parsed": [
+            {
+              "kind": "text",
+              "value": "Backwards compatible aliases, without an `__all__`.\n\nThe public surface of this module is inferred: `legacy_name` and `LEGACY_LIMIT`\nare public, `_shim` is private, and `Report` is an import (so it is only shown\nwhen imported members are not filtered out)."
+            }
+          ],
+          "value": "Backwards compatible aliases, without an `__all__`.\n\nThe public surface of this module is inferred: `legacy_name` and `LEGACY_LIMIT`\nare public, `_shim` is private, and `Report` is an import (so it is only shown\nwhen imported members are not filtered out)."
+        },
+        "filepath": "fixtures/demopkg/src/demopkg/compat.py",
+        "imports": {
+          "Report": "demopkg.report.Report"
+        },
+        "is_class_private": false,
+        "is_deprecated": false,
+        "is_exported": false,
+        "is_imported": false,
+        "is_private": false,
+        "is_public": true,
+        "is_special": false,
+        "is_wildcard_exposed": false,
+        "kind": "module",
+        "members": {
+          "LEGACY_LIMIT": {
+            "analysis": "static",
+            "docstring": {
+              "endlineno": 11,
+              "lineno": 11,
+              "parsed": [
+                {
+                  "kind": "text",
+                  "value": "Largest report size the old API accepted."
+                }
+              ],
+              "value": "Largest report size the old API accepted."
+            },
+            "endlineno": 10,
+            "filepath": "fixtures/demopkg/src/demopkg/compat.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "attribute",
+            "labels": [
+              "module-attribute"
+            ],
+            "lineno": 10,
+            "name": "LEGACY_LIMIT",
+            "path": "demopkg.compat.LEGACY_LIMIT",
+            "relative_filepath": "fixtures/demopkg/src/demopkg/compat.py",
+            "relative_package_filepath": "demopkg/compat.py",
+            "runtime": true,
+            "value": "100"
+          },
+          "Report": {
+            "analysis": "static",
+            "endlineno": 8,
+            "inherited": false,
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": true,
+            "is_private": false,
+            "is_public": false,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "alias",
+            "lineno": 8,
+            "name": "Report",
+            "path": "demopkg.compat.Report",
+            "runtime": true,
+            "target_path": "demopkg.report.Report"
+          },
+          "_shim": {
+            "analysis": "static",
+            "decorators": [],
+            "docstring": {
+              "endlineno": 27,
+              "lineno": 27,
+              "parsed": [
+                {
+                  "kind": "text",
+                  "value": "Old naming rule. Private."
+                }
+              ],
+              "value": "Old naming rule. Private."
+            },
+            "endlineno": 28,
+            "filepath": "fixtures/demopkg/src/demopkg/compat.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": true,
+            "is_public": false,
+            "is_special": false,
+            "is_wildcard_exposed": false,
+            "kind": "function",
+            "lineno": 26,
+            "name": "_shim",
+            "parameters": [
+              {
+                "annotation": {
+                  "cls": "ExprName",
+                  "member": "_shim",
+                  "name": "str"
+                },
+                "default": null,
+                "kind": "positional or keyword",
+                "name": "name"
+              }
+            ],
+            "path": "demopkg.compat._shim",
+            "relative_filepath": "fixtures/demopkg/src/demopkg/compat.py",
+            "relative_package_filepath": "demopkg/compat.py",
+            "returns": {
+              "cls": "ExprName",
+              "member": "_shim",
+              "name": "str"
+            },
+            "runtime": true
+          },
+          "legacy_name": {
+            "analysis": "static",
+            "decorators": [],
+            "docstring": {
+              "endlineno": 22,
+              "lineno": 15,
+              "parsed": [
+                {
+                  "kind": "text",
+                  "value": "Return the name the old API would have used."
+                },
+                {
+                  "kind": "parameters",
+                  "value": [
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": "legacy_name",
+                        "name": "Report"
+                      },
+                      "description": "Report to name.",
+                      "name": "report"
+                    }
+                  ]
+                },
+                {
+                  "kind": "returns",
+                  "value": [
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": "legacy_name",
+                        "name": "str"
+                      },
+                      "description": "The legacy name.",
+                      "name": ""
+                    }
+                  ]
+                }
+              ],
+              "value": "Return the name the old API would have used.\n\nArgs:\n    report: Report to name.\n\nReturns:\n    The legacy name."
+            },
+            "endlineno": 23,
+            "filepath": "fixtures/demopkg/src/demopkg/compat.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "function",
+            "lineno": 14,
+            "name": "legacy_name",
+            "parameters": [
+              {
+                "annotation": {
+                  "cls": "ExprName",
+                  "member": "legacy_name",
+                  "name": "Report"
+                },
+                "default": null,
+                "kind": "positional or keyword",
+                "name": "report"
+              }
+            ],
+            "path": "demopkg.compat.legacy_name",
+            "relative_filepath": "fixtures/demopkg/src/demopkg/compat.py",
+            "relative_package_filepath": "demopkg/compat.py",
+            "returns": {
+              "cls": "ExprName",
+              "member": "legacy_name",
+              "name": "str"
+            },
+            "runtime": true
+          }
+        },
+        "name": "compat",
+        "path": "demopkg.compat",
+        "relative_filepath": "fixtures/demopkg/src/demopkg/compat.py",
+        "relative_package_filepath": "demopkg/compat.py",
+        "runtime": true
+      },
+      "generate_report": {
+        "analysis": "static",
+        "endlineno": 26,
+        "inherited": false,
+        "is_class_private": false,
+        "is_deprecated": false,
+        "is_exported": true,
+        "is_imported": true,
+        "is_private": false,
+        "is_public": true,
+        "is_special": false,
+        "is_wildcard_exposed": true,
+        "kind": "alias",
+        "lineno": 26,
+        "name": "generate_report",
+        "path": "demopkg.generate_report",
+        "runtime": true,
+        "target_path": "demopkg.report.generate_report"
+      },
+      "models": {
+        "analysis": "static",
+        "docstring": {
+          "endlineno": 1,
+          "lineno": 1,
+          "parsed": [
+            {
+              "kind": "text",
+              "value": "Pydantic models, documented through the `griffe_pydantic` extension."
+            }
+          ],
+          "value": "Pydantic models, documented through the `griffe_pydantic` extension."
+        },
+        "filepath": "fixtures/demopkg/src/demopkg/models.py",
+        "imports": {
+          "BaseModel": "pydantic.BaseModel",
+          "Field": "pydantic.Field",
+          "field_validator": "pydantic.field_validator"
+        },
+        "is_class_private": false,
+        "is_deprecated": false,
+        "is_exported": true,
+        "is_imported": false,
+        "is_private": false,
+        "is_public": true,
+        "is_special": false,
+        "is_wildcard_exposed": true,
+        "kind": "module",
+        "members": {
+          "BaseModel": {
+            "analysis": "static",
+            "endlineno": 3,
+            "inherited": false,
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": true,
+            "is_private": false,
+            "is_public": false,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "alias",
+            "lineno": 3,
+            "name": "BaseModel",
+            "path": "demopkg.models.BaseModel",
+            "runtime": true,
+            "target_path": "pydantic.BaseModel"
+          },
+          "Field": {
+            "analysis": "static",
+            "endlineno": 3,
+            "inherited": false,
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": true,
+            "is_private": false,
+            "is_public": false,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "alias",
+            "lineno": 3,
+            "name": "Field",
+            "path": "demopkg.models.Field",
+            "runtime": true,
+            "target_path": "pydantic.Field"
+          },
+          "User": {
+            "analysis": "static",
+            "bases": [
+              {
+                "cls": "ExprName",
+                "member": "User",
+                "name": "BaseModel"
+              }
+            ],
+            "decorators": [],
+            "docstring": {
+              "endlineno": 7,
+              "lineno": 7,
+              "parsed": [
+                {
+                  "kind": "text",
+                  "value": "Someone who can own a report."
+                }
+              ],
+              "value": "Someone who can own a report."
+            },
+            "endlineno": 17,
+            "filepath": "fixtures/demopkg/src/demopkg/models.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "class",
+            "labels": [
+              "pydantic-model"
+            ],
+            "lineno": 6,
+            "members": {
+              "_lowercase": {
+                "analysis": "static",
+                "decorators": [
+                  {
+                    "endlineno": 13,
+                    "lineno": 13,
+                    "value": {
+                      "arguments": [
+                        "'email'"
+                      ],
+                      "cls": "ExprCall",
+                      "function": {
+                        "cls": "ExprName",
+                        "member": null,
+                        "name": "field_validator"
+                      }
+                    }
+                  },
+                  {
+                    "endlineno": 14,
+                    "lineno": 14,
+                    "value": {
+                      "cls": "ExprName",
+                      "member": null,
+                      "name": "classmethod"
+                    }
+                  }
+                ],
+                "docstring": {
+                  "endlineno": 16,
+                  "lineno": 16,
+                  "parsed": [
+                    {
+                      "kind": "text",
+                      "value": "Normalise the address before it is stored."
+                    }
+                  ],
+                  "value": "Normalise the address before it is stored."
+                },
+                "endlineno": 17,
+                "filepath": "fixtures/demopkg/src/demopkg/models.py",
+                "is_class_private": false,
+                "is_deprecated": false,
+                "is_exported": false,
+                "is_imported": false,
+                "is_private": true,
+                "is_public": false,
+                "is_special": false,
+                "is_wildcard_exposed": false,
+                "kind": "function",
+                "labels": [
+                  "pydantic-validator"
+                ],
+                "lineno": 13,
+                "name": "_lowercase",
+                "parameters": [
+                  {
+                    "annotation": null,
+                    "default": null,
+                    "kind": "positional or keyword",
+                    "name": "cls"
+                  },
+                  {
+                    "annotation": {
+                      "cls": "ExprName",
+                      "member": "_lowercase",
+                      "name": "str"
+                    },
+                    "default": null,
+                    "kind": "positional or keyword",
+                    "name": "value"
+                  }
+                ],
+                "path": "demopkg.models.User._lowercase",
+                "relative_filepath": "fixtures/demopkg/src/demopkg/models.py",
+                "relative_package_filepath": "demopkg/models.py",
+                "returns": {
+                  "cls": "ExprName",
+                  "member": "_lowercase",
+                  "name": "str"
+                },
+                "runtime": true
+              },
+              "email": {
+                "analysis": "static",
+                "annotation": {
+                  "cls": "ExprName",
+                  "member": null,
+                  "name": "str"
+                },
+                "docstring": {
+                  "endlineno": null,
+                  "lineno": null,
+                  "parsed": [
+                    {
+                      "kind": "text",
+                      "value": "Contact address, lowercased on validation."
+                    }
+                  ],
+                  "value": "Contact address, lowercased on validation."
+                },
+                "endlineno": 10,
+                "filepath": "fixtures/demopkg/src/demopkg/models.py",
+                "is_class_private": false,
+                "is_deprecated": false,
+                "is_exported": false,
+                "is_imported": false,
+                "is_private": false,
+                "is_public": true,
+                "is_special": false,
+                "is_wildcard_exposed": false,
+                "kind": "attribute",
+                "labels": [
+                  "pydantic-field"
+                ],
+                "lineno": 10,
+                "name": "email",
+                "path": "demopkg.models.User.email",
+                "relative_filepath": "fixtures/demopkg/src/demopkg/models.py",
+                "relative_package_filepath": "demopkg/models.py",
+                "runtime": true
+              },
+              "name": {
+                "analysis": "static",
+                "annotation": {
+                  "cls": "ExprName",
+                  "member": null,
+                  "name": "str"
+                },
+                "docstring": {
+                  "endlineno": null,
+                  "lineno": null,
+                  "parsed": [
+                    {
+                      "kind": "text",
+                      "value": "Display name of the user."
+                    }
+                  ],
+                  "value": "Display name of the user."
+                },
+                "endlineno": 9,
+                "filepath": "fixtures/demopkg/src/demopkg/models.py",
+                "is_class_private": false,
+                "is_deprecated": false,
+                "is_exported": false,
+                "is_imported": false,
+                "is_private": false,
+                "is_public": true,
+                "is_special": false,
+                "is_wildcard_exposed": false,
+                "kind": "attribute",
+                "labels": [
+                  "pydantic-field"
+                ],
+                "lineno": 9,
+                "name": "name",
+                "path": "demopkg.models.User.name",
+                "relative_filepath": "fixtures/demopkg/src/demopkg/models.py",
+                "relative_package_filepath": "demopkg/models.py",
+                "runtime": true
+              },
+              "reports": {
+                "analysis": "static",
+                "annotation": {
+                  "cls": "ExprName",
+                  "member": null,
+                  "name": "int"
+                },
+                "docstring": {
+                  "endlineno": null,
+                  "lineno": null,
+                  "parsed": [
+                    {
+                      "kind": "text",
+                      "value": "How many reports the user owns."
+                    }
+                  ],
+                  "value": "How many reports the user owns."
+                },
+                "endlineno": 11,
+                "filepath": "fixtures/demopkg/src/demopkg/models.py",
+                "is_class_private": false,
+                "is_deprecated": false,
+                "is_exported": false,
+                "is_imported": false,
+                "is_private": false,
+                "is_public": true,
+                "is_special": false,
+                "is_wildcard_exposed": false,
+                "kind": "attribute",
+                "labels": [
+                  "pydantic-field"
+                ],
+                "lineno": 11,
+                "name": "reports",
+                "path": "demopkg.models.User.reports",
+                "relative_filepath": "fixtures/demopkg/src/demopkg/models.py",
+                "relative_package_filepath": "demopkg/models.py",
+                "runtime": true,
+                "value": "0"
+              }
+            },
+            "name": "User",
+            "path": "demopkg.models.User",
+            "relative_filepath": "fixtures/demopkg/src/demopkg/models.py",
+            "relative_package_filepath": "demopkg/models.py",
+            "runtime": true
+          },
+          "field_validator": {
+            "analysis": "static",
+            "endlineno": 3,
+            "inherited": false,
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": true,
+            "is_private": false,
+            "is_public": false,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "alias",
+            "lineno": 3,
+            "name": "field_validator",
+            "path": "demopkg.models.field_validator",
+            "runtime": true,
+            "target_path": "pydantic.field_validator"
+          }
+        },
+        "name": "models",
+        "path": "demopkg.models",
+        "relative_filepath": "fixtures/demopkg/src/demopkg/models.py",
+        "relative_package_filepath": "demopkg/models.py",
+        "runtime": true
+      },
+      "report": {
+        "analysis": "static",
+        "docstring": {
+          "endlineno": 6,
+          "lineno": 1,
+          "parsed": [
+            {
+              "kind": "text",
+              "value": "Report classes and the functions that build them.\n\nThis module holds the bulk of the fixture surface: a base class, a subclass\nthat inherits and overrides members, overloaded methods, a static method, a\nclass method, a property with a setter, and the package's exception types."
+            }
+          ],
+          "value": "Report classes and the functions that build them.\n\nThis module holds the bulk of the fixture surface: a base class, a subclass\nthat inherits and overrides members, overloaded methods, a static method, a\nclass method, a property with a setter, and the package's exception types."
+        },
+        "filepath": "fixtures/demopkg/src/demopkg/report.py",
+        "imports": {
+          "Any": "typing.Any",
+          "DEFAULT_TIMEOUT": "demopkg.DEFAULT_TIMEOUT",
+          "Mapping": "collections.abc.Mapping",
+          "annotations": "__future__.annotations",
+          "deprecated": "typing_extensions.deprecated",
+          "pathlib": "pathlib",
+          "typing": "typing"
+        },
+        "is_class_private": false,
+        "is_deprecated": false,
+        "is_exported": false,
+        "is_imported": false,
+        "is_private": false,
+        "is_public": true,
+        "is_special": false,
+        "is_wildcard_exposed": false,
+        "kind": "module",
+        "members": {
+          "Any": {
+            "analysis": "static",
+            "endlineno": 12,
+            "inherited": false,
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": true,
+            "is_private": false,
+            "is_public": false,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "alias",
+            "lineno": 12,
+            "name": "Any",
+            "path": "demopkg.report.Any",
+            "runtime": true,
+            "target_path": "typing.Any"
+          },
+          "BaseReport": {
+            "analysis": "static",
+            "bases": [],
+            "decorators": [],
+            "docstring": {
+              "endlineno": 27,
+              "lineno": 23,
+              "parsed": [
+                {
+                  "kind": "text",
+                  "value": "Common behaviour shared by every report."
+                },
+                {
+                  "kind": "attributes",
+                  "value": [
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": null,
+                        "name": "str"
+                      },
+                      "description": "File extension used when a report is saved without one.",
+                      "name": "format"
+                    }
+                  ]
+                }
+              ],
+              "value": "Common behaviour shared by every report.\n\nAttributes:\n    format: File extension used when a report is saved without one."
+            },
+            "endlineno": 54,
+            "filepath": "fixtures/demopkg/src/demopkg/report.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "class",
+            "lineno": 22,
+            "members": {
+              "format": {
+                "analysis": "static",
+                "annotation": {
+                  "cls": "ExprName",
+                  "member": null,
+                  "name": "str"
+                },
+                "docstring": {
+                  "endlineno": 30,
+                  "lineno": 30,
+                  "parsed": [
+                    {
+                      "kind": "text",
+                      "value": "Default output format, as a bare file extension."
+                    }
+                  ],
+                  "value": "Default output format, as a bare file extension."
+                },
+                "endlineno": 29,
+                "filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "is_class_private": false,
+                "is_deprecated": false,
+                "is_exported": false,
+                "is_imported": false,
+                "is_private": false,
+                "is_public": true,
+                "is_special": false,
+                "is_wildcard_exposed": false,
+                "kind": "attribute",
+                "labels": [
+                  "class-attribute",
+                  "instance-attribute"
+                ],
+                "lineno": 29,
+                "name": "format",
+                "path": "demopkg.report.BaseReport.format",
+                "relative_filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "relative_package_filepath": "demopkg/report.py",
+                "runtime": true,
+                "value": "'txt'"
+              },
+              "is_valid": {
+                "analysis": "static",
+                "annotation": {
+                  "cls": "ExprName",
+                  "member": "is_valid",
+                  "name": "bool"
+                },
+                "docstring": {
+                  "endlineno": 53,
+                  "lineno": 53,
+                  "parsed": [
+                    {
+                      "kind": "text",
+                      "value": "Whether [`validate`][demopkg.report.BaseReport.validate] passes."
+                    }
+                  ],
+                  "value": "Whether [`validate`][demopkg.report.BaseReport.validate] passes."
+                },
+                "endlineno": 54,
+                "filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "is_class_private": false,
+                "is_deprecated": false,
+                "is_exported": false,
+                "is_imported": false,
+                "is_private": false,
+                "is_public": true,
+                "is_special": false,
+                "is_wildcard_exposed": false,
+                "kind": "attribute",
+                "labels": [
+                  "property"
+                ],
+                "lineno": 52,
+                "name": "is_valid",
+                "path": "demopkg.report.BaseReport.is_valid",
+                "relative_filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "relative_package_filepath": "demopkg/report.py",
+                "runtime": true
+              },
+              "save": {
+                "analysis": "static",
+                "decorators": [],
+                "docstring": {
+                  "endlineno": 40,
+                  "lineno": 33,
+                  "parsed": [
+                    {
+                      "kind": "text",
+                      "value": "Write the rendered report to `path`."
+                    },
+                    {
+                      "kind": "parameters",
+                      "value": [
+                        {
+                          "annotation": {
+                            "cls": "ExprAttribute",
+                            "values": [
+                              {
+                                "cls": "ExprName",
+                                "member": "save",
+                                "name": "pathlib"
+                              },
+                              {
+                                "cls": "ExprName",
+                                "member": null,
+                                "name": "Path"
+                              }
+                            ]
+                          },
+                          "description": "Destination file. Parent directories must exist.",
+                          "name": "path"
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "raises",
+                      "value": [
+                        {
+                          "annotation": {
+                            "cls": "ExprName",
+                            "member": null,
+                            "name": "OSError"
+                          },
+                          "description": "If the file cannot be written."
+                        }
+                      ]
+                    }
+                  ],
+                  "value": "Write the rendered report to `path`.\n\nArgs:\n    path: Destination file. Parent directories must exist.\n\nRaises:\n    OSError: If the file cannot be written."
+                },
+                "endlineno": 41,
+                "filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "is_class_private": false,
+                "is_deprecated": false,
+                "is_exported": false,
+                "is_imported": false,
+                "is_private": false,
+                "is_public": true,
+                "is_special": false,
+                "is_wildcard_exposed": false,
+                "kind": "function",
+                "lineno": 32,
+                "name": "save",
+                "parameters": [
+                  {
+                    "annotation": null,
+                    "default": null,
+                    "kind": "positional or keyword",
+                    "name": "self"
+                  },
+                  {
+                    "annotation": {
+                      "cls": "ExprAttribute",
+                      "values": [
+                        {
+                          "cls": "ExprName",
+                          "member": "save",
+                          "name": "pathlib"
+                        },
+                        {
+                          "cls": "ExprName",
+                          "member": null,
+                          "name": "Path"
+                        }
+                      ]
+                    },
+                    "default": null,
+                    "kind": "positional or keyword",
+                    "name": "path"
+                  }
+                ],
+                "path": "demopkg.report.BaseReport.save",
+                "relative_filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "relative_package_filepath": "demopkg/report.py",
+                "returns": "None",
+                "runtime": true
+              },
+              "validate": {
+                "analysis": "static",
+                "decorators": [],
+                "docstring": {
+                  "endlineno": 48,
+                  "lineno": 44,
+                  "parsed": [
+                    {
+                      "kind": "text",
+                      "value": "Check the report for structural problems."
+                    },
+                    {
+                      "kind": "returns",
+                      "value": [
+                        {
+                          "annotation": {
+                            "cls": "ExprName",
+                            "member": "validate",
+                            "name": "bool"
+                          },
+                          "description": "True when the report is well formed.",
+                          "name": ""
+                        }
+                      ]
+                    }
+                  ],
+                  "value": "Check the report for structural problems.\n\nReturns:\n    True when the report is well formed."
+                },
+                "endlineno": 49,
+                "filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "is_class_private": false,
+                "is_deprecated": false,
+                "is_exported": false,
+                "is_imported": false,
+                "is_private": false,
+                "is_public": true,
+                "is_special": false,
+                "is_wildcard_exposed": false,
+                "kind": "function",
+                "lineno": 43,
+                "name": "validate",
+                "parameters": [
+                  {
+                    "annotation": null,
+                    "default": null,
+                    "kind": "positional or keyword",
+                    "name": "self"
+                  }
+                ],
+                "path": "demopkg.report.BaseReport.validate",
+                "relative_filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "relative_package_filepath": "demopkg/report.py",
+                "returns": {
+                  "cls": "ExprName",
+                  "member": "validate",
+                  "name": "bool"
+                },
+                "runtime": true
+              }
+            },
+            "name": "BaseReport",
+            "path": "demopkg.report.BaseReport",
+            "relative_filepath": "fixtures/demopkg/src/demopkg/report.py",
+            "relative_package_filepath": "demopkg/report.py",
+            "runtime": true
+          },
+          "DEFAULT_TIMEOUT": {
+            "analysis": "static",
+            "endlineno": 16,
+            "inherited": false,
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": true,
+            "is_private": false,
+            "is_public": false,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "alias",
+            "lineno": 16,
+            "name": "DEFAULT_TIMEOUT",
+            "path": "demopkg.report.DEFAULT_TIMEOUT",
+            "runtime": true,
+            "target_path": "demopkg.DEFAULT_TIMEOUT"
+          },
+          "Mapping": {
+            "analysis": "static",
+            "endlineno": 19,
+            "inherited": false,
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": true,
+            "is_private": false,
+            "is_public": false,
+            "is_special": false,
+            "is_wildcard_exposed": false,
+            "kind": "alias",
+            "lineno": 19,
+            "name": "Mapping",
+            "path": "demopkg.report.Mapping",
+            "runtime": false,
+            "target_path": "collections.abc.Mapping"
+          },
+          "Report": {
+            "analysis": "static",
+            "bases": [
+              {
+                "cls": "ExprName",
+                "member": "Report",
+                "name": "BaseReport"
+              }
+            ],
+            "decorators": [],
+            "docstring": {
+              "endlineno": 67,
+              "lineno": 58,
+              "parsed": [
+                {
+                  "kind": "text",
+                  "value": "A named collection of scored sections."
+                },
+                {
+                  "kind": "parameters",
+                  "value": [
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": "__init__",
+                        "name": "str"
+                      },
+                      "description": "Human readable report name, also used as the file stem.",
+                      "name": "name"
+                    },
+                    {
+                      "annotation": {
+                        "cls": "ExprBinOp",
+                        "left": {
+                          "cls": "ExprSubscript",
+                          "left": {
+                            "cls": "ExprName",
+                            "member": "__init__",
+                            "name": "dict"
+                          },
+                          "slice": {
+                            "cls": "ExprTuple",
+                            "elements": [
+                              {
+                                "cls": "ExprName",
+                                "member": "__init__",
+                                "name": "str"
+                              },
+                              {
+                                "cls": "ExprName",
+                                "member": "__init__",
+                                "name": "float"
+                              }
+                            ],
+                            "implicit": true
+                          }
+                        },
+                        "operator": "|",
+                        "right": "None"
+                      },
+                      "description": "Mapping of metric name to score. Defaults to an empty mapping.",
+                      "name": "scores",
+                      "value": "None"
+                    }
+                  ]
+                },
+                {
+                  "kind": "attributes",
+                  "value": [
+                    {
+                      "annotation": null,
+                      "description": "The report name.",
+                      "name": "name"
+                    },
+                    {
+                      "annotation": {
+                        "cls": "ExprSubscript",
+                        "left": {
+                          "cls": "ExprName",
+                          "member": null,
+                          "name": "dict"
+                        },
+                        "slice": {
+                          "cls": "ExprTuple",
+                          "elements": [
+                            {
+                              "cls": "ExprName",
+                              "member": null,
+                              "name": "str"
+                            },
+                            {
+                              "cls": "ExprName",
+                              "member": null,
+                              "name": "float"
+                            }
+                          ],
+                          "implicit": true
+                        }
+                      },
+                      "description": "The scores passed to the constructor.",
+                      "name": "scores"
+                    }
+                  ]
+                }
+              ],
+              "value": "A named collection of scored sections.\n\nArgs:\n    name: Human readable report name, also used as the file stem.\n    scores: Mapping of metric name to score. Defaults to an empty mapping.\n\nAttributes:\n    name: The report name.\n    scores: The scores passed to the constructor."
+            },
+            "endlineno": 160,
+            "filepath": "fixtures/demopkg/src/demopkg/report.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "class",
+            "lineno": 57,
+            "members": {
+              "__init__": {
+                "analysis": "static",
+                "decorators": [],
+                "endlineno": 74,
+                "filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "is_class_private": false,
+                "is_deprecated": false,
+                "is_exported": false,
+                "is_imported": false,
+                "is_private": false,
+                "is_public": true,
+                "is_special": true,
+                "is_wildcard_exposed": false,
+                "kind": "function",
+                "lineno": 69,
+                "name": "__init__",
+                "parameters": [
+                  {
+                    "annotation": null,
+                    "default": null,
+                    "kind": "positional or keyword",
+                    "name": "self"
+                  },
+                  {
+                    "annotation": {
+                      "cls": "ExprName",
+                      "member": "__init__",
+                      "name": "str"
+                    },
+                    "default": null,
+                    "kind": "positional or keyword",
+                    "name": "name"
+                  },
+                  {
+                    "annotation": {
+                      "cls": "ExprBinOp",
+                      "left": {
+                        "cls": "ExprSubscript",
+                        "left": {
+                          "cls": "ExprName",
+                          "member": "__init__",
+                          "name": "dict"
+                        },
+                        "slice": {
+                          "cls": "ExprTuple",
+                          "elements": [
+                            {
+                              "cls": "ExprName",
+                              "member": "__init__",
+                              "name": "str"
+                            },
+                            {
+                              "cls": "ExprName",
+                              "member": "__init__",
+                              "name": "float"
+                            }
+                          ],
+                          "implicit": true
+                        }
+                      },
+                      "operator": "|",
+                      "right": "None"
+                    },
+                    "default": "None",
+                    "kind": "positional or keyword",
+                    "name": "scores"
+                  }
+                ],
+                "path": "demopkg.report.Report.__init__",
+                "relative_filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "relative_package_filepath": "demopkg/report.py",
+                "returns": "None",
+                "runtime": true
+              },
+              "_title": {
+                "analysis": "static",
+                "endlineno": 74,
+                "filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "is_class_private": false,
+                "is_deprecated": false,
+                "is_exported": false,
+                "is_imported": false,
+                "is_private": true,
+                "is_public": false,
+                "is_special": false,
+                "is_wildcard_exposed": false,
+                "kind": "attribute",
+                "labels": [
+                  "instance-attribute"
+                ],
+                "lineno": 74,
+                "name": "_title",
+                "path": "demopkg.report.Report._title",
+                "relative_filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "relative_package_filepath": "demopkg/report.py",
+                "runtime": true,
+                "value": {
+                  "cls": "ExprName",
+                  "member": null,
+                  "name": "name"
+                }
+              },
+              "from_mapping": {
+                "analysis": "static",
+                "decorators": [
+                  {
+                    "endlineno": 140,
+                    "lineno": 140,
+                    "value": {
+                      "cls": "ExprName",
+                      "member": null,
+                      "name": "classmethod"
+                    }
+                  }
+                ],
+                "docstring": {
+                  "endlineno": 150,
+                  "lineno": 142,
+                  "parsed": [
+                    {
+                      "kind": "text",
+                      "value": "Build a report from an existing mapping of scores."
+                    },
+                    {
+                      "kind": "parameters",
+                      "value": [
+                        {
+                          "annotation": {
+                            "cls": "ExprSubscript",
+                            "left": {
+                              "cls": "ExprName",
+                              "member": "from_mapping",
+                              "name": "Mapping"
+                            },
+                            "slice": {
+                              "cls": "ExprTuple",
+                              "elements": [
+                                {
+                                  "cls": "ExprName",
+                                  "member": "from_mapping",
+                                  "name": "str"
+                                },
+                                {
+                                  "cls": "ExprName",
+                                  "member": "from_mapping",
+                                  "name": "float"
+                                }
+                              ],
+                              "implicit": true
+                            }
+                          },
+                          "description": "Metric name to score.",
+                          "name": "data"
+                        },
+                        {
+                          "annotation": {
+                            "cls": "ExprName",
+                            "member": "from_mapping",
+                            "name": "str"
+                          },
+                          "description": "Name for the new report.",
+                          "name": "name",
+                          "value": "'report'"
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "returns",
+                      "value": [
+                        {
+                          "annotation": {
+                            "cls": "ExprName",
+                            "member": "from_mapping",
+                            "name": "Report"
+                          },
+                          "description": "A new report holding a copy of `data`.",
+                          "name": ""
+                        }
+                      ]
+                    }
+                  ],
+                  "value": "Build a report from an existing mapping of scores.\n\nArgs:\n    data: Metric name to score.\n    name: Name for the new report.\n\nReturns:\n    A new report holding a copy of `data`."
+                },
+                "endlineno": 151,
+                "filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "is_class_private": false,
+                "is_deprecated": false,
+                "is_exported": false,
+                "is_imported": false,
+                "is_private": false,
+                "is_public": true,
+                "is_special": false,
+                "is_wildcard_exposed": false,
+                "kind": "function",
+                "labels": [
+                  "classmethod"
+                ],
+                "lineno": 140,
+                "name": "from_mapping",
+                "parameters": [
+                  {
+                    "annotation": null,
+                    "default": null,
+                    "kind": "positional or keyword",
+                    "name": "cls"
+                  },
+                  {
+                    "annotation": {
+                      "cls": "ExprSubscript",
+                      "left": {
+                        "cls": "ExprName",
+                        "member": "from_mapping",
+                        "name": "Mapping"
+                      },
+                      "slice": {
+                        "cls": "ExprTuple",
+                        "elements": [
+                          {
+                            "cls": "ExprName",
+                            "member": "from_mapping",
+                            "name": "str"
+                          },
+                          {
+                            "cls": "ExprName",
+                            "member": "from_mapping",
+                            "name": "float"
+                          }
+                        ],
+                        "implicit": true
+                      }
+                    },
+                    "default": null,
+                    "kind": "positional or keyword",
+                    "name": "data"
+                  },
+                  {
+                    "annotation": {
+                      "cls": "ExprName",
+                      "member": "from_mapping",
+                      "name": "str"
+                    },
+                    "default": "'report'",
+                    "kind": "keyword-only",
+                    "name": "name"
+                  }
+                ],
+                "path": "demopkg.report.Report.from_mapping",
+                "relative_filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "relative_package_filepath": "demopkg/report.py",
+                "returns": {
+                  "cls": "ExprName",
+                  "member": "from_mapping",
+                  "name": "Report"
+                },
+                "runtime": true
+              },
+              "generate": {
+                "analysis": "static",
+                "decorators": [],
+                "docstring": {
+                  "endlineno": 106,
+                  "lineno": 83,
+                  "parsed": [
+                    {
+                      "kind": "text",
+                      "value": "Render the report and return the path it was written to."
+                    },
+                    {
+                      "kind": "parameters",
+                      "value": [
+                        {
+                          "annotation": {
+                            "cls": "ExprName",
+                            "member": "generate",
+                            "name": "str"
+                          },
+                          "description": "Section names to include, in order. When empty every\nknown section is rendered.",
+                          "name": "*sections",
+                          "value": "()"
+                        },
+                        {
+                          "annotation": {
+                            "cls": "ExprBinOp",
+                            "left": {
+                              "cls": "ExprName",
+                              "member": "generate",
+                              "name": "str"
+                            },
+                            "operator": "|",
+                            "right": "None"
+                          },
+                          "description": "Overrides the report title. Defaults to the report name.",
+                          "name": "title",
+                          "value": "None"
+                        },
+                        {
+                          "annotation": {
+                            "cls": "ExprName",
+                            "member": "generate",
+                            "name": "float"
+                          },
+                          "description": "Seconds to wait before giving up.",
+                          "name": "timeout",
+                          "value": {
+                            "cls": "ExprName",
+                            "member": null,
+                            "name": "DEFAULT_TIMEOUT"
+                          }
+                        },
+                        {
+                          "annotation": {
+                            "cls": "ExprName",
+                            "member": "generate",
+                            "name": "Any"
+                          },
+                          "description": "Extra renderer options, passed through untouched.",
+                          "name": "**options",
+                          "value": "{}"
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "returns",
+                      "value": [
+                        {
+                          "annotation": {
+                            "cls": "ExprAttribute",
+                            "values": [
+                              {
+                                "cls": "ExprName",
+                                "member": "generate",
+                                "name": "pathlib"
+                              },
+                              {
+                                "cls": "ExprName",
+                                "member": null,
+                                "name": "Path"
+                              }
+                            ]
+                          },
+                          "description": "The path of the file that was written.",
+                          "name": ""
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "raises",
+                      "value": [
+                        {
+                          "annotation": {
+                            "cls": "ExprName",
+                            "member": null,
+                            "name": "ReportError"
+                          },
+                          "description": "If a requested section does not exist."
+                        },
+                        {
+                          "annotation": {
+                            "cls": "ExprName",
+                            "member": null,
+                            "name": "TimeoutError"
+                          },
+                          "description": "If rendering takes longer than `timeout`."
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "admonition",
+                      "title": "Note",
+                      "value": {
+                        "annotation": "note",
+                        "description": "Generation is deliberately synchronous; run it in a thread if you\nneed to keep an event loop responsive."
+                      }
+                    },
+                    {
+                      "kind": "examples",
+                      "value": [
+                        [
+                          "examples",
+                          ">>> Report(\"weekly\").generate(\"summary\", title=\"Weekly\")\nPosixPath('weekly.txt')"
+                        ]
+                      ]
+                    }
+                  ],
+                  "value": "Render the report and return the path it was written to.\n\nArgs:\n    *sections: Section names to include, in order. When empty every\n        known section is rendered.\n    title: Overrides the report title. Defaults to the report name.\n    timeout: Seconds to wait before giving up.\n    **options: Extra renderer options, passed through untouched.\n\nReturns:\n    The path of the file that was written.\n\nRaises:\n    ReportError: If a requested section does not exist.\n    TimeoutError: If rendering takes longer than `timeout`.\n\nNote:\n    Generation is deliberately synchronous; run it in a thread if you\n    need to keep an event loop responsive.\n\nExamples:\n    >>> Report(\"weekly\").generate(\"summary\", title=\"Weekly\")\n    PosixPath('weekly.txt')"
+                },
+                "endlineno": 110,
+                "filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "is_class_private": false,
+                "is_deprecated": false,
+                "is_exported": false,
+                "is_imported": false,
+                "is_private": false,
+                "is_public": true,
+                "is_special": false,
+                "is_wildcard_exposed": false,
+                "kind": "function",
+                "lineno": 76,
+                "name": "generate",
+                "parameters": [
+                  {
+                    "annotation": null,
+                    "default": null,
+                    "kind": "positional or keyword",
+                    "name": "self"
+                  },
+                  {
+                    "annotation": {
+                      "cls": "ExprName",
+                      "member": "generate",
+                      "name": "str"
+                    },
+                    "default": "()",
+                    "kind": "variadic positional",
+                    "name": "sections"
+                  },
+                  {
+                    "annotation": {
+                      "cls": "ExprBinOp",
+                      "left": {
+                        "cls": "ExprName",
+                        "member": "generate",
+                        "name": "str"
+                      },
+                      "operator": "|",
+                      "right": "None"
+                    },
+                    "default": "None",
+                    "kind": "keyword-only",
+                    "name": "title"
+                  },
+                  {
+                    "annotation": {
+                      "cls": "ExprName",
+                      "member": "generate",
+                      "name": "float"
+                    },
+                    "default": {
+                      "cls": "ExprName",
+                      "member": null,
+                      "name": "DEFAULT_TIMEOUT"
+                    },
+                    "kind": "keyword-only",
+                    "name": "timeout"
+                  },
+                  {
+                    "annotation": {
+                      "cls": "ExprName",
+                      "member": "generate",
+                      "name": "Any"
+                    },
+                    "default": "{}",
+                    "kind": "variadic keyword",
+                    "name": "options"
+                  }
+                ],
+                "path": "demopkg.report.Report.generate",
+                "relative_filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "relative_package_filepath": "demopkg/report.py",
+                "returns": {
+                  "cls": "ExprAttribute",
+                  "values": [
+                    {
+                      "cls": "ExprName",
+                      "member": "generate",
+                      "name": "pathlib"
+                    },
+                    {
+                      "cls": "ExprName",
+                      "member": null,
+                      "name": "Path"
+                    }
+                  ]
+                },
+                "runtime": true
+              },
+              "name": {
+                "analysis": "static",
+                "docstring": {
+                  "endlineno": 71,
+                  "lineno": 71,
+                  "parsed": [
+                    {
+                      "kind": "text",
+                      "value": "The report name."
+                    }
+                  ],
+                  "value": "The report name."
+                },
+                "endlineno": 70,
+                "filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "is_class_private": false,
+                "is_deprecated": false,
+                "is_exported": false,
+                "is_imported": false,
+                "is_private": false,
+                "is_public": true,
+                "is_special": false,
+                "is_wildcard_exposed": false,
+                "kind": "attribute",
+                "labels": [
+                  "instance-attribute"
+                ],
+                "lineno": 70,
+                "name": "name",
+                "path": "demopkg.report.Report.name",
+                "relative_filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "relative_package_filepath": "demopkg/report.py",
+                "runtime": true,
+                "value": {
+                  "cls": "ExprName",
+                  "member": null,
+                  "name": "name"
+                }
+              },
+              "render": {
+                "analysis": "static",
+                "decorators": [],
+                "docstring": {
+                  "endlineno": 126,
+                  "lineno": 119,
+                  "parsed": [
+                    {
+                      "kind": "text",
+                      "value": "Render one section or a list of sections."
+                    },
+                    {
+                      "kind": "parameters",
+                      "value": [
+                        {
+                          "annotation": {
+                            "cls": "ExprBinOp",
+                            "left": {
+                              "cls": "ExprName",
+                              "member": "render",
+                              "name": "str"
+                            },
+                            "operator": "|",
+                            "right": {
+                              "cls": "ExprSubscript",
+                              "left": {
+                                "cls": "ExprName",
+                                "member": "render",
+                                "name": "list"
+                              },
+                              "slice": {
+                                "cls": "ExprName",
+                                "member": "render",
+                                "name": "str"
+                              }
+                            }
+                          },
+                          "description": "A single section name or a list of them.",
+                          "name": "value"
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "returns",
+                      "value": [
+                        {
+                          "annotation": {
+                            "cls": "ExprBinOp",
+                            "left": {
+                              "cls": "ExprName",
+                              "member": "render",
+                              "name": "str"
+                            },
+                            "operator": "|",
+                            "right": {
+                              "cls": "ExprSubscript",
+                              "left": {
+                                "cls": "ExprName",
+                                "member": "render",
+                                "name": "list"
+                              },
+                              "slice": {
+                                "cls": "ExprName",
+                                "member": "render",
+                                "name": "str"
+                              }
+                            }
+                          },
+                          "description": "Rendered output matching the shape of `value`.",
+                          "name": ""
+                        }
+                      ]
+                    }
+                  ],
+                  "value": "Render one section or a list of sections.\n\nArgs:\n    value: A single section name or a list of them.\n\nReturns:\n    Rendered output matching the shape of `value`."
+                },
+                "endlineno": 129,
+                "filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "is_class_private": false,
+                "is_deprecated": false,
+                "is_exported": false,
+                "is_imported": false,
+                "is_private": false,
+                "is_public": true,
+                "is_special": false,
+                "is_wildcard_exposed": false,
+                "kind": "function",
+                "lineno": 118,
+                "name": "render",
+                "parameters": [
+                  {
+                    "annotation": null,
+                    "default": null,
+                    "kind": "positional or keyword",
+                    "name": "self"
+                  },
+                  {
+                    "annotation": {
+                      "cls": "ExprBinOp",
+                      "left": {
+                        "cls": "ExprName",
+                        "member": "render",
+                        "name": "str"
+                      },
+                      "operator": "|",
+                      "right": {
+                        "cls": "ExprSubscript",
+                        "left": {
+                          "cls": "ExprName",
+                          "member": "render",
+                          "name": "list"
+                        },
+                        "slice": {
+                          "cls": "ExprName",
+                          "member": "render",
+                          "name": "str"
+                        }
+                      }
+                    },
+                    "default": null,
+                    "kind": "positional or keyword",
+                    "name": "value"
+                  }
+                ],
+                "path": "demopkg.report.Report.render",
+                "relative_filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "relative_package_filepath": "demopkg/report.py",
+                "returns": {
+                  "cls": "ExprBinOp",
+                  "left": {
+                    "cls": "ExprName",
+                    "member": "render",
+                    "name": "str"
+                  },
+                  "operator": "|",
+                  "right": {
+                    "cls": "ExprSubscript",
+                    "left": {
+                      "cls": "ExprName",
+                      "member": "render",
+                      "name": "list"
+                    },
+                    "slice": {
+                      "cls": "ExprName",
+                      "member": "render",
+                      "name": "str"
+                    }
+                  }
+                },
+                "runtime": true
+              },
+              "scores": {
+                "analysis": "static",
+                "annotation": {
+                  "cls": "ExprSubscript",
+                  "left": {
+                    "cls": "ExprName",
+                    "member": null,
+                    "name": "dict"
+                  },
+                  "slice": {
+                    "cls": "ExprTuple",
+                    "elements": [
+                      {
+                        "cls": "ExprName",
+                        "member": null,
+                        "name": "str"
+                      },
+                      {
+                        "cls": "ExprName",
+                        "member": null,
+                        "name": "float"
+                      }
+                    ],
+                    "implicit": true
+                  }
+                },
+                "docstring": {
+                  "endlineno": 73,
+                  "lineno": 73,
+                  "parsed": [
+                    {
+                      "kind": "text",
+                      "value": "Mapping of metric name to score."
+                    }
+                  ],
+                  "value": "Mapping of metric name to score."
+                },
+                "endlineno": 72,
+                "filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "is_class_private": false,
+                "is_deprecated": false,
+                "is_exported": false,
+                "is_imported": false,
+                "is_private": false,
+                "is_public": true,
+                "is_special": false,
+                "is_wildcard_exposed": false,
+                "kind": "attribute",
+                "labels": [
+                  "instance-attribute"
+                ],
+                "lineno": 72,
+                "name": "scores",
+                "path": "demopkg.report.Report.scores",
+                "relative_filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "relative_package_filepath": "demopkg/report.py",
+                "runtime": true,
+                "value": {
+                  "cls": "ExprBoolOp",
+                  "operator": "or",
+                  "values": [
+                    {
+                      "cls": "ExprName",
+                      "member": null,
+                      "name": "scores"
+                    },
+                    {
+                      "cls": "ExprDict",
+                      "keys": [],
+                      "values": []
+                    }
+                  ]
+                }
+              },
+              "supported_formats": {
+                "analysis": "static",
+                "decorators": [
+                  {
+                    "endlineno": 131,
+                    "lineno": 131,
+                    "value": {
+                      "cls": "ExprName",
+                      "member": null,
+                      "name": "staticmethod"
+                    }
+                  }
+                ],
+                "docstring": {
+                  "endlineno": 137,
+                  "lineno": 133,
+                  "parsed": [
+                    {
+                      "kind": "text",
+                      "value": "List the formats a report can be saved as."
+                    },
+                    {
+                      "kind": "returns",
+                      "value": [
+                        {
+                          "annotation": {
+                            "cls": "ExprSubscript",
+                            "left": {
+                              "cls": "ExprName",
+                              "member": "supported_formats",
+                              "name": "tuple"
+                            },
+                            "slice": {
+                              "cls": "ExprTuple",
+                              "elements": [
+                                {
+                                  "cls": "ExprName",
+                                  "member": "supported_formats",
+                                  "name": "str"
+                                },
+                                "..."
+                              ],
+                              "implicit": true
+                            }
+                          },
+                          "description": "Format extensions, without leading dots.",
+                          "name": ""
+                        }
+                      ]
+                    }
+                  ],
+                  "value": "List the formats a report can be saved as.\n\nReturns:\n    Format extensions, without leading dots."
+                },
+                "endlineno": 138,
+                "filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "is_class_private": false,
+                "is_deprecated": false,
+                "is_exported": false,
+                "is_imported": false,
+                "is_private": false,
+                "is_public": true,
+                "is_special": false,
+                "is_wildcard_exposed": false,
+                "kind": "function",
+                "labels": [
+                  "staticmethod"
+                ],
+                "lineno": 131,
+                "name": "supported_formats",
+                "parameters": [],
+                "path": "demopkg.report.Report.supported_formats",
+                "relative_filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "relative_package_filepath": "demopkg/report.py",
+                "returns": {
+                  "cls": "ExprSubscript",
+                  "left": {
+                    "cls": "ExprName",
+                    "member": "supported_formats",
+                    "name": "tuple"
+                  },
+                  "slice": {
+                    "cls": "ExprTuple",
+                    "elements": [
+                      {
+                        "cls": "ExprName",
+                        "member": "supported_formats",
+                        "name": "str"
+                      },
+                      "..."
+                    ],
+                    "implicit": true
+                  }
+                },
+                "runtime": true
+              },
+              "title": {
+                "analysis": "static",
+                "annotation": {
+                  "cls": "ExprName",
+                  "member": "title",
+                  "name": "str"
+                },
+                "docstring": {
+                  "endlineno": 155,
+                  "lineno": 155,
+                  "parsed": [
+                    {
+                      "kind": "text",
+                      "value": "Title used in the rendered output."
+                    }
+                  ],
+                  "value": "Title used in the rendered output."
+                },
+                "endlineno": 156,
+                "filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "is_class_private": false,
+                "is_deprecated": false,
+                "is_exported": false,
+                "is_imported": false,
+                "is_private": false,
+                "is_public": true,
+                "is_special": false,
+                "is_wildcard_exposed": false,
+                "kind": "attribute",
+                "labels": [
+                  "property",
+                  "writable"
+                ],
+                "lineno": 154,
+                "name": "title",
+                "path": "demopkg.report.Report.title",
+                "relative_filepath": "fixtures/demopkg/src/demopkg/report.py",
+                "relative_package_filepath": "demopkg/report.py",
+                "runtime": true
+              }
+            },
+            "name": "Report",
+            "path": "demopkg.report.Report",
+            "relative_filepath": "fixtures/demopkg/src/demopkg/report.py",
+            "relative_package_filepath": "demopkg/report.py",
+            "runtime": true
+          },
+          "ReportError": {
+            "analysis": "static",
+            "bases": [
+              {
+                "cls": "ExprName",
+                "member": "ReportError",
+                "name": "Exception"
+              }
+            ],
+            "decorators": [],
+            "docstring": {
+              "endlineno": 205,
+              "lineno": 205,
+              "parsed": [
+                {
+                  "kind": "text",
+                  "value": "Raised when a report cannot be generated."
+                }
+              ],
+              "value": "Raised when a report cannot be generated."
+            },
+            "endlineno": 205,
+            "filepath": "fixtures/demopkg/src/demopkg/report.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "class",
+            "lineno": 204,
+            "name": "ReportError",
+            "path": "demopkg.report.ReportError",
+            "relative_filepath": "fixtures/demopkg/src/demopkg/report.py",
+            "relative_package_filepath": "demopkg/report.py",
+            "runtime": true
+          },
+          "ReportWarning": {
+            "analysis": "static",
+            "bases": [
+              {
+                "cls": "ExprName",
+                "member": "ReportWarning",
+                "name": "UserWarning"
+              }
+            ],
+            "decorators": [],
+            "docstring": {
+              "endlineno": 209,
+              "lineno": 209,
+              "parsed": [
+                {
+                  "kind": "text",
+                  "value": "Warned when a report is generated with incomplete data."
+                }
+              ],
+              "value": "Warned when a report is generated with incomplete data."
+            },
+            "endlineno": 209,
+            "filepath": "fixtures/demopkg/src/demopkg/report.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "class",
+            "lineno": 208,
+            "name": "ReportWarning",
+            "path": "demopkg.report.ReportWarning",
+            "relative_filepath": "fixtures/demopkg/src/demopkg/report.py",
+            "relative_package_filepath": "demopkg/report.py",
+            "runtime": true
+          },
+          "annotations": {
+            "analysis": "static",
+            "endlineno": 8,
+            "inherited": false,
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": true,
+            "is_private": false,
+            "is_public": false,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "alias",
+            "lineno": 8,
+            "name": "annotations",
+            "path": "demopkg.report.annotations",
+            "runtime": true,
+            "target_path": "__future__.annotations"
+          },
+          "deprecated": {
+            "analysis": "static",
+            "endlineno": 14,
+            "inherited": false,
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": true,
+            "is_private": false,
+            "is_public": false,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "alias",
+            "lineno": 14,
+            "name": "deprecated",
+            "path": "demopkg.report.deprecated",
+            "runtime": true,
+            "target_path": "typing_extensions.deprecated"
+          },
+          "generate_report": {
+            "analysis": "static",
+            "decorators": [],
+            "docstring": {
+              "endlineno": 179,
+              "lineno": 164,
+              "parsed": [
+                {
+                  "kind": "text",
+                  "value": "Build a report from a source object.\n\nExercises a positional-only parameter (`source`, before the `/`) and a\nkeyword-only one (`fmt`, after the `*`)."
+                },
+                {
+                  "kind": "parameters",
+                  "value": [
+                    {
+                      "annotation": null,
+                      "description": "Anything with a `read()` method; deliberately unannotated.",
+                      "name": "source"
+                    },
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": "generate_report",
+                        "name": "str"
+                      },
+                      "description": "Name for the resulting report.",
+                      "name": "name"
+                    },
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": "generate_report",
+                        "name": "str"
+                      },
+                      "description": "Output format for the report.",
+                      "name": "fmt",
+                      "value": "'md'"
+                    }
+                  ]
+                },
+                {
+                  "kind": "returns",
+                  "value": [
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": "generate_report",
+                        "name": "Report"
+                      },
+                      "description": "A populated report.",
+                      "name": ""
+                    }
+                  ]
+                },
+                {
+                  "kind": "raises",
+                  "value": [
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": null,
+                        "name": "ReportError"
+                      },
+                      "description": "If `source` cannot be read."
+                    }
+                  ]
+                }
+              ],
+              "value": "Build a report from a source object.\n\nExercises a positional-only parameter (`source`, before the `/`) and a\nkeyword-only one (`fmt`, after the `*`).\n\nArgs:\n    source: Anything with a `read()` method; deliberately unannotated.\n    name: Name for the resulting report.\n    fmt: Output format for the report.\n\nReturns:\n    A populated report.\n\nRaises:\n    ReportError: If `source` cannot be read."
+            },
+            "endlineno": 182,
+            "filepath": "fixtures/demopkg/src/demopkg/report.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "function",
+            "lineno": 163,
+            "name": "generate_report",
+            "parameters": [
+              {
+                "annotation": null,
+                "default": null,
+                "kind": "positional-only",
+                "name": "source"
+              },
+              {
+                "annotation": {
+                  "cls": "ExprName",
+                  "member": "generate_report",
+                  "name": "str"
+                },
+                "default": null,
+                "kind": "positional or keyword",
+                "name": "name"
+              },
+              {
+                "annotation": {
+                  "cls": "ExprName",
+                  "member": "generate_report",
+                  "name": "str"
+                },
+                "default": "'md'",
+                "kind": "keyword-only",
+                "name": "fmt"
+              }
+            ],
+            "path": "demopkg.report.generate_report",
+            "relative_filepath": "fixtures/demopkg/src/demopkg/report.py",
+            "relative_package_filepath": "demopkg/report.py",
+            "returns": {
+              "cls": "ExprName",
+              "member": "generate_report",
+              "name": "Report"
+            },
+            "runtime": true
+          },
+          "old_generate": {
+            "analysis": "static",
+            "decorators": [
+              {
+                "endlineno": 188,
+                "lineno": 188,
+                "value": {
+                  "arguments": [
+                    "'use generate_report instead'"
+                  ],
+                  "cls": "ExprCall",
+                  "function": {
+                    "cls": "ExprName",
+                    "member": null,
+                    "name": "deprecated"
+                  }
+                }
+              }
+            ],
+            "docstring": {
+              "endlineno": 200,
+              "lineno": 190,
+              "parsed": [
+                {
+                  "kind": "text",
+                  "value": "Build a report the old way."
+                },
+                {
+                  "kind": "admonition",
+                  "title": "Deprecated",
+                  "value": {
+                    "annotation": "deprecated",
+                    "description": "Since 0.3. Use [`generate_report`][demopkg.report.generate_report]."
+                  }
+                },
+                {
+                  "kind": "parameters",
+                  "value": [
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": "old_generate",
+                        "name": "str"
+                      },
+                      "description": "Name for the resulting report.",
+                      "name": "name"
+                    }
+                  ]
+                },
+                {
+                  "kind": "returns",
+                  "value": [
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": "old_generate",
+                        "name": "Report"
+                      },
+                      "description": "A populated report.",
+                      "name": ""
+                    }
+                  ]
+                }
+              ],
+              "value": "Build a report the old way.\n\nDeprecated:\n    Since 0.3. Use [`generate_report`][demopkg.report.generate_report].\n\nArgs:\n    name: Name for the resulting report.\n\nReturns:\n    A populated report."
+            },
+            "endlineno": 201,
+            "filepath": "fixtures/demopkg/src/demopkg/report.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "function",
+            "lineno": 188,
+            "name": "old_generate",
+            "parameters": [
+              {
+                "annotation": {
+                  "cls": "ExprName",
+                  "member": "old_generate",
+                  "name": "str"
+                },
+                "default": null,
+                "kind": "positional or keyword",
+                "name": "name"
+              }
+            ],
+            "path": "demopkg.report.old_generate",
+            "relative_filepath": "fixtures/demopkg/src/demopkg/report.py",
+            "relative_package_filepath": "demopkg/report.py",
+            "returns": {
+              "cls": "ExprName",
+              "member": "old_generate",
+              "name": "Report"
+            },
+            "runtime": true
+          },
+          "pathlib": {
+            "analysis": "static",
+            "endlineno": 10,
+            "inherited": false,
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": true,
+            "is_private": false,
+            "is_public": false,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "alias",
+            "lineno": 10,
+            "name": "pathlib",
+            "path": "demopkg.report.pathlib",
+            "runtime": true,
+            "target_path": "pathlib"
+          },
+          "typing": {
+            "analysis": "static",
+            "endlineno": 11,
+            "inherited": false,
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": true,
+            "is_private": false,
+            "is_public": false,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "alias",
+            "lineno": 11,
+            "name": "typing",
+            "path": "demopkg.report.typing",
+            "runtime": true,
+            "target_path": "typing"
+          }
+        },
+        "name": "report",
+        "path": "demopkg.report",
+        "relative_filepath": "fixtures/demopkg/src/demopkg/report.py",
+        "relative_package_filepath": "demopkg/report.py",
+        "runtime": true
+      },
+      "utils": {
+        "analysis": "static",
+        "docstring": {
+          "endlineno": 6,
+          "lineno": 1,
+          "parsed": [
+            {
+              "kind": "text",
+              "value": "Helpers that operate on reports.\n\nEverything here is a plain function; the module has no `__all__`, so the public\nsurface comes from the `is_public` heuristics (no leading underscore, not\nimported)."
+            }
+          ],
+          "value": "Helpers that operate on reports.\n\nEverything here is a plain function; the module has no `__all__`, so the public\nsurface comes from the `is_public` heuristics (no leading underscore, not\nimported)."
+        },
+        "filepath": "fixtures/demopkg/src/demopkg/utils.py",
+        "imports": {
+          "Any": "typing.Any",
+          "Iterator": "collections.abc.Iterator",
+          "Report": "demopkg.report.Report",
+          "ReportError": "demopkg.report.ReportError"
+        },
+        "is_class_private": false,
+        "is_deprecated": false,
+        "is_exported": true,
+        "is_imported": false,
+        "is_private": false,
+        "is_public": true,
+        "is_special": false,
+        "is_wildcard_exposed": true,
+        "kind": "module",
+        "members": {
+          "Any": {
+            "analysis": "static",
+            "endlineno": 9,
+            "inherited": false,
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": true,
+            "is_private": false,
+            "is_public": false,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "alias",
+            "lineno": 9,
+            "name": "Any",
+            "path": "demopkg.utils.Any",
+            "runtime": true,
+            "target_path": "typing.Any"
+          },
+          "Iterator": {
+            "analysis": "static",
+            "endlineno": 8,
+            "inherited": false,
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": true,
+            "is_private": false,
+            "is_public": false,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "alias",
+            "lineno": 8,
+            "name": "Iterator",
+            "path": "demopkg.utils.Iterator",
+            "runtime": true,
+            "target_path": "collections.abc.Iterator"
+          },
+          "Report": {
+            "analysis": "static",
+            "endlineno": 11,
+            "inherited": false,
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": true,
+            "is_private": false,
+            "is_public": false,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "alias",
+            "lineno": 11,
+            "name": "Report",
+            "path": "demopkg.utils.Report",
+            "runtime": true,
+            "target_path": "demopkg.report.Report"
+          },
+          "ReportError": {
+            "analysis": "static",
+            "endlineno": 11,
+            "inherited": false,
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": true,
+            "is_private": false,
+            "is_public": false,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "alias",
+            "lineno": 11,
+            "name": "ReportError",
+            "path": "demopkg.utils.ReportError",
+            "runtime": true,
+            "target_path": "demopkg.report.ReportError"
+          },
+          "_private_helper": {
+            "analysis": "static",
+            "decorators": [],
+            "docstring": {
+              "endlineno": 69,
+              "lineno": 69,
+              "parsed": [
+                {
+                  "kind": "text",
+                  "value": "Format a summary line. Private, so it must never be documented."
+                }
+              ],
+              "value": "Format a summary line. Private, so it must never be documented."
+            },
+            "endlineno": 70,
+            "filepath": "fixtures/demopkg/src/demopkg/utils.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": true,
+            "is_public": false,
+            "is_special": false,
+            "is_wildcard_exposed": false,
+            "kind": "function",
+            "lineno": 68,
+            "name": "_private_helper",
+            "parameters": [
+              {
+                "annotation": {
+                  "cls": "ExprName",
+                  "member": "_private_helper",
+                  "name": "str"
+                },
+                "default": null,
+                "kind": "positional or keyword",
+                "name": "name"
+              },
+              {
+                "annotation": {
+                  "cls": "ExprSubscript",
+                  "left": {
+                    "cls": "ExprName",
+                    "member": "_private_helper",
+                    "name": "dict"
+                  },
+                  "slice": {
+                    "cls": "ExprTuple",
+                    "elements": [
+                      {
+                        "cls": "ExprName",
+                        "member": "_private_helper",
+                        "name": "str"
+                      },
+                      {
+                        "cls": "ExprName",
+                        "member": "_private_helper",
+                        "name": "Any"
+                      }
+                    ],
+                    "implicit": true
+                  }
+                },
+                "default": null,
+                "kind": "positional or keyword",
+                "name": "extra"
+              }
+            ],
+            "path": "demopkg.utils._private_helper",
+            "relative_filepath": "fixtures/demopkg/src/demopkg/utils.py",
+            "relative_package_filepath": "demopkg/utils.py",
+            "returns": {
+              "cls": "ExprName",
+              "member": "_private_helper",
+              "name": "str"
+            },
+            "runtime": true
+          },
+          "describe": {
+            "analysis": "static",
+            "decorators": [],
+            "docstring": {
+              "endlineno": 64,
+              "lineno": 56,
+              "parsed": [
+                {
+                  "kind": "text",
+                  "value": "Summarise a report in one line."
+                },
+                {
+                  "kind": "parameters",
+                  "value": [
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": "describe",
+                        "name": "Report"
+                      },
+                      "description": "The report to describe.",
+                      "name": "report"
+                    },
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": "describe",
+                        "name": "Any"
+                      },
+                      "description": "Extra key/value pairs appended to the summary.",
+                      "name": "**extra",
+                      "value": "{}"
+                    }
+                  ]
+                },
+                {
+                  "kind": "returns",
+                  "value": [
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": "describe",
+                        "name": "str"
+                      },
+                      "description": "A single line of plain text.",
+                      "name": ""
+                    }
+                  ]
+                }
+              ],
+              "value": "Summarise a report in one line.\n\nArgs:\n    report: The report to describe.\n    **extra: Extra key/value pairs appended to the summary.\n\nReturns:\n    A single line of plain text."
+            },
+            "endlineno": 65,
+            "filepath": "fixtures/demopkg/src/demopkg/utils.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "function",
+            "lineno": 55,
+            "name": "describe",
+            "parameters": [
+              {
+                "annotation": {
+                  "cls": "ExprName",
+                  "member": "describe",
+                  "name": "Report"
+                },
+                "default": null,
+                "kind": "positional or keyword",
+                "name": "report"
+              },
+              {
+                "annotation": {
+                  "cls": "ExprName",
+                  "member": "describe",
+                  "name": "Any"
+                },
+                "default": "{}",
+                "kind": "variadic keyword",
+                "name": "extra"
+              }
+            ],
+            "path": "demopkg.utils.describe",
+            "relative_filepath": "fixtures/demopkg/src/demopkg/utils.py",
+            "relative_package_filepath": "demopkg/utils.py",
+            "returns": {
+              "cls": "ExprName",
+              "member": "describe",
+              "name": "str"
+            },
+            "runtime": true
+          },
+          "iter_sections": {
+            "analysis": "static",
+            "decorators": [],
+            "docstring": {
+              "endlineno": 26,
+              "lineno": 15,
+              "parsed": [
+                {
+                  "kind": "text",
+                  "value": "Walk the sections of a report in render order."
+                },
+                {
+                  "kind": "parameters",
+                  "value": [
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": "iter_sections",
+                        "name": "Report"
+                      },
+                      "description": "The report to walk.",
+                      "name": "report"
+                    }
+                  ]
+                },
+                {
+                  "kind": "yields",
+                  "value": [
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": "iter_sections",
+                        "name": "str"
+                      },
+                      "description": "Section names, uppercased.",
+                      "name": ""
+                    }
+                  ]
+                },
+                {
+                  "kind": "examples",
+                  "value": [
+                    [
+                      "examples",
+                      ">>> list(iter_sections(Report(\"weekly\")))\n[]"
+                    ]
+                  ]
+                }
+              ],
+              "value": "Walk the sections of a report in render order.\n\nArgs:\n    report: The report to walk.\n\nYields:\n    Section names, uppercased.\n\nExamples:\n    >>> list(iter_sections(Report(\"weekly\")))\n    []"
+            },
+            "endlineno": 28,
+            "filepath": "fixtures/demopkg/src/demopkg/utils.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "function",
+            "lineno": 14,
+            "name": "iter_sections",
+            "parameters": [
+              {
+                "annotation": {
+                  "cls": "ExprName",
+                  "member": "iter_sections",
+                  "name": "Report"
+                },
+                "default": null,
+                "kind": "positional or keyword",
+                "name": "report"
+              }
+            ],
+            "path": "demopkg.utils.iter_sections",
+            "relative_filepath": "fixtures/demopkg/src/demopkg/utils.py",
+            "relative_package_filepath": "demopkg/utils.py",
+            "returns": {
+              "cls": "ExprSubscript",
+              "left": {
+                "cls": "ExprName",
+                "member": "iter_sections",
+                "name": "Iterator"
+              },
+              "slice": {
+                "cls": "ExprName",
+                "member": "iter_sections",
+                "name": "str"
+              }
+            },
+            "runtime": true
+          },
+          "merge_scores": {
+            "analysis": "static",
+            "decorators": [],
+            "docstring": {
+              "endlineno": 45,
+              "lineno": 32,
+              "parsed": [
+                {
+                  "kind": "text",
+                  "value": "Combine the scores of two reports."
+                },
+                {
+                  "kind": "parameters",
+                  "value": [
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": "merge_scores",
+                        "name": "Report"
+                      },
+                      "description": "Report whose scores take precedence.",
+                      "name": "left"
+                    },
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": "merge_scores",
+                        "name": "Report"
+                      },
+                      "description": "Report contributing the remaining scores.",
+                      "name": "right"
+                    }
+                  ]
+                },
+                {
+                  "kind": "returns",
+                  "value": [
+                    {
+                      "annotation": {
+                        "cls": "ExprSubscript",
+                        "left": {
+                          "cls": "ExprName",
+                          "member": "merge_scores",
+                          "name": "dict"
+                        },
+                        "slice": {
+                          "cls": "ExprTuple",
+                          "elements": [
+                            {
+                              "cls": "ExprName",
+                              "member": "merge_scores",
+                              "name": "str"
+                            },
+                            {
+                              "cls": "ExprName",
+                              "member": "merge_scores",
+                              "name": "float"
+                            }
+                          ],
+                          "implicit": true
+                        }
+                      },
+                      "description": "A new mapping holding both sets of scores.",
+                      "name": ""
+                    }
+                  ]
+                },
+                {
+                  "kind": "raises",
+                  "value": [
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": null,
+                        "name": "ReportError"
+                      },
+                      "description": "If the two reports disagree on a metric."
+                    },
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": null,
+                        "name": "TypeError"
+                      },
+                      "description": "If either argument is not a report."
+                    },
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": null,
+                        "name": "ValueError"
+                      },
+                      "description": "If either report has no scores."
+                    }
+                  ]
+                }
+              ],
+              "value": "Combine the scores of two reports.\n\nArgs:\n    left: Report whose scores take precedence.\n    right: Report contributing the remaining scores.\n\nReturns:\n    A new mapping holding both sets of scores.\n\nRaises:\n    ReportError: If the two reports disagree on a metric.\n    TypeError: If either argument is not a report.\n    ValueError: If either report has no scores."
+            },
+            "endlineno": 52,
+            "filepath": "fixtures/demopkg/src/demopkg/utils.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "function",
+            "lineno": 31,
+            "name": "merge_scores",
+            "parameters": [
+              {
+                "annotation": {
+                  "cls": "ExprName",
+                  "member": "merge_scores",
+                  "name": "Report"
+                },
+                "default": null,
+                "kind": "positional or keyword",
+                "name": "left"
+              },
+              {
+                "annotation": {
+                  "cls": "ExprName",
+                  "member": "merge_scores",
+                  "name": "Report"
+                },
+                "default": null,
+                "kind": "positional or keyword",
+                "name": "right"
+              }
+            ],
+            "path": "demopkg.utils.merge_scores",
+            "relative_filepath": "fixtures/demopkg/src/demopkg/utils.py",
+            "relative_package_filepath": "demopkg/utils.py",
+            "returns": {
+              "cls": "ExprSubscript",
+              "left": {
+                "cls": "ExprName",
+                "member": "merge_scores",
+                "name": "dict"
+              },
+              "slice": {
+                "cls": "ExprTuple",
+                "elements": [
+                  {
+                    "cls": "ExprName",
+                    "member": "merge_scores",
+                    "name": "str"
+                  },
+                  {
+                    "cls": "ExprName",
+                    "member": "merge_scores",
+                    "name": "float"
+                  }
+                ],
+                "implicit": true
+              }
+            },
+            "runtime": true
+          }
+        },
+        "name": "utils",
+        "path": "demopkg.utils",
+        "relative_filepath": "fixtures/demopkg/src/demopkg/utils.py",
+        "relative_package_filepath": "demopkg/utils.py",
+        "runtime": true
+      }
+    },
+    "name": "demopkg",
+    "path": "demopkg",
+    "relative_filepath": "fixtures/demopkg/src/demopkg/__init__.py",
+    "relative_package_filepath": "demopkg/__init__.py",
+    "runtime": true
+  }
+}

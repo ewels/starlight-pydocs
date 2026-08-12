@@ -1,0 +1,397 @@
+{
+  "sphpkg": {
+    "analysis": "static",
+    "docstring": {
+      "endlineno": 5,
+      "lineno": 1,
+      "parsed": [
+        {
+          "kind": "text",
+          "value": "Small package with sphinx-style docstrings.\n\nExists so the parser tests cover the reStructuredText field list syntax\n(`:param x:`, `:returns:`, `:raises:`)."
+        }
+      ],
+      "value": "Small package with sphinx-style docstrings.\n\nExists so the parser tests cover the reStructuredText field list syntax\n(`:param x:`, `:returns:`, `:raises:`)."
+    },
+    "exports": [
+      "Job",
+      "submit"
+    ],
+    "filepath": "fixtures/sphpkg/src/sphpkg/__init__.py",
+    "is_class_private": false,
+    "is_deprecated": false,
+    "is_exported": false,
+    "is_imported": false,
+    "is_private": false,
+    "is_public": true,
+    "is_special": false,
+    "is_wildcard_exposed": false,
+    "kind": "module",
+    "members": {
+      "Job": {
+        "analysis": "static",
+        "bases": [],
+        "decorators": [],
+        "docstring": {
+          "endlineno": 15,
+          "lineno": 11,
+          "parsed": [
+            {
+              "kind": "text",
+              "value": "A unit of queued work."
+            },
+            {
+              "kind": "parameters",
+              "value": [
+                {
+                  "annotation": {
+                    "cls": "ExprName",
+                    "member": "__init__",
+                    "name": "str"
+                  },
+                  "description": "Human readable job label.",
+                  "name": "label"
+                },
+                {
+                  "annotation": {
+                    "cls": "ExprName",
+                    "member": "__init__",
+                    "name": "int"
+                  },
+                  "description": "Queue priority, higher runs first.",
+                  "name": "priority",
+                  "value": "0"
+                }
+              ]
+            }
+          ],
+          "value": "A unit of queued work.\n\n:param label: Human readable job label.\n:param priority: Queue priority, higher runs first."
+        },
+        "endlineno": 26,
+        "filepath": "fixtures/sphpkg/src/sphpkg/__init__.py",
+        "is_class_private": false,
+        "is_deprecated": false,
+        "is_exported": true,
+        "is_imported": false,
+        "is_private": false,
+        "is_public": true,
+        "is_special": false,
+        "is_wildcard_exposed": true,
+        "kind": "class",
+        "lineno": 10,
+        "members": {
+          "__init__": {
+            "analysis": "static",
+            "decorators": [],
+            "endlineno": 19,
+            "filepath": "fixtures/sphpkg/src/sphpkg/__init__.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": true,
+            "is_wildcard_exposed": false,
+            "kind": "function",
+            "lineno": 17,
+            "name": "__init__",
+            "parameters": [
+              {
+                "annotation": null,
+                "default": null,
+                "kind": "positional or keyword",
+                "name": "self"
+              },
+              {
+                "annotation": {
+                  "cls": "ExprName",
+                  "member": "__init__",
+                  "name": "str"
+                },
+                "default": null,
+                "kind": "positional or keyword",
+                "name": "label"
+              },
+              {
+                "annotation": {
+                  "cls": "ExprName",
+                  "member": "__init__",
+                  "name": "int"
+                },
+                "default": "0",
+                "kind": "positional or keyword",
+                "name": "priority"
+              }
+            ],
+            "path": "sphpkg.Job.__init__",
+            "relative_filepath": "fixtures/sphpkg/src/sphpkg/__init__.py",
+            "relative_package_filepath": "sphpkg/__init__.py",
+            "returns": "None",
+            "runtime": true
+          },
+          "describe": {
+            "analysis": "static",
+            "decorators": [],
+            "docstring": {
+              "endlineno": 25,
+              "lineno": 22,
+              "parsed": [
+                {
+                  "kind": "text",
+                  "value": "Summarise the job."
+                },
+                {
+                  "kind": "returns",
+                  "value": [
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": "describe",
+                        "name": "str"
+                      },
+                      "description": "A single line of plain text.",
+                      "name": ""
+                    }
+                  ]
+                }
+              ],
+              "value": "Summarise the job.\n\n:returns: A single line of plain text."
+            },
+            "endlineno": 26,
+            "filepath": "fixtures/sphpkg/src/sphpkg/__init__.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": false,
+            "is_wildcard_exposed": false,
+            "kind": "function",
+            "lineno": 21,
+            "name": "describe",
+            "parameters": [
+              {
+                "annotation": null,
+                "default": null,
+                "kind": "positional or keyword",
+                "name": "self"
+              }
+            ],
+            "path": "sphpkg.Job.describe",
+            "relative_filepath": "fixtures/sphpkg/src/sphpkg/__init__.py",
+            "relative_package_filepath": "sphpkg/__init__.py",
+            "returns": {
+              "cls": "ExprName",
+              "member": "describe",
+              "name": "str"
+            },
+            "runtime": true
+          },
+          "label": {
+            "analysis": "static",
+            "endlineno": 18,
+            "filepath": "fixtures/sphpkg/src/sphpkg/__init__.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": false,
+            "is_wildcard_exposed": false,
+            "kind": "attribute",
+            "labels": [
+              "instance-attribute"
+            ],
+            "lineno": 18,
+            "name": "label",
+            "path": "sphpkg.Job.label",
+            "relative_filepath": "fixtures/sphpkg/src/sphpkg/__init__.py",
+            "relative_package_filepath": "sphpkg/__init__.py",
+            "runtime": true,
+            "value": {
+              "cls": "ExprName",
+              "member": null,
+              "name": "label"
+            }
+          },
+          "priority": {
+            "analysis": "static",
+            "endlineno": 19,
+            "filepath": "fixtures/sphpkg/src/sphpkg/__init__.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": false,
+            "is_wildcard_exposed": false,
+            "kind": "attribute",
+            "labels": [
+              "instance-attribute"
+            ],
+            "lineno": 19,
+            "name": "priority",
+            "path": "sphpkg.Job.priority",
+            "relative_filepath": "fixtures/sphpkg/src/sphpkg/__init__.py",
+            "relative_package_filepath": "sphpkg/__init__.py",
+            "runtime": true,
+            "value": {
+              "cls": "ExprName",
+              "member": null,
+              "name": "priority"
+            }
+          }
+        },
+        "name": "Job",
+        "path": "sphpkg.Job",
+        "relative_filepath": "fixtures/sphpkg/src/sphpkg/__init__.py",
+        "relative_package_filepath": "sphpkg/__init__.py",
+        "runtime": true
+      },
+      "__all__": {
+        "analysis": "static",
+        "endlineno": 7,
+        "filepath": "fixtures/sphpkg/src/sphpkg/__init__.py",
+        "is_class_private": false,
+        "is_deprecated": false,
+        "is_exported": false,
+        "is_imported": false,
+        "is_private": false,
+        "is_public": false,
+        "is_special": true,
+        "is_wildcard_exposed": false,
+        "kind": "attribute",
+        "labels": [
+          "module-attribute"
+        ],
+        "lineno": 7,
+        "name": "__all__",
+        "path": "sphpkg.__all__",
+        "relative_filepath": "fixtures/sphpkg/src/sphpkg/__init__.py",
+        "relative_package_filepath": "sphpkg/__init__.py",
+        "runtime": true,
+        "value": {
+          "cls": "ExprList",
+          "elements": [
+            "'Job'",
+            "'submit'"
+          ]
+        }
+      },
+      "submit": {
+        "analysis": "static",
+        "decorators": [],
+        "docstring": {
+          "endlineno": 36,
+          "lineno": 30,
+          "parsed": [
+            {
+              "kind": "text",
+              "value": "Queue a job for execution."
+            },
+            {
+              "kind": "parameters",
+              "value": [
+                {
+                  "annotation": {
+                    "cls": "ExprName",
+                    "member": "submit",
+                    "name": "Job"
+                  },
+                  "description": "The job to queue.",
+                  "name": "job"
+                },
+                {
+                  "annotation": {
+                    "cls": "ExprName",
+                    "member": "submit",
+                    "name": "bool"
+                  },
+                  "description": "When true, validate without queueing.",
+                  "name": "dry_run",
+                  "value": "False"
+                }
+              ]
+            },
+            {
+              "kind": "returns",
+              "value": [
+                {
+                  "annotation": {
+                    "cls": "ExprName",
+                    "member": "submit",
+                    "name": "str"
+                  },
+                  "description": "The identifier assigned to the job.",
+                  "name": ""
+                }
+              ]
+            },
+            {
+              "kind": "raises",
+              "value": [
+                {
+                  "annotation": "ValueError",
+                  "description": "If the job has an empty label."
+                }
+              ]
+            }
+          ],
+          "value": "Queue a job for execution.\n\n:param job: The job to queue.\n:param dry_run: When true, validate without queueing.\n:returns: The identifier assigned to the job.\n:raises ValueError: If the job has an empty label."
+        },
+        "endlineno": 39,
+        "filepath": "fixtures/sphpkg/src/sphpkg/__init__.py",
+        "is_class_private": false,
+        "is_deprecated": false,
+        "is_exported": true,
+        "is_imported": false,
+        "is_private": false,
+        "is_public": true,
+        "is_special": false,
+        "is_wildcard_exposed": true,
+        "kind": "function",
+        "lineno": 29,
+        "name": "submit",
+        "parameters": [
+          {
+            "annotation": {
+              "cls": "ExprName",
+              "member": "submit",
+              "name": "Job"
+            },
+            "default": null,
+            "kind": "positional or keyword",
+            "name": "job"
+          },
+          {
+            "annotation": {
+              "cls": "ExprName",
+              "member": "submit",
+              "name": "bool"
+            },
+            "default": "False",
+            "kind": "keyword-only",
+            "name": "dry_run"
+          }
+        ],
+        "path": "sphpkg.submit",
+        "relative_filepath": "fixtures/sphpkg/src/sphpkg/__init__.py",
+        "relative_package_filepath": "sphpkg/__init__.py",
+        "returns": {
+          "cls": "ExprName",
+          "member": "submit",
+          "name": "str"
+        },
+        "runtime": true
+      }
+    },
+    "name": "sphpkg",
+    "path": "sphpkg",
+    "relative_filepath": "fixtures/sphpkg/src/sphpkg/__init__.py",
+    "relative_package_filepath": "sphpkg/__init__.py",
+    "runtime": true
+  }
+}
