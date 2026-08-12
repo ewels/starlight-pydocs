@@ -1,0 +1,432 @@
+{
+  "numpkg": {
+    "analysis": "static",
+    "docstring": {
+      "endlineno": 5,
+      "lineno": 1,
+      "parsed": [
+        {
+          "kind": "text",
+          "value": "Small package with numpy-style docstrings.\n\nExists so the parser tests cover the numpy section syntax (underlined section\ntitles, `name : type` parameter lines)."
+        }
+      ],
+      "value": "Small package with numpy-style docstrings.\n\nExists so the parser tests cover the numpy section syntax (underlined section\ntitles, `name : type` parameter lines)."
+    },
+    "exports": [
+      "Grid",
+      "resample"
+    ],
+    "filepath": "fixtures/numpkg/src/numpkg/__init__.py",
+    "is_class_private": false,
+    "is_deprecated": false,
+    "is_exported": false,
+    "is_imported": false,
+    "is_private": false,
+    "is_public": true,
+    "is_special": false,
+    "is_wildcard_exposed": false,
+    "kind": "module",
+    "members": {
+      "Grid": {
+        "analysis": "static",
+        "bases": [],
+        "decorators": [],
+        "docstring": {
+          "endlineno": 26,
+          "lineno": 11,
+          "parsed": [
+            {
+              "kind": "text",
+              "value": "A rectangular grid of samples."
+            },
+            {
+              "kind": "parameters",
+              "value": [
+                {
+                  "annotation": {
+                    "cls": "ExprName",
+                    "member": null,
+                    "name": "int"
+                  },
+                  "description": "Number of columns.",
+                  "name": "width"
+                },
+                {
+                  "annotation": {
+                    "cls": "ExprName",
+                    "member": null,
+                    "name": "int"
+                  },
+                  "description": "Number of rows.",
+                  "name": "height"
+                }
+              ]
+            },
+            {
+              "kind": "attributes",
+              "value": [
+                {
+                  "annotation": {
+                    "cls": "ExprName",
+                    "member": null,
+                    "name": "int"
+                  },
+                  "description": "Number of columns.",
+                  "name": "width"
+                },
+                {
+                  "annotation": {
+                    "cls": "ExprName",
+                    "member": null,
+                    "name": "int"
+                  },
+                  "description": "Number of rows.",
+                  "name": "height"
+                }
+              ]
+            }
+          ],
+          "value": "A rectangular grid of samples.\n\nParameters\n----------\nwidth : int\n    Number of columns.\nheight : int\n    Number of rows.\n\nAttributes\n----------\nwidth : int\n    Number of columns.\nheight : int\n    Number of rows."
+        },
+        "endlineno": 40,
+        "filepath": "fixtures/numpkg/src/numpkg/__init__.py",
+        "is_class_private": false,
+        "is_deprecated": false,
+        "is_exported": true,
+        "is_imported": false,
+        "is_private": false,
+        "is_public": true,
+        "is_special": false,
+        "is_wildcard_exposed": true,
+        "kind": "class",
+        "lineno": 10,
+        "members": {
+          "__init__": {
+            "analysis": "static",
+            "decorators": [],
+            "endlineno": 30,
+            "filepath": "fixtures/numpkg/src/numpkg/__init__.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": true,
+            "is_wildcard_exposed": false,
+            "kind": "function",
+            "lineno": 28,
+            "name": "__init__",
+            "parameters": [
+              {
+                "annotation": null,
+                "default": null,
+                "kind": "positional or keyword",
+                "name": "self"
+              },
+              {
+                "annotation": {
+                  "cls": "ExprName",
+                  "member": "__init__",
+                  "name": "int"
+                },
+                "default": null,
+                "kind": "positional or keyword",
+                "name": "width"
+              },
+              {
+                "annotation": {
+                  "cls": "ExprName",
+                  "member": "__init__",
+                  "name": "int"
+                },
+                "default": null,
+                "kind": "positional or keyword",
+                "name": "height"
+              }
+            ],
+            "path": "numpkg.Grid.__init__",
+            "relative_filepath": "fixtures/numpkg/src/numpkg/__init__.py",
+            "relative_package_filepath": "numpkg/__init__.py",
+            "returns": "None",
+            "runtime": true
+          },
+          "area": {
+            "analysis": "static",
+            "decorators": [],
+            "docstring": {
+              "endlineno": 39,
+              "lineno": 33,
+              "parsed": [
+                {
+                  "kind": "text",
+                  "value": "Compute the number of cells."
+                },
+                {
+                  "kind": "returns",
+                  "value": [
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": null,
+                        "name": "int"
+                      },
+                      "description": "Width multiplied by height.",
+                      "name": ""
+                    }
+                  ]
+                }
+              ],
+              "value": "Compute the number of cells.\n\nReturns\n-------\nint\n    Width multiplied by height."
+            },
+            "endlineno": 40,
+            "filepath": "fixtures/numpkg/src/numpkg/__init__.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": false,
+            "is_wildcard_exposed": false,
+            "kind": "function",
+            "lineno": 32,
+            "name": "area",
+            "parameters": [
+              {
+                "annotation": null,
+                "default": null,
+                "kind": "positional or keyword",
+                "name": "self"
+              }
+            ],
+            "path": "numpkg.Grid.area",
+            "relative_filepath": "fixtures/numpkg/src/numpkg/__init__.py",
+            "relative_package_filepath": "numpkg/__init__.py",
+            "returns": {
+              "cls": "ExprName",
+              "member": "area",
+              "name": "int"
+            },
+            "runtime": true
+          },
+          "height": {
+            "analysis": "static",
+            "endlineno": 30,
+            "filepath": "fixtures/numpkg/src/numpkg/__init__.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": false,
+            "is_wildcard_exposed": false,
+            "kind": "attribute",
+            "labels": [
+              "instance-attribute"
+            ],
+            "lineno": 30,
+            "name": "height",
+            "path": "numpkg.Grid.height",
+            "relative_filepath": "fixtures/numpkg/src/numpkg/__init__.py",
+            "relative_package_filepath": "numpkg/__init__.py",
+            "runtime": true,
+            "value": {
+              "cls": "ExprName",
+              "member": null,
+              "name": "height"
+            }
+          },
+          "width": {
+            "analysis": "static",
+            "endlineno": 29,
+            "filepath": "fixtures/numpkg/src/numpkg/__init__.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": false,
+            "is_wildcard_exposed": false,
+            "kind": "attribute",
+            "labels": [
+              "instance-attribute"
+            ],
+            "lineno": 29,
+            "name": "width",
+            "path": "numpkg.Grid.width",
+            "relative_filepath": "fixtures/numpkg/src/numpkg/__init__.py",
+            "relative_package_filepath": "numpkg/__init__.py",
+            "runtime": true,
+            "value": {
+              "cls": "ExprName",
+              "member": null,
+              "name": "width"
+            }
+          }
+        },
+        "name": "Grid",
+        "path": "numpkg.Grid",
+        "relative_filepath": "fixtures/numpkg/src/numpkg/__init__.py",
+        "relative_package_filepath": "numpkg/__init__.py",
+        "runtime": true
+      },
+      "__all__": {
+        "analysis": "static",
+        "endlineno": 7,
+        "filepath": "fixtures/numpkg/src/numpkg/__init__.py",
+        "is_class_private": false,
+        "is_deprecated": false,
+        "is_exported": false,
+        "is_imported": false,
+        "is_private": false,
+        "is_public": false,
+        "is_special": true,
+        "is_wildcard_exposed": false,
+        "kind": "attribute",
+        "labels": [
+          "module-attribute"
+        ],
+        "lineno": 7,
+        "name": "__all__",
+        "path": "numpkg.__all__",
+        "relative_filepath": "fixtures/numpkg/src/numpkg/__init__.py",
+        "relative_package_filepath": "numpkg/__init__.py",
+        "runtime": true,
+        "value": {
+          "cls": "ExprList",
+          "elements": [
+            "'Grid'",
+            "'resample'"
+          ]
+        }
+      },
+      "resample": {
+        "analysis": "static",
+        "decorators": [],
+        "docstring": {
+          "endlineno": 67,
+          "lineno": 44,
+          "parsed": [
+            {
+              "kind": "text",
+              "value": "Scale a grid by a factor."
+            },
+            {
+              "kind": "parameters",
+              "value": [
+                {
+                  "annotation": {
+                    "cls": "ExprName",
+                    "member": null,
+                    "name": "Grid"
+                  },
+                  "description": "The grid to scale.",
+                  "name": "grid"
+                },
+                {
+                  "annotation": {
+                    "cls": "ExprName",
+                    "member": null,
+                    "name": "float"
+                  },
+                  "description": "Multiplier applied to both dimensions, by default 2.0.",
+                  "name": "factor",
+                  "value": "2.0"
+                }
+              ]
+            },
+            {
+              "kind": "returns",
+              "value": [
+                {
+                  "annotation": {
+                    "cls": "ExprName",
+                    "member": null,
+                    "name": "Grid"
+                  },
+                  "description": "A new, scaled grid.\n",
+                  "name": ""
+                }
+              ]
+            },
+            {
+              "kind": "raises",
+              "value": [
+                {
+                  "annotation": {
+                    "cls": "ExprName",
+                    "member": null,
+                    "name": "ValueError"
+                  },
+                  "description": "If `factor` is not positive.\n"
+                }
+              ]
+            },
+            {
+              "kind": "examples",
+              "value": [
+                [
+                  "examples",
+                  ">>> resample(Grid(2, 3), 2.0).area()\n24"
+                ]
+              ]
+            }
+          ],
+          "value": "Scale a grid by a factor.\n\nParameters\n----------\ngrid : Grid\n    The grid to scale.\nfactor : float, optional\n    Multiplier applied to both dimensions, by default 2.0.\n\nReturns\n-------\nGrid\n    A new, scaled grid.\n\nRaises\n------\nValueError\n    If `factor` is not positive.\n\nExamples\n--------\n>>> resample(Grid(2, 3), 2.0).area()\n24"
+        },
+        "endlineno": 70,
+        "filepath": "fixtures/numpkg/src/numpkg/__init__.py",
+        "is_class_private": false,
+        "is_deprecated": false,
+        "is_exported": true,
+        "is_imported": false,
+        "is_private": false,
+        "is_public": true,
+        "is_special": false,
+        "is_wildcard_exposed": true,
+        "kind": "function",
+        "lineno": 43,
+        "name": "resample",
+        "parameters": [
+          {
+            "annotation": {
+              "cls": "ExprName",
+              "member": "resample",
+              "name": "Grid"
+            },
+            "default": null,
+            "kind": "positional or keyword",
+            "name": "grid"
+          },
+          {
+            "annotation": {
+              "cls": "ExprName",
+              "member": "resample",
+              "name": "float"
+            },
+            "default": "2.0",
+            "kind": "positional or keyword",
+            "name": "factor"
+          }
+        ],
+        "path": "numpkg.resample",
+        "relative_filepath": "fixtures/numpkg/src/numpkg/__init__.py",
+        "relative_package_filepath": "numpkg/__init__.py",
+        "returns": {
+          "cls": "ExprName",
+          "member": "resample",
+          "name": "Grid"
+        },
+        "runtime": true
+      }
+    },
+    "name": "numpkg",
+    "path": "numpkg",
+    "relative_filepath": "fixtures/numpkg/src/numpkg/__init__.py",
+    "relative_package_filepath": "numpkg/__init__.py",
+    "runtime": true
+  }
+}
