@@ -1,0 +1,162 @@
+---
+title: Pre-generated dumps
+description: Publish a Griffe dump from the Python project's CI and document it with no Python on the docs host.
+---
+
+Extraction is `griffe dump`, and its output is a plain JSON file. Point the plugin at one and it
+skips extraction entirely: no `uv`, no interpreter, no Python at all on the machine that builds the
+site.
+
+That matters in three situations: a docs site built on a Node-only runner, a package whose
+environment is awkward to reproduce (compiled extensions, private dependencies, a specific Python
+version), and [versioned documentation](/starlight-pydocs/guides/versioned-docs/), where the dump is
+how a release's API surface is frozen.
+
+## Configuring it
+
+```js
+packages: [
+  // A file committed to the docs repository, or produced by a step before the build.
+  { name: 'mypkg', source: { file: './dumps/mypkg.json' } },
+
+  // Or downloaded, with ETag revalidation against the cache.
+  { name: 'other', source: { url: 'https://github.com/you/other/releases/download/v2.1.0/api.json' } },
+];
+```
+
+`file` is relative to the Astro project root. `url` must be `http(s)`, and `cache` controls
+revalidation:
+
+| `cache`        | Behaviour                                                                       |
+| -------------- | ------------------------------------------------------------------------------- |
+| `'revalidate'` | Default. Sends `If-None-Match` / `If-Modified-Since`; a `304` reuses the cached copy. |
+| `'force'`      | Never contacts the server when a cached copy exists. Fastest, and offline-safe.  |
+| `'bypass'`     | Downloads on every build.                                                        |
+
+Downloads are cached under `cacheDir` alongside their `ETag` and `Last-Modified`. If the host is
+unreachable or answers with an error and a cached copy exists, the build logs a warning and uses the
+copy: a documentation build should not fail because a release asset was briefly unavailable. With no
+cached copy, it fails, and the message names the URL and the status.
+
+:::note[The plugin's parser options do not apply]
+The docstrings in a pre-generated dump were parsed when the dump was made, so `docstringStyle`,
+`docstringOptions`, `extensions` and `forceInspection` have no effect on a package configured with
+`source`. Set them in the command that produces the dump. Member filters, source links, the sidebar
+and everything else still apply, because they are rendering concerns.
+:::
+
+Packages with a `source` are not watched in `astro dev` — there are no Python files to watch — so
+regenerating a dump during development needs a dev-server restart.
+
+## The command to run
+
+In the Python project, from the repository root:
+
+```sh
+griffe dump -f -d google --search src mypkg -o api.json
+```
+
+Or, with nothing installed at all:
+
+```sh
+uvx --from griffe griffe dump -f -d google --search src mypkg -o api.json
+```
+
+Both flags before the package name matter, and this is exactly what the plugin runs for itself:
+
+- `-f` (`--full`) adds the file paths, line numbers and visibility flags that source links, member
+  filtering and provenance are built from. Without it, every object arrives as a bare stub.
+- `-d <style>` parses docstrings into structured sections. Without it, docstrings stay as one raw
+  string and no parameter table, returns block or admonition can be rendered.
+- `--search` (`-s`) points at the directory containing the package, and can be repeated.
+- `-o` writes the JSON; without it, griffe writes to standard output.
+
+Add the flags your package needs, and keep them in step with what the docs site expects to render:
+
+```sh
+# A pydantic model layer, and non-default parser options (`-D` takes JSON).
+uvx --with griffe-pydantic --from griffe griffe dump -f -d google \
+  -D '{"returns_named_value": false}' -e griffe_pydantic --search src mypkg -o api.json
+```
+
+## Publishing it from CI
+
+Dumps compress well and are read-only build inputs, so a release asset or an artefact is enough. A
+GitHub Actions job that attaches one to every release:
+
+```yaml
+name: Publish API dump
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+      - name: Extract the API surface
+        run: uvx --from griffe griffe dump -f -d google --search src mypkg -o api.json
+      - name: Attach it to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" api.json
+```
+
+The docs site then reads
+`https://github.com/you/mypkg/releases/download/<tag>/api.json`. Point at a tag for a pinned
+version, or upload to a stable location (an S3 bucket, a `latest` release, a `gh-pages` file) and
+let revalidation keep the site current.
+
+To ship the dump inside the docs repository instead — no network at build time, and reviewable diffs
+— commit it and use `source: { file }`. It is a large JSON file, so expect noisy diffs; a repository
+that dislikes that is better served by the URL form.
+
+## Source links with a dump from elsewhere
+
+Source links are built from the paths griffe recorded, which were relative to the directory griffe
+ran in. Run the dump command from the repository root and `{path}` is already repository-relative,
+which is what a forge URL wants:
+
+```js
+packages: [
+  {
+    name: 'mypkg',
+    source: { url: 'https://…/v2.1.0/api.json' },
+    // No `root`: the paths in the dump are already relative to the repository.
+    sourceLink: { host: 'github', repo: 'you/mypkg', ref: 'v2.1.0' },
+  },
+];
+```
+
+Do not set `sourceLink.root` for a dump produced on another machine: `root` is applied to the
+absolute path griffe recorded, which is a path on the CI runner and means nothing locally. `root` is
+for the case where extraction runs on this machine and the sources sit outside the Astro project;
+see [Source links](/starlight-pydocs/guides/source-links/).
+
+Griffe's own `source_link` is another option: griffe 2 records a commit-pinned blob URL per object
+when it runs inside a git checkout, so a dump made in CI often carries working links with no
+`sourceLink` configuration at all.
+
+## Checking a dump
+
+A dump is an object keyed by package name, with the whole tree underneath:
+
+```sh
+jq 'keys' api.json                          # ["mypkg"]
+jq '.mypkg.members | keys' api.json         # the top-level surface
+jq '.mypkg.members.Report.docstring.parsed[0].kind' api.json   # "text" if -d ran
+```
+
+If `docstring.parsed` is missing, the dump was made without `-d` and the pages will carry
+signatures with no parameter tables or admonitions. If objects have no `filepath`, it was made
+without `-f`, and source links and the visibility-based member filters have nothing to work from.
+Neither is an error the plugin can detect for you — both produce thinner pages rather than a failed
+build — so it is worth checking a dump the first time a new pipeline produces one. A file that is
+not a griffe dump at all, or does not contain the configured package, does fail, naming the file and
+listing what the dump does contain.

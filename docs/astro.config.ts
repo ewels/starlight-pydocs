@@ -71,12 +71,42 @@ export default defineConfig({
           ],
         },
         {
+          label: 'Documenting your package',
+          items: [
+            { label: 'Configuration', link: '/guides/configuration/' },
+            { label: 'Docstring styles', link: '/guides/docstring-styles/' },
+            { label: 'Cross-references', link: '/guides/cross-references/' },
+            { label: 'Source links', link: '/guides/source-links/' },
+            { label: 'Multiple packages', link: '/guides/multiple-packages/' },
+            { label: 'Pre-generated dumps', link: '/guides/pregenerated-dumps/' },
+          ],
+        },
+        {
+          label: 'Customising the output',
+          items: [
+            { label: 'Theming', link: '/guides/theming/' },
+            { label: 'Component overrides', link: '/guides/component-overrides/' },
+            { label: 'Internationalisation', link: '/guides/i18n/' },
+            { label: 'Search', link: '/guides/search/' },
+            { label: 'llms.txt', link: '/guides/llms-txt/' },
+            { label: 'Versioned docs', link: '/guides/versioned-docs/' },
+          ],
+        },
+        {
           label: 'API reference',
           items: [pydocsSidebarGroup],
         },
         {
           label: 'Sphinx demo',
           items: [sphinxSidebarGroup],
+        },
+        {
+          label: 'Project',
+          items: [
+            { label: 'Migrating from mkdocstrings', link: '/guides/migration/' },
+            { label: 'Contributing', link: '/guides/contributing/' },
+            { label: 'Changelog', link: '/changelog/' },
+          ],
         },
       ],
     }),

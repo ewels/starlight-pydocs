@@ -3,10 +3,10 @@ title: Vanilla Astro
 description: Generate the same API reference pages in a plain Astro site, without Starlight.
 ---
 
-Starlight is optional. `starlight-pydocs/astro` is an ordinary Astro integration that
-injects the same routes, renders the same components and serves the same
-`symbols.json`, `objects.inv` and `llms.txt`. Nothing in its module graph imports
-Starlight.
+Starlight is optional. `starlight-pydocs/astro` is an ordinary Astro integration that injects the
+same routes, renders the same components and serves the same `symbols.json`, `objects.inv` and
+`llms.txt`. Nothing in its module graph imports Starlight, and `@astrojs/starlight` is an optional
+peer dependency, so it need not be installed at all.
 
 ```js
 // astro.config.mjs
@@ -17,15 +17,40 @@ export default defineConfig({
   integrations: [
     pydocs({
       packages: [{ name: 'mypkg', search: ['../src'] }],
+      inventories: ['python'],
     }),
   ],
 });
 ```
 
-Generated pages come with a deliberately minimal built-in layout: a content column, a
-table of contents, and the package stylesheet. Pass `layout` to use your own component
-instead — it receives `title`, `headings` and `description` props and renders the page
-body in its default slot.
+Every option is the same as the Starlight plugin's — see
+[Configuration](/starlight-pydocs/guides/configuration/) — with one addition (`layout`) and one that
+does nothing (`injectStyles`, which has no `customCss` to append to here).
+
+## The stylesheet
+
+Import `starlight-pydocs/styles` once from any layout or page that renders the components. The
+built-in layout already imports it, so this only matters for pages of your own:
+
+```astro
+---
+import 'starlight-pydocs/styles';
+import { Autodoc, SymbolSearch } from 'starlight-pydocs/components';
+---
+```
+
+The stylesheet stands alone: its `--pyd-*` tokens fall back to static values when Starlight's
+`--sl-*` tokens are absent, and it carries its own dark palette for both `prefers-color-scheme` and
+an explicit `data-theme="dark"` on `<html>`. See [Theming](/starlight-pydocs/guides/theming/).
+
+## The built-in layout
+
+Generated pages render through a deliberately minimal layout: a document, a content column, a table
+of contents built from the same headings the model produced, and the stylesheet. It is enough to
+read, and it is not trying to be your site.
+
+Pass `layout` to use your own component instead, as a path relative to the project root or a package
+specifier:
 
 ```js
 pydocs({
@@ -34,21 +59,189 @@ pydocs({
 });
 ```
 
-A plain Astro project has no `customCss` for the integration to append to, so import
-the stylesheet yourself in any hand-written page or layout that uses the components:
+It receives three props and renders the page body in its default slot:
+
+| Prop          | Type            | Value                                        |
+| ------------- | --------------- | -------------------------------------------- |
+| `title`       | `string`        | The module's dotted path, e.g. `mypkg.report` |
+| `headings`    | `PageHeading[]` | `{ depth, slug, text }` per documented member  |
+| `description` | `string`        | The module's one-line docstring summary        |
 
 ```astro
 ---
+// src/layouts/ApiLayout.astro
+import SiteHeader from '../components/SiteHeader.astro';
 import 'starlight-pydocs/styles';
-import { Autodoc, SymbolSearch } from 'starlight-pydocs/components';
+import '../styles/site.css';
+
+interface Props {
+  title: string;
+  headings: { depth: number; slug: string; text: string }[];
+  description?: string | undefined;
+}
+
+const { title, headings, description } = Astro.props;
 ---
 
-<Autodoc name="mypkg.Thing" />
-<SymbolSearch package="mypkg" />
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>{title} — mypkg</title>
+    {description ? <meta name="description" content={description} /> : null}
+  </head>
+  <body>
+    <SiteHeader />
+    <main class="pyd-content">
+      <h1 class="pyd-page-title">{title}</h1>
+      <slot />
+    </main>
+    <nav aria-label="On this page">
+      <ul>
+        {headings.map((heading) => (
+          <li data-depth={heading.depth}>
+            <a href={`#${heading.slug}`}>{heading.text}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  </body>
+</html>
 ```
 
-The components take label props rather than reading Starlight's translations, so every
-string can be replaced: `<Autodoc name="mypkg.Thing" labels={{ parameters: 'Args' }} />`.
+`slug` is the dotted object path, which is also the heading's `id`, so a table of contents is a list
+of `#slug` links and nothing more. `depth` is 2 for a module's own members and 3 for the members of a
+class.
 
-`examples/vanilla` in the repository is a working site built this way, and is one of
-the fixtures the end-to-end tests run against.
+## Any markdown processor
+
+Docstring prose renders through whatever `markdown.processor` your project resolves to, and the
+package depends on neither engine. Astro 7.1 and later default to Sätteri; a project pinned to the
+unified pipeline for mermaid or a remark plugin works just as well:
+
+```js
+// astro.config.mjs
+import { unified } from '@astrojs/markdown-remark';
+import { defineConfig } from 'astro/config';
+import pydocs from 'starlight-pydocs/astro';
+
+export default defineConfig({
+  markdown: {
+    processor: unified(),
+    shikiConfig: { themes: { light: 'github-light', dark: 'github-dark' }, defaultColor: false },
+  },
+  integrations: [pydocs({ packages: [{ name: 'mypkg', search: ['../src'] }] })],
+});
+```
+
+Whatever the engine, docstring code fences are highlighted the way the rest of the site's Markdown
+is. On Astro 7.0.x, where `markdown.processor` does not exist yet, install
+`@astrojs/markdown-remark` and it is used automatically.
+
+## Components in your own pages
+
+The components take label props rather than reading Starlight's translations, so every string can be
+replaced:
+
+```astro
+---
+import { Autodoc, SymbolSearch } from 'starlight-pydocs/components';
+import 'starlight-pydocs/styles';
+---
+
+<SymbolSearch package="mypkg" />
+
+<Autodoc name="mypkg.Report" />
+<Autodoc name="mypkg.build" headingLevel={3} labels={{ parameters: 'Args', returns: 'Yields' }} />
+```
+
+To translate the generated pages too, set a translation function on `Astro.locals` in middleware;
+see [Internationalisation](/starlight-pydocs/guides/i18n/#without-starlight).
+
+## What Starlight would have added
+
+Everything except the shell is the same. Two differences worth planning for:
+
+- **No Pagefind**, so there is no full-text search over the generated pages unless you add one. The
+  [symbol search](/starlight-pydocs/guides/search/) is independent of Starlight and works here,
+  automatically on each package's root page.
+- **No sidebar and no prev/next links.** Those come from Starlight's route data, which a plain Astro
+  site does not have. Build navigation from the endpoints or the loader if you want it; the
+  `symbols.json` index carries every object's page and anchor.
+
+## The Content Layer loader
+
+`starlight-pydocs/loader` exposes the same model as data — one collection entry per documented
+object — for pages that want to list, filter or tabulate the surface rather than render it. It runs
+the same extraction, so a site can use both and they agree.
+
+```ts
+// src/content.config.ts
+import { defineCollection } from 'astro:content';
+import { pydocsLoader } from 'starlight-pydocs/loader';
+
+export const collections = {
+  api: defineCollection({
+    loader: pydocsLoader({ name: 'mypkg', search: ['../src'] }),
+  }),
+};
+```
+
+`pydocsLoader` takes the per-package options plus `runner`, `cacheDir` and `projectRoot`, so a
+collection can read a pre-generated dump (`source: { file: './dumps/mypkg.json' }`) while the
+integration extracts, or the other way round.
+
+Each entry's `id` is the object's dotted path, and its data is typed:
+
+```astro
+---
+// src/pages/symbols.astro
+import { getCollection } from 'astro:content';
+import 'starlight-pydocs/styles';
+
+const entries = (await getCollection('api')).sort((left, right) => left.data.path.localeCompare(right.data.path));
+const deprecated = entries.filter((entry) => entry.data.deprecated);
+---
+
+<table class="pyd-summary-table">
+  <thead>
+    <tr><th scope="col">Path</th><th scope="col">Kind</th><th scope="col">Signature</th><th scope="col">Summary</th></tr>
+  </thead>
+  <tbody>
+    {
+      entries.map((entry) => (
+        <tr data-symbol-path={entry.data.path}>
+          <th scope="row">
+            <a href={`/${entry.data.page}/#${entry.data.anchor}`}>
+              <code>{entry.data.path}</code>
+            </a>
+          </th>
+          <td>{entry.data.kind}</td>
+          <td><code>{entry.data.signature}</code></td>
+          <td>{entry.data.brief}</td>
+        </tr>
+      ))
+    }
+  </tbody>
+</table>
+
+<p>{deprecated.length} deprecated objects.</p>
+```
+
+| Field                        | Meaning                                                            |
+| ---------------------------- | ------------------------------------------------------------------ |
+| `path`, `canonicalPath`      | Documented path (also the anchor) and the path griffe defined it at  |
+| `name`, `kind`, `labels`     | Short name, object kind, griffe's labels                             |
+| `brief`, `docstring`         | First docstring line as plain text, and the whole docstring          |
+| `signature`                  | Plain-text signature; empty for modules                              |
+| `page`, `anchor`             | Page slug the object is documented on, and its heading anchor        |
+| `deprecated`                 | `true` when anything marks it deprecated                             |
+
+`page` is the full page slug (`api/mypkg/report`), so a link is that slug plus the anchor, adjusted
+for your site's `base` if it has one.
+
+## A working example
+
+`examples/vanilla` in the repository is a complete site built this way: the integration on the
+unified pipeline, a hand-written page with `<Autodoc>` and `<SymbolSearch>`, and a loader page. It is
+one of the fixtures the end-to-end tests run against, so everything on this page is exercised in CI.

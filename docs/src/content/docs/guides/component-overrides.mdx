@@ -1,0 +1,151 @@
+---
+title: Component overrides
+description: Replace any of the nine rendering components with your own, everywhere they are used.
+---
+
+The generated pages are Astro components rendering a normalised model, and nine of them can be
+replaced with components of your own. An override applies everywhere that component is used:
+generated pages, `<Autodoc>` blocks, and inside other overrides.
+
+```js
+starlightPydocs({
+  packages: [{ name: 'mypkg', search: ['../src'] }],
+  components: {
+    SourceLink: './src/components/pydocs/SourceLink.astro',
+    Signature: '@internal/docs-theme/PySignature.astro',
+  },
+});
+```
+
+Values are either a path relative to the Astro project root or a package specifier. An unknown
+component name is a configuration error that lists the nine, so a typo fails the build instead of
+being ignored.
+
+## The nine components
+
+| Name                | Renders                                                                  | Props                                  |
+| ------------------- | ------------------------------------------------------------------------ | -------------------------------------- |
+| `ModuleDoc`         | A whole module page: docstring, member summary, submodule list, members    | `doc`, `scope`, `headingLevel?`, `labels?` |
+| `ClassDoc`          | A class body: signature, bases, docstring sections                        | `doc`, `scope`, `labels?`              |
+| `FunctionDoc`       | A function or method body: signature and docstring sections               | `doc`, `scope`, `labels?`              |
+| `AttributeDoc`      | An attribute or property body                                            | `doc`, `scope`, `labels?`              |
+| `Signature`         | The signature block, including `@overload` variants                       | `doc`, `scope`, `labels?`, `class?`    |
+| `DocstringSections` | Every parsed docstring section, in docstring order                        | `doc`, `scope`, `labels?`              |
+| `MemberSummary`     | The table of members at the top of a page or class                        | `doc`, `scope`, `labels?`              |
+| `SourceLink`        | The `View source` link                                                    | `doc`, `labels?`                       |
+| `Heading`           | An anchor heading with its permalink                                     | `level`, `id`, `class?`, `labels?`, default slot |
+
+Everything else is fixed: the object heading, badges, provenance and deprecation notice come from
+`ObjectDoc`, which also owns the member recursion, and `<Autodoc>` and `<SymbolSearch>` are entry
+points rather than pieces. Style those with CSS instead — see
+[Theming](/starlight-pydocs/guides/theming/).
+
+## The props
+
+`doc` is one documented object, and `scope` is everything needed to render it. The fields you are
+most likely to use:
+
+| `doc` field                              | Meaning                                                             |
+| ---------------------------------------- | ------------------------------------------------------------------- |
+| `path`, `canonicalPath`, `name`           | Documented path (also the heading id), definition path, short name    |
+| `kind`                                    | `module`, `class`, `function`, `attribute` or `alias`                 |
+| `labels`                                  | Griffe's labels: `property`, `classmethod`, `pydantic-model`, …       |
+| `summary`, `docstring`                    | First docstring line as plain text; the raw text plus parsed sections |
+| `members`, `groups`                       | Filtered members, and the same members bucketed for rendering          |
+| `bases`, `mro`, `unresolvedBases`          | Declared bases with resolution, the linearisation, what did not resolve |
+| `inheritedFrom`, `reexportedFrom`          | Provenance, when the object is not defined where it is documented     |
+| `deprecated`                              | `{ version, description }` when anything marks it deprecated          |
+| `source`                                  | `{ file, startLine, endLine, href }`                                  |
+| `pageSlug`                                | The page the object is rendered on                                    |
+
+| `scope` field | Meaning                                                                      |
+| ------------- | ---------------------------------------------------------------------------- |
+| `context`     | Site configuration: `siteBase`, `trailingSlash`, `packages`, the feature flags |
+| `pkg`         | The package being rendered                                                     |
+| `model`       | The whole normalised package: pages, `objectsByPath`, `symbolsByPath`, scopes   |
+| `resolver`    | Annotation name resolver, wired to the site's inventories                      |
+| `rendered`    | Pre-rendered docstring HTML, keyed by canonical path and section index          |
+
+`labels` is a `StringOverrides` object that any component may be handed to override individual
+strings; pass it down so overrides keep working through your component.
+
+`starlight-pydocs/render` exports the helpers the built-in components use, so an override rarely
+has to compute anything itself: `hrefForPath`, `hrefForTarget`, `pageHref`, `packageAssetHref`,
+`objectBadges`, `splitInherited`, `admonitionKind`, `admonitionTitle` and `createRenderScope`.
+
+## A worked example
+
+Say the `View source` link should carry a forge icon and open in a new tab. Write a component with
+`SourceLink`'s props and register it:
+
+```astro
+---
+// src/components/pydocs/SourceLink.astro
+import type { RenderScope } from 'starlight-pydocs/render';
+
+// `DocObject` is the shape of every documented object, reachable through the scope type.
+type DocObject = RenderScope['model']['root'];
+
+interface Props {
+  doc: DocObject;
+  labels?: Record<string, string> | undefined;
+}
+
+const { doc } = Astro.props;
+const source = doc.source;
+---
+
+{
+  source?.href === undefined ? null : (
+    <a class="pyd-source-link" href={source.href} target="_blank" rel="noreferrer noopener">
+      <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16"><path d="M8 0a8 8 0 0 0-2.5 15.6c.4.1.5-.2.5-.4v-1.4c-2.2.5-2.7-1-2.7-1-.4-1-.9-1.2-.9-1.2-.7-.5 0-.5 0-.5.8.1 1.2.8 1.2.8.7 1.2 1.9.9 2.4.7.1-.5.3-.9.5-1.1-1.8-.2-3.6-.9-3.6-4 0-.9.3-1.6.8-2.1-.1-.2-.4-1 .1-2.1 0 0 .7-.2 2.2.8a7.7 7.7 0 0 1 4 0c1.5-1 2.2-.8 2.2-.8.5 1.1.2 1.9.1 2.1.5.5.8 1.2.8 2.1 0 3.1-1.8 3.8-3.6 4 .4.3.7.9.7 1.8v2.6c0 .2.1.5.6.4A8 8 0 0 0 8 0Z" /></svg>
+      {' '}
+      Source
+    </a>
+  )
+}
+```
+
+```js
+// astro.config.mjs
+starlightPydocs({
+  packages: [{ name: 'mypkg', search: ['../src'] }],
+  components: { SourceLink: './src/components/pydocs/SourceLink.astro' },
+});
+```
+
+Every object on every generated page, and every `<Autodoc>` block, now uses it.
+
+## Wrapping rather than replacing
+
+The originals are exported from `starlight-pydocs/components`, so an override can add to one
+instead of reimplementing it. Importing the original there is safe: it bypasses the override
+mechanism, so there is no loop.
+
+```astro
+---
+// src/components/pydocs/ClassDoc.astro — the stock body, plus a warning for abstract classes
+import { ClassDoc } from 'starlight-pydocs/components';
+import type { RenderScope } from 'starlight-pydocs/render';
+
+type DocObject = RenderScope['model']['root'];
+
+interface Props {
+  doc: DocObject;
+  scope: RenderScope;
+  labels?: Record<string, string> | undefined;
+}
+
+const { doc, scope, labels } = Astro.props;
+const isAbstract = doc.labels.includes('abstract');
+---
+
+{isAbstract ? <aside class="pyd-aside pyd-aside--caution">Abstract: subclass it rather than instantiating it.</aside> : null}
+<ClassDoc doc={doc} scope={scope} labels={labels} />
+```
+
+:::note[Type-check your overrides]
+Overrides are compiled by your own project, so `astro check` covers them. Keeping the props exactly
+as listed above is what makes that check meaningful — an override with a missing prop fails at
+build time rather than rendering a blank block.
+:::

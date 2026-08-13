@@ -1,0 +1,105 @@
+---
+title: Search
+description: Pagefind coverage of generated pages, and the symbol search index and element.
+---
+
+Generated pages are searched twice over: by the site's own full-text search, and by a symbol index
+built for names rather than prose.
+
+## Prose search
+
+Under Starlight, generated pages render the standard page shell, so
+[Pagefind](https://pagefind.app/) indexes them with no configuration at all. Searching for a
+sentence from a docstring finds the module page it belongs to, and the result links into the page
+like any other. This site's end-to-end suite asserts it: a search for `generate_report` finds
+`/api/demopkg/`.
+
+Two things follow from Pagefind indexing whole pages:
+
+- A module page's search result covers every member on it, so a query matching a method's prose
+  takes the reader to that module page, not to the method's anchor.
+- Excluding API pages from search is the same job as excluding any Starlight page — Pagefind's own
+  `data-pagefind-ignore` attribute, applied from a
+  [component override](/starlight-pydocs/guides/component-overrides/) if you want to drop part of a
+  page rather than all of it.
+
+A plain Astro site has no Pagefind unless you add it, and the symbol search below works either way.
+
+## Symbol search
+
+Prose search answers "where is this explained"; symbol search answers "where is `Report.generate`".
+It is on by default, and it consists of two pieces: an index endpoint and a custom element.
+
+The endpoint is served next to each package's pages at `<base>/symbols.json`, and it is the only
+pydocs JSON a browser ever fetches:
+
+```json
+{
+  "package": "demopkg",
+  "generated": "2026-08-13T09:00:00.000Z",
+  "symbols": [
+    { "path": "demopkg.Report", "kind": "class", "page": "api/demopkg", "anchor": "demopkg.Report", "brief": "A named collection of scored sections." },
+    { "path": "demopkg.report", "kind": "module", "page": "api/demopkg/report", "anchor": "", "brief": "Report classes and the functions that build them." }
+  ]
+}
+```
+
+One entry per documented object: its dotted path, its kind, the page slug it lives on, its anchor
+(empty for a module, which is a page rather than a heading) and the first line of its docstring.
+The element turns `page` and `anchor` into a URL, so the payload stays base-agnostic.
+
+### Where it appears
+
+The search box is placed automatically on each package's root page — the page at the package's
+`base`, documenting the package's top-level module. That is where somebody arrives looking for a
+name, and one box per package keeps it off every module page below.
+
+Put it anywhere else by hand:
+
+```mdx
+import { SymbolSearch } from 'starlight-pydocs/components';
+
+<SymbolSearch />
+<SymbolSearch package="numpkg" class="my-search" labels={{ searchLabel: 'Find a symbol' }} />
+```
+
+| Prop      | Type              | Default            | Meaning                                    |
+| --------- | ----------------- | ------------------ | ------------------------------------------ |
+| `package` | `string`          | the first package  | Which configured package to search          |
+| `class`   | `string`          | none               | Extra class on the custom element           |
+| `labels`  | `StringOverrides` | site translations  | Label overrides for this instance           |
+
+With `symbolSearch: false`, the endpoint is not served and the component renders nothing, so a
+hand-placed box cannot outlive the index it needs.
+
+### How matching works
+
+The index is fetched on first focus, not on page load, so a page nobody searches costs nothing.
+Matching runs client-side, case-insensitively, and ranks hits in an order that is deliberately
+explainable rather than fuzzy: an exact short name first, then a short-name prefix, then a
+prefix of the full dotted path, then a substring of the name, then a substring of the path. Ties
+go to the shorter path, so `demopkg.Report` sorts above `demopkg.report.Report`, and then to
+alphabetical order, which keeps results stable between keystrokes. Because the whole dotted path
+is matched, `report.gen` finds `demopkg.report.generate_report`. At most 25 results are shown,
+grouped by kind under the same translated kind labels the badges use.
+
+The element is keyboard-operable: <kbd>ArrowDown</kbd> and <kbd>ArrowUp</kbd> move through results,
+<kbd>Enter</kbd> follows the active one, <kbd>Escape</kbd> closes the list. It is a combobox with
+`aria-expanded`, `aria-activedescendant` and one `role="option"` per result, defines itself once,
+and queries only its own subtree, so several boxes on a page and Astro's view transitions both work.
+
+## Searching several packages
+
+Each package has its own index, and each box searches one package. For a site documenting several,
+either give the reader one box per package, or fetch the endpoints yourself:
+
+```astro
+---
+const bases = ['api/mypkg', 'api/otherpkg'];
+const indexes = await Promise.all(bases.map((base) => fetch(new URL(`${base}/symbols.json`, Astro.site)).then((r) => r.json())));
+---
+```
+
+For anything more elaborate, the [Content Layer loader](/starlight-pydocs/guides/vanilla-astro/#the-content-layer-loader)
+gives you the same surface as collection entries, which you can query at build time and render
+however you like.
