@@ -1,0 +1,105 @@
+---
+title: Contributing
+description: Develop, test and release starlight-pydocs.
+---
+
+Contributions are welcome. The repository is a pnpm workspace: the published package lives in
+`packages/starlight-pydocs`, this documentation site (which doubles as an end-to-end fixture) in
+`docs`, a plain Astro site proving the no-Starlight path in `examples/vanilla`, and the Python
+fixture packages in `fixtures`.
+
+## Set up
+
+Node ≥ 22.12 and pnpm are required. Python is not: the checked-in Griffe dumps under `fixtures/`
+mean the unit tests never shell out, and [`uv`](https://docs.astral.sh/uv/) is only needed to
+regenerate them.
+
+```sh
+git clone https://github.com/ewels/starlight-pydocs
+cd starlight-pydocs
+pnpm install
+prek install    # git pre-commit hook: prettier → eslint → typecheck
+pnpm dev        # run this documentation site locally
+```
+
+## Checks
+
+| Task                          | Command                |
+| ----------------------------- | ---------------------- |
+| Unit tests (Vitest)           | `pnpm test`            |
+| End-to-end tests (Playwright) | `pnpm test:e2e`        |
+| Type-check                    | `pnpm typecheck`       |
+| Lint · format                 | `pnpm lint` · `pnpm format` |
+| Everything (as CI runs it)    | `prek run --all-files` |
+
+`pnpm test:e2e` builds and previews both sites (this one on port 4321 under base
+`/starlight-pydocs`, the vanilla example on 4322) and runs the Playwright suite against them, so
+every assertion is made against real generated output.
+
+`pnpm typecheck` runs two checks: `tsc --noEmit` over the framework-free code in
+`packages/starlight-pydocs/lib`, and `astro check` in this site, which is what type-checks the
+`.astro` components (they are compiled here, not in the package).
+
+:::note[MDX is formatted by hand]
+Prettier is **not** run on `.mdx` files. It reflows Python signatures and directive examples in
+ways that break them. Format MDX manually, and note that Starlight does not support custom heading
+IDs, so headings on these pages take the slug they are given.
+:::
+
+## Fixtures
+
+`fixtures/demopkg`, `fixtures/numpkg` and `fixtures/sphpkg` are Python packages whose API surface
+is deliberately exhaustive: three docstring styles, inheritance, overloads, `__all__`, pydantic
+models and deprecations. Each has a checked-in `griffe dump` JSON beside it, which is what the
+tests and this site read.
+
+After changing a fixture package, regenerate and commit the dumps:
+
+```sh
+pnpm gen:dumps       # needs uv on PATH
+pnpm gen:inventory   # only when the fixture Sphinx inventory needs new names
+```
+
+A guarded test regenerates live when `uv` is available and diffs the surface, so drift between the
+committed dumps and the fixture sources surfaces in CI wherever `uv` exists.
+
+## Architecture notes
+
+`PLAN.md` records every architecture decision and the alternatives rejected, `CLAUDE.md` the
+working conventions, and `HANDOFF.md` a running log of decisions and rough edges. Two rules are
+worth knowing before you start:
+
+- `lib/` never imports `astro` or `@astrojs/starlight`, and components never import
+  `@astrojs/starlight`. Starlight glue is confined to `index.ts`, `libs/starlight.ts`,
+  `middleware.ts` and `routes/starlight.astro`.
+- The package registers no remark or rehype plugin. Docstring prose renders through the host
+  project's configured markdown processor at `astro:config:done` into a sidecar JSON, and the
+  components consume pre-rendered HTML.
+
+## Releases
+
+Notable changes go under the **Unreleased** heading at the top of
+[`CHANGELOG.md`](https://github.com/ewels/starlight-pydocs/blob/main/CHANGELOG.md), in the same
+pull request as the change. The [Changelog page](/starlight-pydocs/changelog/) is generated from
+that file, so there is nothing to keep in sync by hand.
+
+To cut a release:
+
+1. Move the **Unreleased** entries into a new `## **Version X.Y.Z** (YYYY-MM-DD)` section, and
+   bump `version` in `packages/starlight-pydocs/package.json` to match.
+2. Commit and push to `main`.
+3. Publish a [GitHub release](https://github.com/ewels/starlight-pydocs/releases/new) with a tag
+   matching the version, for example `v1.0.0`.
+
+Publishing the release triggers the
+[release workflow](https://github.com/ewels/starlight-pydocs/blob/main/.github/workflows/release.yml),
+which publishes to npm through trusted publishing over OIDC, with no token to manage. It checks
+that the release tag matches the package version first, so a mismatch fails the run instead of
+shipping the wrong version.
+
+:::note[The first publish is manual]
+npm trusted publishing can only be configured on a package that already exists, so the very first
+release is published by hand (`pnpm release` after `npm login`). After that, add the GitHub
+repository as a trusted publisher in the package settings on npmjs.com and every later release
+publishes itself.
+:::
