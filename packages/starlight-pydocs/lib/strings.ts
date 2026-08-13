@@ -73,8 +73,6 @@ export const STRINGS = {
   labelPydanticField: 'pydantic field',
   labelPydanticValidator: 'pydantic validator',
 
-  // Parameter kinds.
-
   // Symbol search.
   searchLabel: 'Search symbols',
   searchPlaceholder: 'Search classes, functions, attributes…',

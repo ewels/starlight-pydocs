@@ -91,7 +91,6 @@ export function parseInventory(buffer: Uint8Array): InventoryEntry[] {
   return entries;
 }
 
-/** Byte offset just past the four header lines. */
 /**
  * Byte offset just past the fourth newline. Counted on the raw bytes, not on
  * decoded text: a multi-byte character in a header line (a project name,

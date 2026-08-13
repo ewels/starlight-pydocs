@@ -210,11 +210,14 @@ export function annotationTokens(
   return mergeAnnotationTokens(context.tokens);
 }
 
+/** The text of a token list, links discarded. */
+export function tokensText(tokens: AnnotationToken[]): string {
+  return tokens.map((token) => token.text).join('');
+}
+
 /** The annotation as plain text, with no linking. */
 export function annotationText(expr: Annotation): string {
-  return annotationTokens(expr, '')
-    .map((token) => token.text)
-    .join('');
+  return tokensText(annotationTokens(expr, ''));
 }
 
 /**

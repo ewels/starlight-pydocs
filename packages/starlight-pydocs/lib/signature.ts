@@ -7,7 +7,7 @@
  */
 
 import type { AnnotationResolver, AnnotationToken } from './expr.ts';
-import { annotationTokens, mergeAnnotationTokens } from './expr.ts';
+import { annotationTokens, mergeAnnotationTokens, tokensText } from './expr.ts';
 import type { DocObject } from './model.ts';
 import type { GriffeFunction } from './types.ts';
 
@@ -197,9 +197,7 @@ export function renderedParameterCount(doc: DocObject): number {
 
 /** Plain-text signature, used in code fences and in the Markdown renderer. */
 export function signatureText(doc: DocObject, options: SignatureOptions = {}): string {
-  return signatureTokens(doc, options)
-    .map((token) => token.text)
-    .join('');
+  return tokensText(signatureTokens(doc, options));
 }
 
 /** Signature of one `@overload` variant, which has no model object of its own. */
@@ -217,7 +215,5 @@ export function overloadSignatureTokens(
 
 /** Plain-text signature of one `@overload` variant. */
 export function overloadSignatureText(overload: GriffeFunction, doc: DocObject): string {
-  return overloadSignatureTokens(overload, doc)
-    .map((token) => token.text)
-    .join('');
+  return tokensText(overloadSignatureTokens(overload, doc));
 }
