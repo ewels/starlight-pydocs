@@ -35,7 +35,10 @@
     "./loader": "./loader.ts",
     "./components": "./components/index.ts",
     "./render": "./lib/render.ts",
-    "./styles": "./styles.css",
+    "./styles": {
+      "types": "./styles.d.ts",
+      "default": "./styles.css"
+    },
     "./middleware": "./middleware.ts",
     "./routes/starlight": "./routes/starlight.astro",
     "./routes/vanilla": "./routes/vanilla.astro",
@@ -55,6 +58,7 @@
     "libs",
     "routes",
     "styles.css",
+    "styles.d.ts",
     "translations.ts",
     "env.d.ts",
     "virtual.d.ts",
