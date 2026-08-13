@@ -30,7 +30,6 @@ import type {
   DocstringSectionDeprecated,
   DocstringSectionText,
   ExprOrString,
-  GriffeAlias,
   GriffeClass,
   GriffeDump,
   GriffeFunction,
@@ -439,27 +438,33 @@ class ModelBuilder {
       return { object, reexportedFrom: undefined, externalTargetPath: undefined };
     }
 
-    const seen = new Set<string>();
-    let current: GriffeAlias = object;
-    for (;;) {
-      if (seen.has(current.target_path)) break;
-      seen.add(current.target_path);
-      const target = this.index.get(current.target_path);
-      if (target === undefined) break;
-      if (target.kind === 'alias') {
-        current = target;
-        continue;
-      }
-      return {
-        object: target,
-        reexportedFrom: parentPath(target.path),
-        externalTargetPath: undefined,
-      };
+    const end = this.followAliases(object);
+    if (end.kind !== 'alias') {
+      return { object: end, reexportedFrom: parentPath(end.path), externalTargetPath: undefined };
     }
 
     // Unresolvable target: an import from outside the documented package, or a
     // cycle. Keep it as a reference so renderers can show where it points.
-    return { object, reexportedFrom: undefined, externalTargetPath: current.target_path };
+    return { object, reexportedFrom: undefined, externalTargetPath: end.target_path };
+  }
+
+  /**
+   * Walk an alias chain through the index to the object it names.
+   *
+   * Returns the first non-alias it reaches, or the last alias when the chain
+   * leaves the dump or loops back on itself, so a caller tells success from
+   * either failure by the kind of what comes back.
+   */
+  private followAliases(object: GriffeObject): GriffeObject {
+    const seen = new Set<string>();
+    let current = object;
+    while (current.kind === 'alias' && !seen.has(current.target_path)) {
+      seen.add(current.target_path);
+      const target = this.index.get(current.target_path);
+      if (target === undefined) return current;
+      current = target;
+    }
+    return current;
   }
 
   // -- Inheritance ---------------------------------------------------------
@@ -520,13 +525,8 @@ class ModelBuilder {
   }
 
   private followToObject(path: string): GriffeObject | undefined {
-    let current = this.index.get(path);
-    const seen = new Set<string>();
-    while (current?.kind === 'alias' && !seen.has(current.target_path)) {
-      seen.add(current.target_path);
-      current = this.index.get(current.target_path);
-    }
-    return current;
+    const object = this.index.get(path);
+    return object === undefined ? undefined : this.followAliases(object);
   }
 
   /** Nearest enclosing module of a dotted path. */

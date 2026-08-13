@@ -180,7 +180,7 @@ function versionKey(pkg: PydocsPackageConfig, sha: string, relativeSearch: strin
  * @throws {PydocsError} When the sources are not in a git repository, a ref does
  *   not exist, a search path lies outside the repository, or griffe fails.
  */
-export async function resolveVersionExtractions(
+async function resolveVersionExtractions(
   pkg: PydocsPackageConfig,
   config: PydocsConfig,
   context: ExtractionContext,

@@ -8,12 +8,13 @@ import type { GriffeDump } from '../lib/types.ts';
 import { fixtureModel, memberNames, modelOptions, testFixturePath } from './helpers.ts';
 
 let demopkg: PackageModel;
+let syntheticDump: GriffeDump;
 let synthetic: PackageModel;
 
 beforeAll(async () => {
   demopkg = await fixtureModel('demopkg');
-  const dump = JSON.parse(await fs.readFile(testFixturePath('synthetic.dump.json'), 'utf8')) as GriffeDump;
-  synthetic = buildModel(dump, modelOptions('ovpkg', { base: 'api/ovpkg' }));
+  syntheticDump = JSON.parse(await fs.readFile(testFixturePath('synthetic.dump.json'), 'utf8')) as GriffeDump;
+  synthetic = buildModel(syntheticDump, modelOptions('ovpkg', { base: 'api/ovpkg' }));
 });
 
 describe('member filtering', () => {
@@ -120,11 +121,8 @@ describe('alias resolution', () => {
     expect(documentedPathFor(demopkg, 'demopkg.report.Report')).toBe('demopkg.report.Report');
   });
 
-  test('unresolvable aliases keep the external target for display', async () => {
-    const model = buildModel(
-      JSON.parse(await fs.readFile(testFixturePath('synthetic.dump.json'), 'utf8')) as GriffeDump,
-      modelOptions('ovpkg', { base: 'api/ovpkg', filters: { imported: true } }),
-    );
+  test('unresolvable aliases keep the external target for display', () => {
+    const model = buildModel(syntheticDump, modelOptions('ovpkg', { base: 'api/ovpkg', filters: { imported: true } }));
     const outside = model.objectsByPath.get('ovpkg.outside');
     expect(outside?.kind).toBe('alias');
     expect(outside?.externalTargetPath).toBe('third_party.helper');

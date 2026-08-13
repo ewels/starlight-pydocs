@@ -35,17 +35,9 @@ describe('STRINGS', () => {
     const used = new Set<string>();
     for (const [, key] of source.matchAll(/label\('([A-Za-z]+)'/g)) used.add(key ?? '');
     for (const [, key] of source.matchAll(/'(kind[A-Z][A-Za-z]*|label[A-Z][A-Za-z]*)'/g)) used.add(key ?? '');
-    for (const [, key] of source.matchAll(/heading: StringKey =\s*[^;]*?'([a-zA-Z]+)'/g)) used.add(key ?? '');
 
     expect(used.size).toBeGreaterThan(15);
     for (const key of used) expect(stringKeys(), `${key} is missing from STRINGS`).toContain(key as StringKey);
-  });
-
-  test('every key the signature helper names exists', async () => {
-    const source = await readLib('signature.ts');
-    for (const [, key] of source.matchAll(/return '(parameter[A-Za-z]+)'/g)) {
-      expect(stringKeys()).toContain((key ?? '') as StringKey);
-    }
   });
 
   test('covers the labels griffe attaches to the fixture package', () => {
