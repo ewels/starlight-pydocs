@@ -17,6 +17,7 @@
  * and reapply on write.
  */
 
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { deflateSync, inflateSync } from 'node:zlib';
 
@@ -244,8 +245,14 @@ export async function loadInventories(
   return loaded;
 }
 
+/**
+ * `node:fs/promises` is imported statically on purpose. Inventories load from
+ * the Starlight plugin's `config:setup`, whose module graph is the one Vite used
+ * to load the Astro config, and that runner is closed by then: a dynamic import
+ * there fails with "Vite module runner has been closed" and every annotation
+ * silently loses its external link.
+ */
 async function defaultReadFile(filePath: string): Promise<Uint8Array> {
-  const { readFile } = await import('node:fs/promises');
   return readFile(path.resolve(filePath));
 }
 
