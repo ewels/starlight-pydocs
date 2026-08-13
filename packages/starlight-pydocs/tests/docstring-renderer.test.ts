@@ -171,36 +171,6 @@ describe('renderDocstringsForDump', () => {
     expect(rendered.objects['demopkg']).toBeDefined();
   });
 
-  test('sanitises the rendered HTML by default, and sanitize: false turns it off', async () => {
-    // A renderer that behaves as if every docstring smuggled markup through
-    // the markdown pipeline (raw HTML passes through by default).
-    const hostile = {
-      name: 'hostile',
-      options: {},
-      createRenderer: () =>
-        Promise.resolve({
-          render: () =>
-            Promise.resolve({
-              code: '<p onclick="x()">hi<script>alert(1)</script> <a href="javascript:alert(1)">a</a></p>',
-            }),
-        }),
-    };
-    const renderer = await resolveDocstringRenderer(markdownConfig({ processor: hostile }));
-    const dumpPath = fixturePath('demopkg', 'dump.json');
-
-    const sanitizedPath = await temporarySidecarPath();
-    await renderDocstringsForDump({ dumpPath, renderedPath: sanitizedPath, renderer });
-    const sanitized = JSON.stringify(await readSidecar(sanitizedPath));
-    expect(sanitized).toContain('<p>hi');
-    expect(sanitized).not.toContain('<script>');
-    expect(sanitized).not.toContain('onclick');
-    expect(sanitized).not.toContain('javascript:');
-
-    const rawPath = await temporarySidecarPath();
-    await renderDocstringsForDump({ dumpPath, renderedPath: rawPath, renderer, sanitize: false });
-    expect(JSON.stringify(await readSidecar(rawPath))).toContain('<script>');
-  });
-
   test('a missing dump is a PydocsError', async () => {
     const renderer = await satteriRenderer();
     await expect(

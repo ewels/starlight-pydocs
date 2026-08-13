@@ -20,22 +20,12 @@ the config loads, and a bad value names itself, for example
 | `llmsTxt`          | `boolean`                           | `true`               | Serve `llms.txt` for each package.                             |
 | `components`       | `Record<name, string>`              | `{}`                 | Component overrides. See [Component overrides](/starlight-pydocs/guides/component-overrides/). |
 | `injectStyles`     | `boolean`                           | `true`               | Append the package stylesheet to Starlight's `customCss`.       |
-| `sanitizeDocstrings` | `boolean`                         | `true`               | Filter rendered docstring HTML through an allowlist.            |
 | `cacheDir`         | `string`                            | `node_modules/.astro` | Directory for cached dumps, inventories and rendered prose.    |
 | `layout`           | `string`                            | built-in layout      | Integration only: the component that wraps generated pages.     |
 
 `injectStyles` has nothing to append to in a plain Astro project, so the integration ignores it;
 import `starlight-pydocs/styles` from your own layout instead (see
 [Vanilla Astro](/starlight-pydocs/guides/vanilla-astro/)).
-
-`sanitizeDocstrings` exists because docstring prose is only as trustworthy as the package it was
-extracted from, and a pre-generated dump (`source: { url }`) may not even be your own code: markdown
-renders raw HTML through, so without the filter a docstring could put a `<script>` or a
-`javascript:` link on your pages. The allowlist keeps everything markdown ordinarily produces
-(headings, tables, images, task lists, syntax-highlighted code with its inline styles, inline SVG
-icons) and removes scripts, event handlers, frames, forms and URL schemes other than `http(s)`,
-`mailto` and (for images) `data`. Set it to `false` only when your docstrings need markup beyond
-the allowlist and you trust every documented package as much as your own source.
 
 Turning `symbolSearch` off removes both the `symbols.json` endpoint and every rendered search box,
 including a hand-placed `<SymbolSearch />`, which renders nothing rather than a box that cannot

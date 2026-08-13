@@ -231,20 +231,22 @@ string manipulation; `pycon` is not in Sätteri's bundled Shiki set). Griffe
 admonition sections render as our own aside markup in components, not through
 directives.
 
-One more stage sits between the render call and the sidecar: the rendered HTML is
-filtered through a sanitize-html allowlist (`lib/sanitize.ts`), on by default and
-disabled with `sanitizeDocstrings: false`. Markdown passes raw HTML through and the
-components consume the sidecar via `set:html`, so without the filter a docstring —
-which is only as trustworthy as the package it came from, and with
-`source: { url }` may not be the site author's code at all — could put a `<script>`
-or a `javascript:` link on every visitor's page. The allowlist deliberately keeps
-what markdown legitimately produces (Shiki/Expressive Code inline styles pass
-verbatim: `parseStyleAttributes: false`, because postcss reserialisation garbles
-the `--shiki-*` custom properties; task-list checkboxes; inline SVG icons). This is
-the package's only runtime dependency, confined to the config-time process; nothing
-of it reaches the browser or the SSR graph. Hrefs the package builds itself from
-semi-trusted inputs (a dump's `source_link`, absolute URIs in Sphinx inventories)
-are scheme-checked separately by `safeHref` in `lib/paths.ts`.
+Rendered docstring HTML is deliberately **not sanitised**: markdown passes raw HTML
+through, the components consume the sidecar via `set:html`, and whatever a
+docstring says lands on the page. This matches mkdocstrings' trust model, and the
+owner chose it explicitly (2026-08-13) over a default-on sanitize-html allowlist
+that was built, reviewed and then removed (see the git log for the implementation,
+should it ever be wanted back): the tool is expected to be used almost exclusively
+by people documenting their own packages, whose docstrings are exactly as trusted
+as the site's own MDX, and the allowlist's fragility (it must track every processor's
+output — Shiki inline styles, Expressive Code wrappers, task lists, inline SVG) plus
+the package's only runtime dependency were judged not worth it. The corollary is
+stated in the pre-generated-dumps guide: a dump is content for your site, so point
+`source` only at dumps whose provenance you trust. Hrefs the package builds itself
+from semi-trusted inputs are a different matter and **are** guarded: a dump's
+`source_link` and absolute URIs in Sphinx inventories pass through `safeHref` in
+`lib/paths.ts` (http(s)/mailto/relative only), because a fetched `objects.inv` is
+third-party data even on a site documenting only its own code.
 
 Astro 7.0.x, where `markdown.processor` does not exist: fall back to
 `@astrojs/markdown-remark`'s `createMarkdownProcessor(astroConfig.markdown)`,

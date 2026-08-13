@@ -258,15 +258,6 @@ export interface PydocsUserConfig {
   components?: Partial<Record<OverridableComponentName, string>> | undefined;
   /** Inject the package stylesheet. Default `true`. */
   injectStyles?: boolean | undefined;
-  /**
-   * Filter rendered docstring HTML through an allowlist before it reaches the
-   * pages. Docstrings are only as trustworthy as the package they came from, so
-   * by default scripts, event handlers and `javascript:` links are removed
-   * while everything markdown produces (Shiki highlighting included) survives.
-   * Set `false` when docstrings need markup beyond the allowlist and every
-   * documented package is trusted. Default `true`.
-   */
-  sanitizeDocstrings?: boolean | undefined;
   /** Directory for cached dumps and inventories. Default `node_modules/.astro`. */
   cacheDir?: string | undefined;
 }
@@ -356,7 +347,6 @@ export interface PydocsConfig {
   llmsTxt: boolean;
   components: Partial<Record<OverridableComponentName, string>>;
   injectStyles: boolean;
-  sanitizeDocstrings: boolean;
   /** Absolute cache directory. */
   cacheDir: string;
   /** Absolute project root, used to resolve every relative path. */
@@ -758,7 +748,6 @@ export function normalizeConfig(user: PydocsUserConfig, projectRoot: string): Py
     llmsTxt: optionalBoolean(user.llmsTxt, 'llmsTxt', true),
     components: components as Partial<Record<OverridableComponentName, string>>,
     injectStyles: optionalBoolean(user.injectStyles, 'injectStyles', true),
-    sanitizeDocstrings: optionalBoolean(user.sanitizeDocstrings, 'sanitizeDocstrings', true),
     cacheDir: path.resolve(projectRoot, cacheDirInput ?? path.join('node_modules', '.astro')),
     projectRoot,
   };
