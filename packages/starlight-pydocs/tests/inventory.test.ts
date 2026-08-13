@@ -71,6 +71,13 @@ describe('parseInventory', () => {
     expect(parsed).toEqual(entries);
   });
 
+  test('round-trips a project name with multi-byte characters', () => {
+    // The header end must be counted in bytes, not decoded characters, or the
+    // zlib payload is sliced at the wrong offset and fails to decompress.
+    const parsed = parseInventory(buildInventory('prøjekt — ünicode', '1.0', entries));
+    expect(parsed).toEqual(entries);
+  });
+
   test('keeps the four header lines intact', () => {
     const text = new TextDecoder().decode(buildInventory('demopkg', '1.0', entries).slice(0, 160));
     expect(text.split('\n').slice(0, 4)).toEqual([
