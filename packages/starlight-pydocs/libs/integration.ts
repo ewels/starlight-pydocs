@@ -258,7 +258,7 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
 
       // Every integration has finished mutating `markdown.processor.options` by
       // now, so docstrings render through the same final pipeline as the site's
-      // own content (PLAN.md decision 7).
+      // own content (ARCHITECTURE.md decision 7).
       'astro:config:done': async ({ config, logger }) => {
         renderer = await resolveDocstringRenderer(config.markdown);
         await renderDocstrings(logger);

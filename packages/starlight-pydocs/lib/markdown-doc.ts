@@ -1,7 +1,7 @@
 /**
  * Render the model as plain GitHub-flavoured Markdown.
  *
- * Two jobs: it feeds the `llms.txt` endpoint (decision 10 in PLAN.md), and it is
+ * Two jobs: it feeds the `llms.txt` endpoint (decision 10 in ARCHITECTURE.md), and it is
  * the golden format for the model's unit tests, where a single snapshot covers
  * ordering, provenance and docstring section handling at once.
  *

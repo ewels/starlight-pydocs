@@ -2,7 +2,7 @@
  * "Added in" annotations, computed by comparing the object paths of dumps taken
  * at successive git refs.
  *
- * `griffe check` has no machine-readable output (PLAN.md decision 12), so the
+ * `griffe check` has no machine-readable output (ARCHITECTURE.md decision 12), so the
  * comparison is ours: a dump lists every object path it contains, and the first
  * listed version containing a path is the version that introduced it. Everything
  * in this module is pure: the git work and the extraction live in

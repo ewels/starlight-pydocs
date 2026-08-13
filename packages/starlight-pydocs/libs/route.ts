@@ -48,7 +48,7 @@ export async function getPydocsStaticPaths(context: PydocsContext): Promise<Pydo
 /**
  * True for the page that documents a package's root module.
  *
- * That page is where the routes place the symbol search box (PLAN.md decision
+ * That page is where the routes place the symbol search box (ARCHITECTURE.md decision
  * 8): the entry point to a package is where somebody looks for a name, and one
  * box per package keeps it out of the way of every module page.
  */

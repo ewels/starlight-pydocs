@@ -34,12 +34,12 @@ export interface PydocsPackageContext {
   dumpPath: string;
   /**
    * Absolute path to the pre-rendered docstring HTML for this package, written
-   * at `astro:config:done` (PLAN.md decision 7).
+   * at `astro:config:done` (ARCHITECTURE.md decision 7).
    */
   renderedPath: string;
   /**
    * Absolute path to the "added in" labels for this package, written at setup
-   * from dumps of the configured version refs (PLAN.md decision 12). Empty when
+   * from dumps of the configured version refs (ARCHITECTURE.md decision 12). Empty when
    * the package has no `versions.refs`.
    */
   versionsPath: string;

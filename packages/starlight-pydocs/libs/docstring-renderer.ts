@@ -1,7 +1,7 @@
 /**
  * Rendering docstring prose with the host project's markdown processor.
  *
- * The package depends on no markdown engine (PLAN.md decision 7). Astro hands
+ * The package depends on no markdown engine (ARCHITECTURE.md decision 7). Astro hands
  * integrations the resolved config, so `astroConfig.markdown.processor` is a live
  * `MarkdownProcessor` on current Astro: `createRenderer(shared)` returns
  * something that renders a string, and `astroConfig.markdown` *is* the shared
