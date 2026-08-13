@@ -11,9 +11,10 @@ import context from 'virtual:starlight-pydocs/context';
 import { ModuleDoc } from 'virtual:starlight-pydocs/components';
 import Layout from 'virtual:starlight-pydocs/vanilla-layout';
 
+import SymbolSearch from '../components/SymbolSearch.astro';
 import { createRenderScope } from '../lib/render.ts';
 import type { PydocsRouteProps } from '../libs/route.ts';
-import { getPydocsPage, getPydocsStaticPaths } from '../libs/route.ts';
+import { getPydocsPage, getPydocsStaticPaths, isPackageRootPage } from '../libs/route.ts';
 
 export async function getStaticPaths() {
   return getPydocsStaticPaths(context);
@@ -26,8 +27,11 @@ const [scope, page] = await Promise.all([
   createRenderScope(context, props.pydocsPackage),
   getPydocsPage(context, props),
 ]);
+
+const withSearch = context.symbolSearch && isPackageRootPage(page);
 ---
 
 <Layout title={page.title} headings={page.headings} description={page.object.summary}>
+  {withSearch ? <SymbolSearch package={props.pydocsPackage} /> : null}
   <ModuleDoc doc={page.object} scope={scope} />
 </Layout>
