@@ -45,7 +45,7 @@ The docstrings in a pre-generated dump were parsed when the dump was made, so `d
 and everything else still apply, because they are rendering concerns.
 :::
 
-Packages with a `source` are not watched in `astro dev` — there are no Python files to watch — so
+Packages with a `source` are not watched in `astro dev` (there are no Python files to watch), so
 regenerating a dump during development needs a dev-server restart.
 
 ## The command to run
@@ -113,9 +113,9 @@ The docs site then reads
 version, or upload to a stable location (an S3 bucket, a `latest` release, a `gh-pages` file) and
 let revalidation keep the site current.
 
-To ship the dump inside the docs repository instead — no network at build time, and reviewable diffs
-— commit it and use `source: { file }`. It is a large JSON file, so expect noisy diffs; a repository
-that dislikes that is better served by the URL form.
+To ship the dump inside the docs repository instead (no network at build time, and reviewable
+diffs), commit it and use `source: { file }`. It is a large JSON file, so expect noisy diffs; a
+repository that dislikes that is better served by the URL form.
 
 ## Source links with a dump from elsewhere
 
@@ -156,7 +156,7 @@ jq '.mypkg.members.Report.docstring.parsed[0].kind' api.json   # "text" if -d ra
 If `docstring.parsed` is missing, the dump was made without `-d` and the pages will carry
 signatures with no parameter tables or admonitions. If objects have no `filepath`, it was made
 without `-f`, and source links and the visibility-based member filters have nothing to work from.
-Neither is an error the plugin can detect for you — both produce thinner pages rather than a failed
-build — so it is worth checking a dump the first time a new pipeline produces one. A file that is
+Neither is an error the plugin can detect for you, because both produce thinner pages rather than a
+failed build. It is worth checking a dump the first time a new pipeline produces one. A file that is
 not a griffe dump at all, or does not contain the configured package, does fail, naming the file and
 listing what the dump does contain.

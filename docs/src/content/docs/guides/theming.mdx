@@ -92,8 +92,8 @@ selective: `[data-pydocs-kind="class"]`, `[data-pydocs-path="mypkg.Report"]`,
 `[data-pydocs-group="methods"]`, `[data-pydocs-section="parameters"]`,
 `[data-pydocs-badge="deprecated"]`, `[data-pydocs-aside="note"]`.
 
-If a rule needs to win _inside_ Starlight's own `.sl-markdown-content` — where Starlight's
-unlayered rules also apply — give it enough specificity to do so, exactly as the stylesheet itself
+If a rule needs to win _inside_ Starlight's own `.sl-markdown-content`, where Starlight's
+unlayered rules also apply, give it enough specificity to do so, exactly as the stylesheet itself
 does in the few places it must.
 
 ## Dark mode
@@ -107,7 +107,7 @@ your own theme toggle and the API pages follow; leave it unset and they follow t
 
 ## Code highlighting
 
-Code inside docstrings — fenced blocks, doctest transcripts — is highlighted by the site's own
+Code inside docstrings (fenced blocks, doctest transcripts) is highlighted by the site's own
 pipeline, because docstring prose renders through the processor your project configured. There is
 no separate Shiki configuration here, and nothing to keep in sync.
 
@@ -132,4 +132,4 @@ stylesheet work in light and dark. This site uses exactly that configuration.
 
 Signatures are not Shiki output: they are built from the model so that every type can be a link,
 and they are styled with `.pyd-signature` and `.pyd-type` rather than syntax-highlighted. The
-trade is deliberate — a linked `dict[str, Report]` is worth more on an API page than token colours.
+trade is deliberate: a linked `dict[str, Report]` is worth more on an API page than token colours.

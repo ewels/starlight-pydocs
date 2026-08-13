@@ -1,5 +1,5 @@
 /**
- * `<base>/objects.inv` — this site's own Sphinx inventory.
+ * `<base>/objects.inv`: this site's own Sphinx inventory.
  *
  * With it, mkdocstrings and Sphinx projects can `:py:class:` straight into these
  * pages. Roles and anchors match mkdocstrings' choices, which is the whole point

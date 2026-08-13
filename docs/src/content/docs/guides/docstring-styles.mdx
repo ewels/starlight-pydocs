@@ -33,7 +33,7 @@ packages: [
 ];
 ```
 
-The option names are Griffe's own, and they differ per parser — see
+The option names are Griffe's own, and they differ per parser. See
 [Griffe's docstring parser options](https://mkdocstrings.github.io/griffe/reference/docstrings/).
 Options are part of the cache key, so changing one re-extracts.
 
@@ -75,7 +75,7 @@ into the deprecation notice instead of an aside, so the badge and the explanatio
 
 An `Examples:` section arrives as a sequence of prose and transcript pieces. Prose renders as
 Markdown. A `>>>` transcript arrives unfenced, so it is fenced as `python` before rendering, which
-means it is highlighted by whatever highlighter the site already uses — Expressive Code under
+means it is highlighted by whatever highlighter the site already uses: Expressive Code under
 Starlight, plain Shiki in a bare Astro project.
 
 `python` rather than mkdocstrings' `pycon`: no Python-console grammar ships in the Shiki bundles
@@ -107,8 +107,8 @@ output is read by machines rather than highlighted by Shiki.
 ## Prose rendering
 
 Docstring Markdown goes through the markdown processor **your site has configured**, not one this
-package brings along. Whatever your site does to its own Markdown — the theme, the plugins
-Starlight registers, a mermaid plugin you added, GFM tables, smart quotes — happens to docstring
+package brings along. Whatever your site does to its own Markdown (the theme, the plugins
+Starlight registers, a mermaid plugin you added, GFM tables, smart quotes) happens to docstring
 prose too, so an API page reads like the rest of the site.
 
 Two consequences worth knowing:

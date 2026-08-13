@@ -1,7 +1,7 @@
 /**
  * Static paths and page lookup, shared by the Starlight and vanilla routes.
  *
- * Props stay JSON-light — a package base and a slug — because Astro serialises
+ * Props stay JSON-light (a package base and a slug) because Astro serialises
  * them per route. The route component re-derives the model from the
  * per-process cache, which is free after the first page.
  */

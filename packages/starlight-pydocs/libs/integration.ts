@@ -2,9 +2,9 @@
  * The setup both hosts share.
  *
  * The Starlight plugin and the vanilla integration need exactly the same work
- * done — validate the options, extract the dumps, load the inventories, inject
+ * done: validate the options, extract the dumps, load the inventories, inject
  * the routes and endpoints, register the virtual modules, watch the Python
- * sources in dev — and differ only in which route entrypoint renders the pages
+ * sources in dev. They differ only in which route entrypoint renders the pages
  * and whether Starlight's own hooks are used. That difference is two arguments,
  * so the work lives here once.
  *

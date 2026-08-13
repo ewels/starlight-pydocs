@@ -5,7 +5,7 @@
   "type": "module",
   "license": "Apache-2.0",
   "author": "Phil Ewels",
-  "description": "Private development monorepo for starlight-pydocs — the published package lives in packages/starlight-pydocs.",
+  "description": "Private development monorepo for starlight-pydocs. The published package lives in packages/starlight-pydocs.",
   "homepage": "https://ewels.github.io/starlight-pydocs",
   "repository": {
     "type": "git",

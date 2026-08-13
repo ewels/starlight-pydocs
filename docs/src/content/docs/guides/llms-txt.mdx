@@ -64,7 +64,7 @@ the `text/markdown` the route sets. Browsers show it, `curl` pipes it, models re
 
 [starlight-llms-txt](https://delucis.github.io/starlight-llms-txt/) builds a site-wide `llms.txt`
 from the `docs` content collection. Injected routes are not part of that collection, so it cannot
-see the generated API pages — but it can advertise ours, through its `optionalLinks` option:
+see the generated API pages. It can still advertise ours, through its `optionalLinks` option:
 
 ```js
 // astro.config.mjs
@@ -97,8 +97,9 @@ export default defineConfig({
 ```
 
 `optionalLinks` entries take `label`, `url` and an optional `description`, and appear under an
-`## Optional` heading in the generated `llms.txt` — links a model may follow when it wants more than
-the prose. Use absolute URLs: that file is read by clients that have no notion of your site's base.
+`## Optional` heading in the generated `llms.txt`. Those are links a model may follow when it wants
+more than the prose. Use absolute URLs: that file is read by clients that have no notion of your
+site's base.
 
 ## Consuming it yourself
 
@@ -108,7 +109,7 @@ The endpoint is a normal prerendered file, so anything can read it:
 curl -s https://docs.example.com/api/mypkg/llms.txt > mypkg-api.md
 ```
 
-If you want the same information as structured data rather than Markdown — to build a table, a cheat
-sheet or your own index — use the
+If you want the same information as structured data rather than Markdown (to build a table, a cheat
+sheet or your own index), use the
 [Content Layer loader](/starlight-pydocs/guides/vanilla-astro/#the-content-layer-loader), which
 exposes one entry per documented object with its path, kind, brief, signature and page.

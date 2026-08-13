@@ -97,11 +97,11 @@ containers on the way to them.
 
 Extraction picks the first strategy that applies, per package:
 
-1. `runner.command` — a full argv array. The dump arguments and `-o <file>` are appended, so pass
+1. `runner.command`: a full argv array. The dump arguments and `-o <file>` are appended, so pass
    only the executable and its own arguments, for example
    `['micromamba', 'run', '-n', 'docs', 'griffe']`.
-2. `source: { file }` — a dump already on disk. Nothing runs.
-3. `source: { url }` — a dump downloaded and cached.
+2. `source: { file }`: a dump already on disk. Nothing runs.
+3. `source: { url }`: a dump downloaded and cached.
 4. `uvx --from griffe griffe`, when `uv --version` succeeds. `extraRequirements` become
    `--with` arguments.
 5. `<interpreter> -m griffe`, for the first of `python3`, `python` (or `runner.python`) that can
@@ -124,12 +124,12 @@ extensions, and the path, size and mtime of every `.py` and `.pyi` file under th
 the key changes, so a stale dump is never reused and there is nothing to invalidate by hand.
 Rebuilds that change nothing skip extraction entirely.
 
-Dumps are never sent to the browser and never inlined into a virtual module — they are megabytes,
+Dumps are never sent to the browser and never inlined into a virtual module: they are megabytes,
 and the only pydocs JSON a browser fetches is the small `symbols.json` index. The virtual module
 carries the validated configuration and the dump paths; the JSON is read from disk, server-side,
 once per process.
 
-Remote artefacts — `source: { url }` and `inventories[].url` — are cached beside the dumps with
+Remote artefacts (`source: { url }` and `inventories[].url`) are cached beside the dumps with
 their `ETag` and `Last-Modified`, and the `cache` option controls how they are revalidated:
 
 | `cache`        | Behaviour                                                            |

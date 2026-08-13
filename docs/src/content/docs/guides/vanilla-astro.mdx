@@ -23,8 +23,8 @@ export default defineConfig({
 });
 ```
 
-Every option is the same as the Starlight plugin's — see
-[Configuration](/starlight-pydocs/guides/configuration/) — with one addition (`layout`) and one that
+Every option is the same as the Starlight plugin's, listed in
+[Configuration](/starlight-pydocs/guides/configuration/), with one addition (`layout`) and one that
 does nothing (`injectStyles`, which has no `customCss` to append to here).
 
 ## The stylesheet
@@ -162,17 +162,17 @@ see [Internationalisation](/starlight-pydocs/guides/i18n/#without-starlight).
 
 Everything except the shell is the same. Two differences worth planning for:
 
-- **No Pagefind**, so there is no full-text search over the generated pages unless you add one. The
+- No Pagefind, so there is no full-text search over the generated pages unless you add one. The
   [symbol search](/starlight-pydocs/guides/search/) is independent of Starlight and works here,
   automatically on each package's root page.
-- **No sidebar and no prev/next links.** Those come from Starlight's route data, which a plain Astro
+- No sidebar and no prev/next links. Those come from Starlight's route data, which a plain Astro
   site does not have. Build navigation from the endpoints or the loader if you want it; the
   `symbols.json` index carries every object's page and anchor.
 
 ## The Content Layer loader
 
-`starlight-pydocs/loader` exposes the same model as data — one collection entry per documented
-object — for pages that want to list, filter or tabulate the surface rather than render it. It runs
+`starlight-pydocs/loader` exposes the same model as data, one collection entry per documented
+object, for pages that want to list, filter or tabulate the surface rather than render it. It runs
 the same extraction, so a site can use both and they agree.
 
 ```ts

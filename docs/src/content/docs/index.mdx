@@ -5,9 +5,9 @@ description: Python API reference documentation for Astro and Starlight, extract
 
 `starlight-pydocs` generates Python API reference documentation for
 [Astro](https://astro.build) and [Starlight](https://starlight.astro.build) sites. It
-reads your package with [Griffe](https://mkdocstrings.github.io/griffe/) — static
-analysis, so nothing is imported and nothing needs installing — and renders it with
-Astro components on injected routes.
+reads your package with [Griffe](https://mkdocstrings.github.io/griffe/) and renders it
+with Astro components on injected routes. Extraction is static analysis, so nothing is
+imported and nothing needs installing.
 
 It is the Starlight counterpart of
 [mkdocstrings-python](https://mkdocstrings.github.io/python/), and follows its
@@ -17,33 +17,32 @@ conventions where they make sense: heading anchors are dotted object paths,
 
 ## What you get
 
-- **One page per module**, with a sidebar tree and prev/next links that mirror the
-  package layout.
-- **Signatures with linked types.** Every name in an annotation resolves to a page on
-  this site or, through a Sphinx inventory, to another project's documentation.
-- **Every docstring section**, in google, numpy or sphinx style: parameters, returns,
+- One page per module, with a sidebar tree and prev/next links that mirror the package
+  layout.
+- Signatures with linked types. Every name in an annotation resolves to a page on this
+  site or, through a Sphinx inventory, to another project's documentation.
+- Every docstring section, in google, numpy or sphinx style: parameters, returns,
   raises, examples, admonitions and deprecations.
-- **Inherited members**, merged from resolvable base classes and labelled with where
-  they came from.
-- **Cross-references in prose**, in mkdocstrings' own `[title][dotted.path]` form.
-- **Symbol search** over the API surface, on top of the prose search the site
-  already has.
-- **`objects.inv` and `llms.txt`** for every documented package, so other
-  documentation sites and language models can consume yours.
-- **No Python at build time**, if you would rather point at a dump your CI published.
+- Inherited members, merged from resolvable base classes and labelled with where they
+  came from.
+- Cross-references in prose, in mkdocstrings' own `[title][dotted.path]` form.
+- Symbol search over the API surface, on top of the prose search the site already has.
+- `objects.inv` and `llms.txt` for every documented package, so other documentation
+  sites and language models can consume yours.
+- No Python at build time, if you would rather point at a dump your CI published.
 
 ## Where to go next
 
-- [Getting started](/starlight-pydocs/guides/getting-started/) — install the plugin
-  and document your first package.
-- [Configuration](/starlight-pydocs/guides/configuration/) — every option, with its
-  type and default.
-- [Migrating from mkdocstrings](/starlight-pydocs/guides/migration/) — the
-  configuration map, and what differs.
-- [Vanilla Astro](/starlight-pydocs/guides/vanilla-astro/) — the same pages without
+- [Getting started](/starlight-pydocs/guides/getting-started/): install the plugin and
+  document your first package.
+- [Configuration](/starlight-pydocs/guides/configuration/): every option, with its type
+  and default.
+- [Migrating from mkdocstrings](/starlight-pydocs/guides/migration/): the configuration
+  map, and what differs.
+- [Vanilla Astro](/starlight-pydocs/guides/vanilla-astro/): the same pages without
   Starlight.
-- [Autodoc](/starlight-pydocs/guides/autodoc/) — drop one object into a
-  hand-written page.
+- [Autodoc](/starlight-pydocs/guides/autodoc/): drop one object into a hand-written
+  page.
 - The generated reference in the sidebar documents three fixture packages: `demopkg`
   (google style, pydantic, deprecations), `numpkg` (numpy style) and `sphpkg`
   (sphinx style, from a pre-generated dump).

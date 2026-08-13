@@ -1,5 +1,5 @@
 /**
- * `<base>/symbols.json` — the symbol index the search element fetches.
+ * `<base>/symbols.json`: the symbol index the search element fetches.
  *
  * Small on purpose: a name, a kind, where it lives and one line of prose. This
  * is the only pydocs JSON a browser ever sees; the dumps stay on disk.

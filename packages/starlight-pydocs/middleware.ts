@@ -17,7 +17,7 @@ import {
  * generated pages prev/next links.
  *
  * Starlight route middleware runs for every page of the site, so the expensive
- * part — walking each package's page plan — is built once per process and cached
+ * part (walking each package's page plan) is built once per process and cached
  * (`getPydocsNavigation`); only `isCurrent` is per request. Pages that are
  * neither pydocs pages nor contain a placeholder return immediately.
  */

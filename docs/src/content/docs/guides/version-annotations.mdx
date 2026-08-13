@@ -44,7 +44,7 @@ Griffe's own `griffe check` prints prose, not data, so the comparison is done on
 4. Every object path in each dump is collected, and the versions are walked oldest to newest: the
    first version containing a path is the version that introduced it.
 
-The result — object path → version label — is written beside the package's dump and read back when
+The result (object path → version label) is written beside the package's dump and read back when
 pages render. Nothing about it reaches the browser beyond the badge text.
 
 ## Caching
@@ -64,7 +64,7 @@ work happens once across builds rather than once per build.
 
 ## What your build needs
 
-- **A git checkout with history.** The sources are extracted from your repository, so a shallow
+- A git checkout with history. The sources are extracted from your repository, so a shallow
   clone with no tags cannot resolve `v1.0.0`. In GitHub Actions that means `fetch-depth: 0`:
 
   ```yaml
@@ -76,17 +76,17 @@ work happens once across builds rather than once per build.
   Without it the build stops with the ref named: `'mypkg' lists the version ref 'v1.0.0', which
   /repo does not have`.
 
-- **Search paths inside that repository.** The refs are materialised as a worktree of the
+- Search paths inside that repository. The refs are materialised as a worktree of the
   repository the first `search` path belongs to, and every search path is rebased onto it. A path
   outside the repository has no equivalent in a worktree, and the build says so.
 
-- **Extraction, not a pinned dump.** `versions` cannot be combined with `source: { file }` or
+- Extraction rather than a pinned dump. `versions` cannot be combined with `source: { file }` or
   `source: { url }`: a pinned dump is one release with no history behind it. Validation rejects the
   combination rather than quietly doing nothing. To document an old release as pages of its own, add
-  a second `packages` entry instead — see
+  a second `packages` entry instead, as described in
   [Versioned docs](/starlight-pydocs/guides/versioned-docs/).
 
-- **Refs that contain the package.** Each listed ref is extracted with the same package name and
+- Refs that contain the package. Each listed ref is extracted with the same package name and
   search layout. A release from before the package existed at that path fails extraction; start the
   list at the first release you can extract.
 
@@ -94,10 +94,10 @@ work happens once across builds rather than once per build.
 
 Two silences are deliberate:
 
-- **Objects present in the oldest listed ref.** "Added in 1.0" across two thirds of a package is
+- Objects present in the oldest listed ref. "Added in 1.0" across two thirds of a package is
   noise, and it would be a lie for anything that predates 1.0. List `1.0` as the oldest ref and it
   becomes the baseline rather than a label.
-- **Objects newer than the newest listed ref.** They exist only in the current source, which has no
+- Objects newer than the newest listed ref. They exist only in the current source, which has no
   version number to show. Add a ref for the latest release and everything since then stands out by
   having no badge, or add one for a release you are about to cut and its additions get labelled.
 

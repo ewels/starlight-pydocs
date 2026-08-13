@@ -10,26 +10,26 @@
 
 Python API reference documentation for [Starlight](https://starlight.astro.build/) and plain
 [Astro](https://astro.build/) sites. It reads your package with
-[Griffe](https://mkdocstrings.github.io/griffe/) — static analysis, so nothing is imported and nothing needs
-installing — and renders the result with Astro components on injected routes, one page per module. It is the Starlight
+[Griffe](https://mkdocstrings.github.io/griffe/) and renders the result with Astro components on injected routes, one
+page per module. Extraction is static analysis, so nothing is imported and nothing needs installing. It is the Starlight
 counterpart of [mkdocstrings-python](https://mkdocstrings.github.io/python/) and follows its conventions where they
 make sense: heading anchors are dotted object paths, `__all__` selects the documented surface, `objects.inv` works in
 both directions, and `::: name` becomes `<Autodoc name="…" />`.
 
 ## Features
 
-- 📄 **A page per module**, with a sidebar tree, a table of contents built from dotted-path anchors, and prev/next links
-- 🔗 **Signatures with linked types** — every name in an annotation resolves through the scope chain, the builtins table, then Sphinx inventories
-- 📝 **Every docstring section** in google, numpy or sphinx style: parameters, returns, raises, examples, admonitions, deprecations
-- ↔️ **Cross-references in prose** — mkdocstrings' `[title][dotted.path]` syntax becomes a real link, or stays literal when nothing resolves it
-- 🧬 **Inherited members** merged from resolvable base classes, badged with the class they came from
-- 🔍 **Symbol search** on every generated package page, and `<SymbolSearch />` anywhere you want it
-- 📚 **`objects.inv` and `llms.txt`** per package, so other documentation sites and language models can consume yours
-- 🎯 **`<Autodoc>`** to drop one class or function into a hand-written page
-- 🐍 **No Python at build time** when you point at a dump your project's CI published
-- 🏷️ **"Added in" badges** computed by extracting your package at past git refs and comparing, with every ref's dump cached by commit
-- 🌐 **Thirteen languages** out of the box, with label props for sites that translate their own way
-- 🧩 **Works anywhere** — a Starlight plugin, or an Astro integration with no Starlight in its module graph
+- 📄 A page per module, with a sidebar tree, a table of contents built from dotted-path anchors, and prev/next links
+- 🔗 Signatures with linked types: every name in an annotation resolves through the scope chain, the builtins table, then Sphinx inventories
+- 📝 Every docstring section in google, numpy or sphinx style: parameters, returns, raises, examples, admonitions, deprecations
+- ↔️ Cross-references in prose: mkdocstrings' `[title][dotted.path]` syntax becomes a real link, or stays literal when nothing resolves it
+- 🧬 Inherited members merged from resolvable base classes, badged with the class they came from
+- 🔍 Symbol search on every generated package page, and `<SymbolSearch />` anywhere you want it
+- 📚 `objects.inv` and `llms.txt` per package, so other documentation sites and language models can consume yours
+- 🎯 `<Autodoc>` to drop one class or function into a hand-written page
+- 🐍 No Python at build time when you point at a dump your project's CI published
+- 🏷️ "Added in" badges computed by extracting your package at past git refs and comparing, with every ref's dump cached by commit
+- 🌐 Thirteen languages out of the box, with label props for sites that translate their own way
+- 🧩 Works anywhere: a Starlight plugin, or an Astro integration with no Starlight in its module graph
 
 ## Installation
 
