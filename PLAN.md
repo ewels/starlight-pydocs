@@ -251,7 +251,7 @@ unwound): breaks unified-locked sites. Rendering lazily at request time via a
 static builds but leans on process-sharing internals and dies on deployed SSR;
 config-done pre-rendering uses only public hooks. Note the earlier "remark plugins
 don't run when appended from `astro:config:setup`" gotcha argued against relying on
-the host pipeline for *our own transforms*; it says nothing against calling the
+the host pipeline for _our own transforms_; it says nothing against calling the
 host's renderer on strings, which is all we do now.
 
 Test coverage: the docs site runs the Astro 7 default (Sätteri); the vanilla
