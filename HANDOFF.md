@@ -423,3 +423,14 @@ str, scores: dict[str, float] | None = None)` signature, six distinct internal
   pinned 1.x entry stayed unbadged. That configuration was not committed: the fixture
   packages have no meaningful release history, so the pipeline's regression coverage is
   the guarded live test against a throwaway repository instead.
+- 2026-08-13: final integration pass. Prose swept to the repository's writing rules
+  (no em dashes, no bold-led bullets) across the README, the changelog, every docs
+  page and the code comments, then across PLAN.md, ROADMAP.md, HANDOFF.md and
+  CLAUDE.md; the log-entry and gotcha bullets in HANDOFF.md and CLAUDE.md keep their
+  bold lead deliberately, matching starlight-quiz's own convention for these files.
+  ROADMAP.md now carries a status line per item (all nine complete). The exact CI
+  check (`prek run --all-files`) was run in-sandbox before the final push. Not done
+  in this session, by instruction: no npm publish, no GitHub release, no PR. CI has
+  not yet run on GitHub (the workflows trigger on pull_request and push to main;
+  everything so far lives on the working branch), so the first PR is also the first
+  live CI run.

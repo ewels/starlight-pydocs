@@ -6,6 +6,8 @@ lint, tests) before the next starts. Status is tracked here as items complete.
 
 ## 1. Workspace scaffold: done when `pnpm install`, `pnpm typecheck`, `pnpm lint` pass
 
+Status: complete (2026-08-12).
+
 Root configs mirrored from starlight-quiz (workspace, tsconfig strictest, prettier,
 eslint, prek, CI workflows), empty-but-wired `packages/starlight-pydocs`, `docs` and
 `examples/vanilla`. Low intrinsic risk, but everything depends on it and it validates
@@ -13,6 +15,8 @@ the toolchain inside this sandbox (registry access, Playwright's preinstalled
 Chromium, uv).
 
 ## 2. Spike: route injection under Starlight (the load-bearing assumption)
+
+Status: complete (2026-08-12). The assumption held on every count; details in PLAN.md decision 1.
 
 A minimal plugin injecting `[...slug]`, rendering `StarlightPage` with a hardcoded
 `headings` prop, plus sidebar placeholder substitution through route middleware.
@@ -24,6 +28,8 @@ Keep the spike's route/middleware/virtual-module wiring as the real skeleton.
 
 ## 3. Extraction pipeline: runner, cache, dumps as data
 
+Status: complete (2026-08-12).
+
 `lib/runner.ts` (command → source file/URL → uvx → python -m griffe resolution,
 argv-array subprocess, clear failure message), `lib/cache.ts` (content-keyed dump
 cache, URL revalidation), Python fixture packages under `fixtures/` with checked-in
@@ -31,6 +37,8 @@ dumps for every docstring style plus pydantic. Risk retired: subprocess + cachin
 Windows-safe path handling, and the exact dump shapes we will render from.
 
 ## 4. Model layer: the hard pure-TypeScript core
+
+Status: complete (2026-08-12).
 
 `lib/types.ts` (dump types for the fields we consume), `lib/model.ts` (alias
 resolution, member filtering incl. `__all__`, inheritance with provenance via C3
@@ -42,6 +50,8 @@ right before rendering starts.
 
 ## 5. Rendering: components, routes, styles
 
+Status: complete (2026-08-13). Markdown rendering moved to the host processor mid-build; PLAN.md decision 7.
+
 `lib/markdown.ts` (docstring prose → HTML), the component tree (Autodoc, ObjectDoc
 dispatch, Module/Class/Function/Attribute docs, Signature, Annotation, docstring
 sections, member groups, source links, badges, anchor headings), Starlight and
@@ -50,6 +60,8 @@ tokens over `--sl-*` with vanilla fallbacks), component-override virtual module.
 Risk retired: the pages exist and look right in both hosts.
 
 ## 6. Docs site + vanilla example + e2e: the integration proof
+
+Status: complete (2026-08-13). 40 Playwright tests across both sites.
 
 The dogfooding Starlight site documents `demopkg` (a fixture package exercising all
 three docstring styles, inheritance, overloads, varargs/kw-only/pos-only defaults,
@@ -62,11 +74,15 @@ end to end, not just in units.
 
 ## 7. Interop endpoints and loader
 
+Status: complete (2026-08-13). The endpoints and loader landed with item 5; inventory wiring with item 6.
+
 symbols.json endpoint + `<PydocsSearch>` element, objects.inv publisher endpoint,
 llms.txt endpoint, Content Layer loader export, inventory consumption wired into
 annotation linking (fixture-served in tests). Mostly assembly on top of items 4–5.
 
 ## 8. Breadth: i18n, overrides, docs content, CI polish
+
+Status: complete (2026-08-13). Docstring cross-references and symbol search auto-placement were added here as well.
 
 Translations (en + 12 locales for generated labels), component override docs +
 e2e, options reference page generated from the config types' JSDoc, mkdocstrings
@@ -75,6 +91,8 @@ page, starlight-versions recipe page, deploy workflow. Low technical risk, high
 volume.
 
 ## 9. Stretch: version annotations across git refs
+
+Status: complete (2026-08-13). Shipped together with the one-name-at-several-bases re-key.
 
 Dump-at-ref via `git worktree` into the cache (keyed by commit SHA), first-seen
 version per object path, "added in <label>" and deprecation badges, docs page.
