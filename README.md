@@ -3,7 +3,7 @@
 # starlight-pydocs
 
 [![npm version](https://img.shields.io/npm/v/starlight-pydocs.svg)](https://www.npmjs.com/package/starlight-pydocs)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/ewels/starlight-pydocs/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/ewels/starlight-pydocs/blob/main/LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-ewels.github.io-7c3aed.svg)](https://ewels.github.io/starlight-pydocs)
 
 </div>
@@ -113,7 +113,7 @@ Python project across.
 
 ## License
 
-This project is licensed under the [Apache License 2.0](https://github.com/ewels/starlight-pydocs/blob/main/LICENSE).
+This project is licensed under the [MIT License](https://github.com/ewels/starlight-pydocs/blob/main/LICENSE).
 
 ## Credits
 

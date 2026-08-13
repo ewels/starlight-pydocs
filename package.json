@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "author": "Phil Ewels",
   "description": "Private development monorepo for starlight-pydocs. The published package lives in packages/starlight-pydocs.",
   "homepage": "https://ewels.github.io/starlight-pydocs",
