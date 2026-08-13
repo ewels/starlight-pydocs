@@ -411,8 +411,6 @@ describe('source links', () => {
   });
 
   test('drops a griffe source_link with an unsafe scheme', () => {
-    // A pre-generated dump could put anything in `source_link`; only http(s)
-    // may become a clickable href.
     const dump = {
       pkg: {
         kind: 'module',

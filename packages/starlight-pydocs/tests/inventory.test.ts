@@ -186,8 +186,6 @@ describe('createInventoryLookup', () => {
   });
 
   test('drops entries whose absolute URI carries an unsafe scheme', () => {
-    // The inventory file comes from another site; a hostile one must not be
-    // able to plant a `javascript:` link on an annotation.
     const hostile: InventoryEntry[] = [
       { name: 'evil.Thing', domain: 'py', role: 'class', priority: 1, uri: 'javascript:alert(1)', dispname: '-' },
       {

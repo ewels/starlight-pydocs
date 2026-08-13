@@ -18,9 +18,8 @@ the list below is done.
 - Enable GitHub Pages (Settings, Pages, Source: GitHub Actions). The deploy workflow
   already runs on every push to `main`. Pages on a private repository needs a paid
   plan, so making the repository public is likely part of this step.
-- Repository settings when flipping public (from the 2026-08-13 security review; its
-  href-scheme findings are fixed, and docstring HTML is deliberately unsanitised —
-  see ARCHITECTURE.md decision 7): enable secret scanning with push protection,
+- Repository settings when flipping public (from the 2026-08-13 security review):
+  enable secret scanning with push protection,
   branch protection on `main` requiring the CI checks, a tag protection ruleset for
   `v*` (today any write-access account reaching a `v*` release publishes to npm),
   and "require approval for first-time contributors" for Actions. Consider gating
@@ -46,5 +45,4 @@ the list below is done.
   see real use: an optional `source.integrity` (sha256) for `source: { url }`,
   requiring `https:` rather than merely allowing it, a response-size cap on
   downloads, `--end-of-options` before user-supplied refs in `lib/ref-extract.ts`,
-  and possibly an opt-in docstring sanitiser (one was built and removed; the git
-  log around 2026-08-13 has the working implementation).
+  and possibly an opt-in docstring sanitiser (see ARCHITECTURE.md decision 7).

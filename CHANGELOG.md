@@ -8,7 +8,7 @@ First release, still in development.
 
 ### Fixes (pre-release)
 
-- Hrefs taken from semi-trusted inputs are scheme-checked: a `source_link` carried by a dump and an absolute URI in a Sphinx inventory only become links when they are `http(s)`, so neither a pre-generated dump nor a hostile `objects.inv` can plant a `javascript:` link on a page.
+- A dump's `source_link` and absolute URIs in Sphinx inventories are scheme-checked before becoming links, so a hostile input cannot plant a `javascript:` href on a page.
 - Symbol search now gives each result a unique option id, so `aria-activedescendant` follows the highlighted option instead of always naming the first one.
 - `objects.inv` parsing finds the end of the header on the raw bytes rather than decoded text, so an inventory whose project name contains multi-byte characters decompresses correctly.
 - The generated sidebar rebuilds after a dev-server re-extraction instead of staying stale until restart: the navigation cache is now keyed by each package's dump path.

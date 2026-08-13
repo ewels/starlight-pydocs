@@ -24,7 +24,7 @@ import { deflateSync, inflateSync } from 'node:zlib';
 import type { CacheMode, NormalisedInventory } from './config.ts';
 import { fetchToCache, remoteCacheDirectory } from './cache.ts';
 import { PydocsError } from './errors.ts';
-import { safeHref } from './paths.ts';
+import { hasUrlScheme, safeHref } from './paths.ts';
 import type { PydocsLogger } from './logger.ts';
 import { silentLogger } from './logger.ts';
 
@@ -180,12 +180,11 @@ export function createInventoryLookup(inventories: { base: string; entries: Inve
 
 /**
  * Resolve an entry URI against the inventory base, or undefined for a URI that
- * must not become a link. The inventory file is fetched from elsewhere, so an
- * absolute URI in it only passes with an http(s) scheme; anything else
- * (`javascript:` foremost) drops the entry rather than the whole inventory.
+ * must not become a link: the inventory is third-party data, so an absolute URI
+ * is scheme-checked, and `undefined` drops the entry rather than the inventory.
  */
 function joinUrl(base: string, uri: string): string | undefined {
-  if (/^[a-z][a-z0-9+.-]*:/i.test(uri)) return safeHref(uri);
+  if (hasUrlScheme(uri)) return safeHref(uri);
   return `${base.endsWith('/') ? base : `${base}/`}${uri.replace(/^\//, '')}`;
 }
 
