@@ -9,19 +9,12 @@
 import type { APIRoute } from 'astro';
 import context from 'virtual:starlight-pydocs/context';
 
-import { getModel } from '../lib/data.ts';
-import { PydocsError } from '../lib/errors.ts';
 import type { InventoryEntry } from '../lib/inventory.ts';
 import { buildInventory, inventoryRoleFor } from '../lib/inventory.ts';
-import { packageForPathname } from '../libs/route.ts';
+import { packageModelForPathname } from '../libs/route.ts';
 
 export const GET: APIRoute = async ({ url }) => {
-  const pkg = packageForPathname(context, url.pathname);
-  if (pkg === undefined) {
-    throw new PydocsError(`starlight-pydocs: no configured package serves ${url.pathname}`);
-  }
-
-  const model = await getModel(context, pkg.base);
+  const { pkg, model } = await packageModelForPathname(context, url.pathname);
 
   const entries: InventoryEntry[] = model.symbols.map((entry) => {
     const object = model.objectsByPath.get(entry.path);
