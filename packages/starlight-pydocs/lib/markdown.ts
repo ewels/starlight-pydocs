@@ -2,7 +2,7 @@
  * String work around docstring prose. No markdown engine lives here.
  *
  * The package renders docstring Markdown through whatever processor the host
- * project has configured, and it depends on neither engine (PLAN.md decision 7).
+ * project has configured, and it depends on neither engine (ARCHITECTURE.md decision 7).
  * Resolving and calling that processor is Astro glue, so it lives in
  * `libs/docstring-renderer.ts`; the pieces that are pure string manipulation
  * live here, where they can be unit tested without an engine at all.

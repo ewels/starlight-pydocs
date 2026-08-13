@@ -1,11 +1,13 @@
-# starlight-pydocs: architecture plan
+# Architecture
 
 `starlight-pydocs` generates Python API reference documentation for Astro and Starlight
 sites. It extracts the API surface with [Griffe](https://mkdocstrings.github.io/griffe/)
 (`griffe dump -f -d <style>`) and renders it with Astro components on injected routes.
-This document records the architecture decisions, the reasoning behind each, and the
-alternatives rejected. `ROADMAP.md` sequences the work; `CLAUDE.md` documents working
-conventions; `HANDOFF.md` is the running log.
+This document is the permanent record of the architecture decisions, the reasoning
+behind each, the alternatives rejected, and the griffe behaviour the implementation
+depends on. `CLAUDE.md` documents day-to-day working conventions; `HANDOFF.md` holds
+the pre-release checklist. Decision numbers are stable: code comments cite them as
+"ARCHITECTURE.md decision N".
 
 ## Reference implementations studied
 
@@ -74,8 +76,8 @@ starlight-typedoc's mtime games: nothing pollutes the user's content directory, 
 The load-bearing assumption (that an injected route can populate the table of
 contents and be indexed by Pagefind) is proven by starlight-openapi in production:
 `StarlightPage` accepts a `headings` prop and renders the standard page shell,
-including the `data-pagefind-body` content container. **Spike outcome (ROADMAP
-item 2, verified in-repo 2026-08-12): confirmed on all counts.** An injected
+including the `data-pagefind-body` content container. **Spike outcome (verified
+in-repo, 2026-08-12): confirmed on all counts.** An injected
 `[...pydocsSlug]` route rendered `StarlightPage` with dotted-path heading IDs
 (`demopkg.spike.generate`); the built HTML contains those IDs verbatim in the ToC
 links (no slugger mangling), the page carries `data-pagefind-body`, the Pagefind
@@ -373,24 +375,26 @@ pipeline end to end.
 
 ### 13. Everything else follows starlight-quiz conventions
 
-pnpm workspace (`packages/starlight-pydocs` + `docs` + `examples/vanilla`), Node
-
-> = 22.12, pnpm 10.33, no build step, `astro/tsconfigs/strictest` +
-> `verbatimModuleSyntax` + `allowImportingTsExtensions` (Node-executed files import
-> with `.ts` extensions), Vitest for `lib/`, Playwright e2e against the built docs
-> site and the vanilla example (Playwright `webServer` array serves both), prek
-> running prettier → eslint → typecheck, CI = prek + unit + e2e + zizmor, docs deploy
-> to GitHub Pages, release via manual changelog + tag + OIDC trusted publishing.
-> `styles.css` is wrapped in `@layer starlight-pydocs`; theme tokens are
-> `--pydocs-*` custom properties that default to Starlight's `--sl-*` tokens with
-> static fallbacks for vanilla sites. Starlight colour tokens are contrast tokens that
-> flip between modes, so mappings follow the LinkButton pattern
-> (`background: var(--sl-color-text-accent)`, `color: var(--sl-color-black)`), never
-> `--sl-color-white` as "white". i18n mirrors quiz: `lib/strings.ts` holds English
-> defaults, `translations.ts` holds locale tables injected via `i18n:setup`, and every
-> component accepts label props as the vanilla override.
+pnpm workspace (`packages/starlight-pydocs` + `docs` + `examples/vanilla`), Node 22.12
+or newer, pnpm 10.33, no build step, `astro/tsconfigs/strictest` with
+`verbatimModuleSyntax` and `allowImportingTsExtensions` (Node-executed files import
+with `.ts` extensions), Vitest for `lib/`, Playwright e2e against the built docs site
+and the vanilla example (one Playwright `webServer` array serves both), prek running
+prettier, eslint and typecheck, CI running prek, unit, e2e and zizmor jobs, docs
+deploying to GitHub Pages, releases via manual changelog plus tag plus OIDC trusted
+publishing. `styles.css` is wrapped in `@layer starlight-pydocs`; theme tokens are
+`--pyd-*` custom properties that default to Starlight's `--sl-*` tokens with static
+fallbacks for vanilla sites. Starlight colour tokens are contrast tokens that flip
+between modes, so mappings follow the LinkButton pattern
+(`background: var(--sl-color-text-accent)`, `color: var(--sl-color-black)`), never
+`--sl-color-white` as "white". i18n mirrors quiz: `lib/strings.ts` holds English
+defaults, `translations.ts` holds locale tables injected via `i18n:setup`, and every
+component accepts label props as the vanilla override.
 
 ## Configuration surface (1.0)
+
+An at-a-glance sketch. `lib/config.ts` and the configuration guide on the docs site
+are the authoritative reference; if this sketch and they disagree, they win.
 
 ```ts
 starlightPydocs({
@@ -450,13 +454,247 @@ route render (per page, prerender or SSR)
        └─ StarlightPage gets { frontmatter, headings } (Starlight) or layout (vanilla)
 ```
 
-## Risks and mitigations
+## Standing risks and mitigations
 
 | Risk                                                                    | Mitigation                                                                                                                                                                                                         |
 | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| StarlightPage headings/Pagefind assumption breaks in a future Starlight | Spike proves it now; e2e asserts ToC entries and search hits so regressions surface in CI                                                                                                                          |
+| StarlightPage headings/Pagefind assumption breaks in a future Starlight | Proven by the spike; e2e asserts ToC entries and search hits so regressions surface in CI                                                                                                                          |
 | Griffe dump format drift                                                | Loader validates the handful of fields we consume and fails with the griffe version in the message; schema copy vendored; unit tests run against checked-in dumps plus a live-regeneration test when uv is present |
 | Huge packages slow builds                                               | Dump cached by content key; model built once per process; pages render from shared indexes                                                                                                                         |
 | No Python on docs host                                                  | Pre-generated dump file/URL path is first-class and CI-documented                                                                                                                                                  |
 | Windows                                                                 | No shell-string exec (argv arrays), `node:path` throughout, no symlink tricks                                                                                                                                      |
 | Sandbox cannot reach external doc sites                                 | Inventory tests use fixtures + local HTTP server; live URLs only in user builds                                                                                                                                    |
+
+## Implementation decisions
+
+Finer-grained decisions taken while building, kept because each one answers a "why is
+it like this" that the code alone does not.
+
+- **Dumps stay on disk**; virtual modules carry config + paths only. starlight-openapi
+  inlines parsed schemas into virtual modules, which would be megabytes here.
+- **Anchors are dotted object paths** (`mypkg.Report.generate`), matching mkdocstrings,
+  so published/consumed Sphinx inventories interoperate without a mapping layer.
+- **`griffe check` has no JSON output** (verified: oneline/verbose/markdown/github/azdo
+  only), so the stretch version-annotations feature diffs full dumps between git refs
+  rather than parsing `griffe check`.
+- **`__all__` selects members, not navigation.** When a module defines `__all__`, that
+  list is the documented member surface of the module, exactly as mkdocstrings does.
+  Submodules are the exception: they get pages whether or not they are exported, filtered
+  only by privacy (`_internal` stays hidden) and the user's `members` globs. Otherwise
+  `demopkg`'s curated `__init__` surface would hide `demopkg.report` entirely, which is
+  not what anyone means by "document my package". Covered by `tests/model.test.ts`.
+- **Re-exported objects are documented at both paths** (`demopkg.Report` and
+  `demopkg.report.Report`), again mirroring mkdocstrings. The model records
+  `canonicalPath` and `reexportedFrom` on the re-export, and `documentedPathFor()`
+  picks the shortest documented path when a link needs to choose one.
+- **Fixture dumps are post-processed for portability.** `fixtures/generate-dumps.ts`
+  rewrites absolute `filepath` values to repository-relative ones and drops `git_info`
+  and `source_link`, which embed the machine path and the current commit hash. Without
+  that, `pnpm gen:dumps` produced a diff on every commit. Nothing in `lib/` reads those
+  fields; source links come from `relative_filepath` plus the `sourceLink` template.
+- **`lib/signature.ts` was added** beyond the planned module list. Both the Markdown
+  renderer and the future components need the same signature construction (hiding
+  `self`/`cls`, reinserting the `/` and `*` markers, linking annotations), and it did not
+  belong in `expr.ts` or `model.ts`.
+- **Inventory lookups are restricted to the `py` domain.** A `std:label` named `str`
+  would otherwise link a Python annotation to a page about something else.
+- **No TypeScript parameter properties (or other non-erasable syntax) anywhere in
+  `lib/`**: `fixtures/generate-dumps.ts` runs under `node --experimental-strip-types`,
+  which only handles erasable syntax, and any future script may import any lib module.
+- **The pre-rendered docstring sidecar is keyed by canonical path and section index.**
+  `<cacheDir>/starlight-pydocs/<pkg-hash>/rendered.json` (or, for a user-supplied
+  `source.file` dump we must not write next to, `…/rendered/<pkg>-<hash>/rendered.json`)
+  maps canonical object path → section index → `{body, entries, blocks}` plus a
+  `deprecated` slot. Re-exports and inherited members share the definition's prose, so
+  components look up `doc.canonicalPath`, not `doc.path`. The sidecar is rewritten on
+  every `astro:config:done`, never reused from a previous run: its content depends on
+  the host's markdown pipeline, which can change without the dump changing.
+- **`ObjectDoc` owns the member recursion, not the kind-specific bodies.** It recurses
+  with `Astro.self` (the same trick Starlight's `SidebarSublist` uses) and dispatches
+  only signature-and-docstring bodies to `ClassDoc`/`FunctionDoc`/`AttributeDoc`. That
+  keeps the module graph acyclic even though the bodies are imported through
+  `virtual:starlight-pydocs/components`, which `ObjectDoc` itself is reachable from.
+  Modules never appear as members inside a page (submodules get their own pages), so
+  `ModuleDoc → ObjectDoc` is a one-way edge.
+- **Attributes get real headings.** The brief suggested rendering attributes and
+  properties as compact definition entries, but `pageHeadings()` lists every class
+  member at depth 3, so a heading-less attribute is a dead table-of-contents link.
+  They render through `ObjectDoc` like every other member, with a compact
+  `AttributeDoc` body. For the same reason inherited-member `<details>` blocks are
+  `open` by default: a collapsed one hides live anchor targets.
+- **Theme tokens are `--pyd-*`**, not the `--pydocs-*` earlier drafts said; the class
+  prefix is `.pyd-` and having the two agree is worth more than the older spelling.
+- **`sourceLink.root` was added to the config surface.** Griffe's
+  `relative_filepath` is relative to its working directory (the Astro project
+  root), so a docs site with sources one level up got absolute paths in public
+  URLs. `root` names the directory `{path}` is computed against, from the absolute
+  `filepath`; unset, behaviour is unchanged. The docs site uses `root: '..'`.
+- **`sidebar.group` on a package config** accepts a placeholder from
+  `createPydocsSidebarGroup()` and normalises to its label string, so one site can
+  place different packages in different parts of the sidebar (starlight-openapi's
+  `createOpenAPISidebarGroup` pattern).
+- **The docs site documents four package entries, and that is the e2e fixture.**
+  `demopkg` (uvx + `griffe_pydantic`, google), `numpkg` (uvx, numpy), `sphpkg` (no
+  extraction at all: `source: { file: '../fixtures/sphpkg/dump.json' }`, sphinx, its
+  own sidebar placeholder) and `demopkg` again at `1x/api/demopkg` (pinned to
+  `../fixtures/demopkg/dump.json`, labelled `demopkg 1.x`, its own placeholder under a
+  `v1.x` sidebar section). One build therefore exercises both extraction strategies,
+  all three docstring parsers, per-package sidebar placement, multi-package endpoints
+  and one package name at two bases. Every generated page in the suite is real output,
+  not a fixture render.
+- **Inventories are tested from a checked-in `objects.inv`.** The fixture under
+  `fixtures/inventories/` is written by `pnpm gen:inventory`
+  (`fixtures/generate-inventory.ts`) with the thirteen stdlib names the fixture
+  packages annotate with, at CPython's real URIs, and the docs site consumes it with
+  `base: 'https://docs.python.org/3/'`. That makes external annotation links
+  assertable offline (`pathlib.Path` → `library/pathlib.html#pathlib.Path`), which
+  matters because this sandbox cannot reach docs.python.org.
+- **One Playwright configuration owns both sites.** `docs/playwright.config.ts` has a
+  two-entry `webServer` array (docs on 4321 under `/starlight-pydocs`, the vanilla
+  example on 4322) and two projects with matching `baseURL`s and their own `testDir`.
+  Root `pnpm test:e2e` still filters to the docs package.
+- **Cross-references in docstring prose are resolved by rewriting the Markdown**, not
+  by a plugin in the host's pipeline (which decision 7 rules out). `lib/crossrefs.ts`
+  turns `[title][dotted.path]` and `[dotted.path][]` into ordinary Markdown links
+  before the string reaches the processor, and only when the target resolves: fenced
+  code, inline code spans, escaped brackets and targets that have a real reference
+  definition in the same string are left alone, and an unresolved target keeps its
+  brackets. Resolution order is the rendered package's symbol index, then the other
+  configured packages', then the Sphinx inventories, wired in `getCrossReferenceResolver`
+  and applied by `renderDocstringsForDump`. This closes the gap the previous session
+  left for a human. Indented (four-space) code blocks are not detected as code:
+  telling them from list continuations needs a block parser, and griffe hands us
+  dedented prose whose examples arrive fenced.
+- **The symbol search box is placed on package root pages by the routes**, which is
+  what ARCHITECTURE.md decision 8 promised and the previous session left unimplemented. Both
+  `routes/starlight.astro` and `routes/vanilla.astro` render `<SymbolSearch>` above
+  `<ModuleDoc>` when `isPackageRootPage(page)` and `symbolSearch` is on. It sits in the
+  routes rather than in `ModuleDoc` on purpose: an `<Autodoc name="mypkg" />` of a
+  package root would otherwise grow a search box in the middle of a hand-written page,
+  and no module page below the root needs its own.
+- **A package entry is identified by its `base`, not by its name.** The duplicate-name
+  rejection in `lib/config.ts` is gone (bases were already validated unique and
+  non-overlapping), and everything that used to be keyed by import name is keyed by base:
+  the `dumpPaths`/`renderedPaths` maps, `PydocsPackageContext` lookups
+  (`packageByBase`/`packagesByName` replace `packageByName`), the `lib/data.ts` model cache,
+  the route prop (`pydocsBase`, was `pydocsPackage`), `createRenderScope`, the endpoint
+  routes and the docstring sidecar path. The name still names the dump key and the model's
+  `packageName`, because that is what griffe emits. This is what makes one package
+  documentable at several bases (ARCHITECTURE.md decision 11), and it removes a real collision:
+  `renderedSidecarPath` now includes the base, so two entries pinned to one dump file no
+  longer overwrite each other's rendered prose (the prose contains base-specific
+  cross-reference hrefs).
+- **`label` is the human-facing name of an entry**, defaulting to `name`. It labels the
+  sidebar group (`sidebar.label` still overrides), the `llms.txt` heading and the published
+  inventory's project name, so `demopkg 1.x` reads as itself rather than as a second
+  `demopkg`.
+- **An import name that several entries answer to is an error, not a guess.**
+  `matchPackageReference` / `matchPackageForDottedPath` in `lib/context.ts` return
+  `{kind: 'ambiguous', name, bases}`, and `packageForAutodoc` turns that into
+  "set the package prop to one of these bases: 'api/demopkg', '1x/api/demopkg'".
+  `<SymbolSearch>` renders nothing rather than searching an arbitrary version.
+- **Cross-reference resolution skips same-named entries.** `getCrossReferenceResolver`
+  orders the models as: the rendered entry, then every entry whose import name differs. Two
+  documented versions of one package would otherwise link into each other's pages, silently
+  mixing two APIs in one page's prose.
+- **Version annotations are two modules on purpose.** `lib/versions.ts` is pure (path
+  collection, the oldest-first first-seen diff, the documented-then-canonical lookup), so the
+  rules are unit tested over hand-written dumps with no git and no griffe. `lib/ref-extract.ts`
+  owns everything that touches the world: `git rev-parse --verify <ref>^{commit}`,
+  `git worktree add --detach`, the rebased search paths, the per-commit dump cache. The
+  runner was refactored to share that last step: `resolveGriffeLauncher` picks the executable
+  and `runGriffe` runs it into a cache location, so a ref is extracted exactly as the working
+  tree is (same extensions, same docstring options, same strategy).
+- **A ref's dump is cached by commit sha and never revalidated.** `versions/<name>-<sha12>-
+<options12>/dump.json`. The options half of the key is machine independent (repository-relative
+  search paths), and the sha half cannot change meaning, so after the first build there is no
+  git work at all: the worktree is not even created when the dump is already there.
+- **The "added in" labels travel as a sidecar, not through the virtual module.** Same
+  reasoning as the docstring sidecar: `virtual:starlight-pydocs/context` carries paths, and
+  the map (one entry per object newer than the oldest ref) is read from disk server-side. It is
+  written during `preparePydocs`, not at `astro:config:done`, because it needs no markdown
+  processor. `getModel` passes it to `buildModel` as `ModelOptions.addedIn`; it is kept out of
+  the model cache key, which is safe because the labels are derived from the package's
+  configuration and a dev re-extraction calls `clearCaches()`.
+- **Objects in the oldest ref and objects in none of the refs both get no badge.** The first
+  because "added in 1.0" over most of a package is noise and wrong for anything older; the
+  second because the current source has no version number to show. Both are documented in
+  `guides/version-annotations.mdx` rather than left for a reader to notice.
+- **The vanilla example pins `markdown: { processor: unified() }`.** ARCHITECTURE.md decision
+  7 promises both engines are exercised in CI; the docs site runs Astro's default
+  (Sätteri), so the example imports `unified()` from `@astrojs/markdown-remark`. The
+  e2e assertions are engine-visible on purpose: expressive-code figures on the docs
+  site, `.astro-code` on the vanilla one.
+
+## Griffe dump field names, as actually emitted (2.1.0)
+
+Verified against generated dumps, not documentation. `lib/types.ts` follows these.
+
+- `__all__` is exposed as **`exports`** (a plain array of names) on module objects, and
+  the module also carries **`imports`** (imported name → resolved target path).
+- Griffe 2.x adds **`git_info`** (commit hash, remote URL, absolute repository path) and
+  a per-object **`source_link`** (a forge blob URL at the current commit). `source_link`
+  is a possible future default for source links without any configuration; the model
+  already falls back to it when no `sourceLink` template is configured.
+- **Properties are attributes**, not functions: `kind: 'attribute'` with
+  `labels: ['property', 'writable']`. Grouping and badges depend on this.
+- **`overloads` is not serialised.** `Function.as_dict` emits `decorators`,
+  `parameters` and `returns` only, so `@typing.overload` variants are dropped from the
+  dump and only the implementation survives. The model reads `overloads` when present
+  (a later griffe may add it) and the collection path is covered by the hand-written
+  `tests/fixtures/synthetic.dump.json`.
+- **A google-style `Deprecated:` block parses as an `admonition` section**, not as a
+  `deprecated` section: `{kind: 'admonition', title: 'Deprecated', value: {annotation:
+'deprecated', description}}`. `deprecationFrom()` therefore accepts the admonition, a
+  real `deprecated` section, and the `is_deprecated` flag.
+- **`@deprecated(...)` from `typing_extensions` does not set `is_deprecated`** under
+  static analysis (tested: the decorator is recorded in `decorators` but the flag stays
+  false). The docstring section is the portable signal, which is what the fixture and the
+  renderer rely on. A code comment in `fixtures/demopkg/src/demopkg/report.py` says so.
+- Expression shapes worth writing down: `ExprAttribute` holds **`values`** (an array of
+  segments), not `left`/`right`; `ExprTuple` has `implicit: true` when the source had no
+  brackets (`dict[str, float]`); `examples` sections are arrays of **`[kind, value]`
+  pairs** where `kind` is `'examples'` for a doctest block and `'text'` for prose;
+  `raises`/`warns` entries are `{annotation, description}` with no `name`.
+- `relative_filepath` is relative to the **griffe process working directory**, so the
+  runner always runs from the project root; `relative_package_filepath` is relative to
+  the package's parent directory.
+- Parameter kinds are spelled `positional-only`, `positional or keyword`,
+  `variadic positional`, `keyword-only`, `variadic keyword` (note the spaces).
+- Object kinds are `module`, `class`, `function`, `attribute`, `alias` and
+  `type alias`, the last one with a space in it.
+
+## Workarounds worth knowing
+
+- **Version worktrees live under `node_modules/.astro`, which git does not know is
+  disposable.** Deleting `node_modules` leaves the registrations behind, so the next
+  `git worktree add` fails with "already registered" and `git worktree list` shows
+  prunable entries in the meantime. `materialiseWorktree` therefore reuses an existing
+  directory, and on failure runs `git worktree prune` and retries once before giving up.
+  A human wanting them elsewhere can point `cacheDir` at a directory their CI caches,
+  which is the better setup anyway: the ref dumps are then reused across builds.
+
+- eslint's `astro/no-prerender-export-outside-pages` rejects
+  `export const prerender = true` in injected-route `.astro` files (they live in the
+  package, not `src/pages`). The `prerender: true` flag on `injectRoute` is
+  sufficient (verified the built output prerenders), so the export is omitted.
+- Prettier reformats Markdown, which broke the golden snapshots the moment `pnpm format`
+  ran: the file no longer matched the renderer byte for byte. `tests/snapshots/**` is now
+  in `.prettierignore`, next to the checked-in dumps.
+- **Under Starlight, docstring code fences come out as expressive-code**, not
+  `.astro-code`: Starlight registers expressive-code on the processor, and we render
+  through the host's processor, so docstring code blocks match the rest of the site for
+  free. Two consequences: our `.astro-code` rules only bite in plain Astro, and EC
+  emits its `<link>`/`<script>` tags inline in the body for these blocks rather than
+  hoisting them to `<head>` (harmless, deduplicated by URL, but visible in the HTML).
+- **Prerendered endpoints are served by file extension, not by their `Response`
+  headers.** `llms.txt` sets `text/markdown` in the route, and a static host serves it
+  as `text/plain`; the e2e assertion matches the static behaviour, which is what
+  everybody deploying these pages will see.
+- **`<pre>` contents in `.astro` rely on JSX-style whitespace trimming.** Prettier
+  reflows the signature markup inside `{...map()}` expressions; Astro drops
+  whitespace-only text nodes that contain a newline inside expressions, so the built
+  `<pre>` stays clean (verified in the built HTML for the non-overload path). Keep
+  `<code>` adjacent to `<pre>` and explicit spaces as `{' '}`. Griffe 2.1.0 does not
+  serialise overloads, so the overload `<pre>` has no fixture coverage in the built
+  site yet.

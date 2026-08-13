@@ -4,7 +4,7 @@
  *
  * Docstring Markdown is rendered once, at `astro:config:done`, through the
  * host's configured markdown processor, because that processor only exists in
- * the config-time process (PLAN.md decision 7). The HTML lands in a JSON sidecar
+ * the config-time process (ARCHITECTURE.md decision 7). The HTML lands in a JSON sidecar
  * beside the cached dump, and components read strings out of it. Nothing here
  * imports a markdown engine: `collectDocstringMarkdown` says what needs
  * rendering, `assembleRenderedDocstrings` puts the results back in their places,
@@ -161,8 +161,9 @@ function collectSection(
 
   if (section.kind === 'admonition') {
     const value = (section as DocstringSectionAdmonition).value;
-    // A google-style `Deprecated:` block parses as an admonition (HANDOFF.md);
-    // its prose belongs to the deprecation notice, not to an aside.
+    // A google-style `Deprecated:` block parses as an admonition
+    // (ARCHITECTURE.md, griffe field notes); its prose belongs to the
+    // deprecation notice, not to an aside.
     const slot: DocstringSlot = value?.annotation === 'deprecated' ? 'deprecated' : 'body';
     push(items, {
       objectPath,

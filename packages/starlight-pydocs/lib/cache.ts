@@ -215,12 +215,12 @@ function sidecarPath(cacheDir: string, base: string, dumpPath: string, kind: str
   return inCache(cacheDir, kind, `${slugifyBase(base)}-${key}`, `${kind}.json`);
 }
 
-/** Pre-rendered docstring HTML for one documented package (PLAN.md decision 7). */
+/** Pre-rendered docstring HTML for one documented package (ARCHITECTURE.md decision 7). */
 export function renderedSidecarPath(cacheDir: string, base: string, dumpPath: string): string {
   return sidecarPath(cacheDir, base, dumpPath, 'rendered');
 }
 
-/** "Added in" labels for one documented package (PLAN.md decision 12). */
+/** "Added in" labels for one documented package (ARCHITECTURE.md decision 12). */
 export function versionsSidecarPath(cacheDir: string, base: string, dumpPath: string): string {
   return sidecarPath(cacheDir, base, dumpPath, 'versions');
 }

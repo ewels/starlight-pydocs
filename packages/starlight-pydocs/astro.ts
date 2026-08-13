@@ -61,7 +61,7 @@ export default function pydocs(options: PydocsAstroOptions): AstroIntegration {
 
       // Every hook the shared integration implements has to be forwarded, this
       // one included: it is where docstring prose is rendered through the host's
-      // markdown processor, and without it no page can render (PLAN.md
+      // markdown processor, and without it no page can render (ARCHITECTURE.md
       // decision 7).
       'astro:config:done': async (params) => {
         await shared?.hooks['astro:config:done']?.(params);
