@@ -193,24 +193,70 @@ external link (inventory base URL + object URI), or plain text. Unknown expressi
 node types degrade to their string form — the dump keeps a plain-string fallback for
 every annotation, so rendering can never hard-fail on an exotic annotation.
 
-### 7. Docstring prose: `@astrojs/markdown-remark`, not the host pipeline
+### 7. Docstring prose: the host's configured processor, pre-rendered at config time
 
-Docstring section text is Markdown and must become HTML at render time. Two
-constraints: remark plugins appended from an integration's `astro:config:setup` do
-not run for `.mdx` in this Astro 7 pipeline (starlight-quiz learned this the hard
-way), and injected routes never pass through the content pipeline anyway. So the
-package depends directly on `@astrojs/markdown-remark` (the processor Astro 7 itself
-uses) and renders docstring Markdown through one shared processor: GFM on, Shiki
-dual-theme (`github-light`/`github-dark`) for fenced code, `set:html` into a scoped
-wrapper. Doctest-style `>>>` example blocks are highlighted as `pycon`. Admonition
-sections from Griffe (`note`, `warning`, …) render as our own aside markup, styled to
-match Starlight's asides without importing Starlight.
+The only Markdown work this package does is rendering docstring prose: Griffe hands
+us Markdown strings inside the JSON, and everything structural (anchors, heading
+IDs, cross-references, the ToC, member layout) is set directly in components under
+the route-injection design. That is a render call, not a processor plugin — the
+package registers no remark, rehype, mdast or hast plugin anywhere.
 
-Rejected alternative: rendering via the host's configured markdown pipeline
-(`@astrojs/markdown-satteri` in starlight-openapi's newer setup). It inherits user
-remark plugins, which sounds attractive, until the pipeline mismatch above makes
-behaviour depend on file type and Astro internals. A pinned direct dependency gives
-identical output in Starlight and vanilla, in dev and build.
+The render call goes through **whatever processor the host project has configured**,
+and the package depends on neither engine. Verified against current releases
+(2026-08-13): Astro 7.2.1 defaults `markdown.processor` to `satteri()` from
+`@astrojs/markdown-satteri` and no longer depends on `@astrojs/markdown-remark`;
+`@astrojs/markdown-remark@7.2.2` exports the `unified()` factory for sites that
+must stay on the unified pipeline (mermaid, `starlight-links-validator`); Starlight
+supports both, with `@astrojs/markdown-remark` as an optional peer. Hardcoding
+either engine halves the addressable audience. The `MarkdownProcessor` interface
+(`name`, `options`, `createRenderer(shared) → { render }`) is processor-agnostic by
+design, so the resolved `astroConfig.markdown.processor` is all we need; the
+detection helpers Starlight uses (`isSatteriProcessor`/`isUnifiedProcessor`) are
+unnecessary for a pure render call.
+
+Mechanics, and the constraint that shapes them: the live processor instance exists
+only in the config-time process, while routes and components execute in Vite's SSR
+module graph — module state does not cross that boundary and a processor cannot be
+serialised into a virtual module. So docstring prose is rendered **eagerly at
+`astro:config:done`**, which runs after every integration's `astro:config:setup`
+has finished mutating `processor.options` (Starlight's asides, a site's mermaid
+plugin and anything else are registered by then, so docstrings render through the
+same final pipeline as the site's own content). The rendered HTML is written to a
+sidecar JSON beside the cached dump; `lib/data.ts` loads it like the dump and
+components consume pre-rendered HTML strings. The dev watcher re-renders after
+re-extraction. Doctest `>>>` blocks are fenced as `python` before rendering (plain
+string manipulation; `pycon` is not in Sätteri's bundled Shiki set). Griffe
+admonition sections render as our own aside markup in components, not through
+directives.
+
+Astro 7.0.x, where `markdown.processor` does not exist: fall back to
+`@astrojs/markdown-remark`'s `createMarkdownProcessor(astroConfig.markdown)`,
+loaded via a top-level `import(…).catch(() => null)` exactly as Starlight does
+(late dynamic imports from config-loaded modules hit the closed module runner),
+with `@astrojs/markdown-remark` declared as an optional peer, mirroring Starlight.
+On 7.0.x astro itself depends on markdown-remark, so the import resolves precisely
+where the fallback is needed.
+
+Deprecated surface avoided everywhere, including docs and fixtures: top-level
+`markdown.remarkPlugins`, `rehypePlugins`, `remarkRehype`, `gfm` and `smartypants`
+are all scheduled for removal; engine behaviour is configured through the processor
+factories, and heading IDs, directives and math come from Sätteri's native
+`features` when a site wants them, never from plugins we add.
+
+Rejected alternatives. Pinning `@astrojs/markdown-remark` (this plan's first
+draft): forces a non-default extra dependency and the slow path on every Astro 7
+site. Pinning `@astrojs/markdown-satteri` (briefly implemented mid-build, then
+unwound): breaks unified-locked sites. Rendering lazily at request time via a
+`globalThis` bridge from the Vite plugin into the SSR graph: works in dev and
+static builds but leans on process-sharing internals and dies on deployed SSR;
+config-done pre-rendering uses only public hooks. Note the earlier "remark plugins
+don't run when appended from `astro:config:setup`" gotcha argued against relying on
+the host pipeline for *our own transforms*; it says nothing against calling the
+host's renderer on strings, which is all we do now.
+
+Test coverage: the docs site runs the Astro 7 default (Sätteri); the vanilla
+example site pins `markdown: { processor: unified() }`, so CI exercises both
+engines end to end.
 
 ### 8. Search: Pagefind for prose, a symbol index for symbols
 
