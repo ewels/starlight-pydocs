@@ -23,7 +23,7 @@ import {
   remoteCacheDirectory,
   temporaryDumpPath,
 } from './cache.ts';
-import { PydocsError } from './errors.ts';
+import { PydocsError, processOutput } from './errors.ts';
 import type { PydocsLogger } from './logger.ts';
 import { silentLogger } from './logger.ts';
 
@@ -104,15 +104,6 @@ function uvxArgv(pkg: PydocsPackageConfig, griffeArgs: string[]): { file: string
   for (const requirement of pkg.extraRequirements) args.push('--with', requirement);
   args.push('griffe', ...griffeArgs);
   return { file: 'uvx', args };
-}
-
-/**
- * What a failed child process said: its stderr, or failing that the error
- * message, trimmed.
- */
-function processOutput(cause: unknown, fallback = ''): string {
-  const error = cause as { stderr?: string; message?: string };
-  return (error.stderr ?? error.message ?? fallback).trim();
 }
 
 async function canRun(

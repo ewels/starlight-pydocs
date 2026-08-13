@@ -8,6 +8,7 @@
  * touches this project's own git state.
  */
 
+import { onlyPackage } from './helpers.ts';
 import { execFile } from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
@@ -111,8 +112,7 @@ describe.skipIf(!available)('version annotations from a git repository', () => {
       },
       repository,
     );
-    const pkg = config.packages[0];
-    if (pkg === undefined) throw new Error('no package');
+    const pkg = onlyPackage(config);
     return { config, pkg };
   }
 
@@ -164,8 +164,7 @@ describe.skipIf(!available)('version annotations from a git repository', () => {
       },
       repository,
     );
-    const pkg = config.packages[0];
-    if (pkg === undefined) throw new Error('no package');
+    const pkg = onlyPackage(config);
 
     await expect(computeVersionAnnotations(pkg, config, { cacheDir, cwd: repository })).rejects.toThrow(
       /lists the version ref 'v9\.9\.9', which .* does not have/,
@@ -185,8 +184,7 @@ describe.skipIf(!available)('version annotations from a git repository', () => {
         },
         outside,
       );
-      const pkg = config.packages[0];
-      if (pkg === undefined) throw new Error('no package');
+      const pkg = onlyPackage(config);
 
       await expect(computeVersionAnnotations(pkg, config, { cacheDir, cwd: outside })).rejects.toThrow(
         /is not inside a git repository/,

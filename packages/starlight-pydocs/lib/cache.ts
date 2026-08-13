@@ -14,7 +14,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import type { CacheMode, NormalisedExtension, PydocsPackageConfig } from './config.ts';
-import { PydocsError } from './errors.ts';
+import { PydocsError, errorMessage } from './errors.ts';
 import type { PydocsLogger } from './logger.ts';
 import { silentLogger } from './logger.ts';
 import { slugifyBase } from './paths.ts';
@@ -309,10 +309,10 @@ export async function fetchToCache(options: FetchToCacheOptions): Promise<FetchT
     response = await fetchImpl(options.url, { headers });
   } catch (cause) {
     if (cached) {
-      logger.warn(`could not reach ${options.url} (${describeError(cause)}); using the cached copy`);
+      logger.warn(`could not reach ${options.url} (${errorMessage(cause)}); using the cached copy`);
       return { path: target, fromCache: true };
     }
-    throw new PydocsError(`starlight-pydocs: failed to download ${options.url}: ${describeError(cause)}`, {
+    throw new PydocsError(`starlight-pydocs: failed to download ${options.url}: ${errorMessage(cause)}`, {
       cause,
     });
   }
@@ -356,10 +356,6 @@ async function readMeta(metaPath: string, url: string): Promise<RemoteCacheMeta 
   } catch {
     return undefined;
   }
-}
-
-function describeError(cause: unknown): string {
-  return cause instanceof Error ? cause.message : String(cause);
 }
 
 /** Directory that remote artefacts for a URL are cached in. */
