@@ -1,0 +1,46 @@
+---
+/**
+ * The body of a class: its signature (with the `__init__` parameters merged in,
+ * as mkdocstrings does), the base classes it declares, and its docstring.
+ *
+ * Members are rendered by `ObjectDoc`, which owns the recursion.
+ */
+import { annotationTokens } from '../lib/expr.ts';
+import { createStringResolver } from '../lib/i18n.ts';
+import type { DocObject } from '../lib/model.ts';
+import type { RenderScope } from '../lib/render.ts';
+import type { StringOverrides } from '../lib/strings.ts';
+import { DocstringSections, Signature } from 'virtual:starlight-pydocs/components';
+import AnnotationTokens from './AnnotationTokens.astro';
+
+interface Props {
+  doc: DocObject;
+  scope: RenderScope;
+  labels?: StringOverrides | undefined;
+}
+
+const { doc, scope, labels } = Astro.props;
+
+const resolve = createStringResolver(Astro.locals, labels);
+const bases = (doc.bases ?? []).map((base) => annotationTokens(base.expression, doc.path, scope.resolver));
+---
+
+<Signature doc={doc} scope={scope} labels={labels} />
+
+{
+  bases.length === 0 ? null : (
+    <p class="pyd-bases">
+      <span class="pyd-bases-label">{resolve('bases')}:</span>{' '}
+      {bases.map((base, index) => (
+        <>
+          {index === 0 ? null : ', '}
+          <code>
+            <AnnotationTokens tokens={base} scope={scope} />
+          </code>
+        </>
+      ))}
+    </p>
+  )
+}
+
+<DocstringSections doc={doc} scope={scope} labels={labels} />

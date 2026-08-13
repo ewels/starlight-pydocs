@@ -1,0 +1,46 @@
+---
+/**
+ * Examples sections.
+ *
+ * Griffe emits `[kind, value]` pairs: `text` for prose, `examples` for a doctest
+ * transcript. Both arrived here as HTML; the transcripts were fenced as `python`
+ * before rendering (`prepareDoctestMarkdown`), so they come back highlighted.
+ */
+import { renderedSectionBlock } from '../../lib/docstrings.ts';
+import { createStringResolver } from '../../lib/i18n.ts';
+import type { DocObject } from '../../lib/model.ts';
+import type { RenderScope } from '../../lib/render.ts';
+import type { StringOverrides } from '../../lib/strings.ts';
+import type { DocstringSectionExamples } from '../../lib/types.ts';
+
+interface Props {
+  section: DocstringSectionExamples;
+  sectionIndex: number;
+  doc: DocObject;
+  scope: RenderScope;
+  labels?: StringOverrides | undefined;
+}
+
+const { section, sectionIndex, doc, scope, labels } = Astro.props;
+
+const resolve = createStringResolver(Astro.locals, labels);
+const pairs = Array.isArray(section.value) ? section.value : [];
+
+const blocks = pairs
+  .map(([kind], index) => ({
+    kind,
+    html: renderedSectionBlock(scope.rendered, doc.canonicalPath, sectionIndex, index),
+  }))
+  .filter((block) => block.html !== '');
+---
+
+{
+  blocks.length === 0 ? null : (
+    <div class="pyd-section" data-pydocs-section="examples">
+      <p class="pyd-section-title">{resolve('examples')}</p>
+      {blocks.map((block) => (
+        <div class:list={['pyd-markdown', block.kind !== 'text' && 'pyd-example']} set:html={block.html} />
+      ))}
+    </div>
+  )
+}

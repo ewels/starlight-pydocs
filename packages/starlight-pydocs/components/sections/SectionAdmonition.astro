@@ -1,0 +1,30 @@
+---
+/**
+ * Admonition sections (`Note:`, `Warning:`, `Tip:`, …) as our own aside markup,
+ * styled to look like Starlight's asides without importing Starlight.
+ */
+import { renderedSectionBody } from '../../lib/docstrings.ts';
+import type { DocObject } from '../../lib/model.ts';
+import type { RenderScope } from '../../lib/render.ts';
+import { admonitionKind, admonitionTitle } from '../../lib/render.ts';
+import type { DocstringSectionAdmonition } from '../../lib/types.ts';
+
+interface Props {
+  section: DocstringSectionAdmonition;
+  sectionIndex: number;
+  doc: DocObject;
+  scope: RenderScope;
+}
+
+const { section, sectionIndex, doc, scope } = Astro.props;
+
+const value = section.value;
+const kind = admonitionKind(value?.annotation);
+const title = admonitionTitle(section.title, value?.annotation);
+const html = renderedSectionBody(scope.rendered, doc.canonicalPath, sectionIndex);
+---
+
+<aside class:list={['pyd-aside', `pyd-aside--${kind}`]} aria-label={title} data-pydocs-aside={kind}>
+  {title === '' ? null : <p class="pyd-aside-title">{title}</p>}
+  <div class="pyd-markdown" set:html={html} />
+</aside>

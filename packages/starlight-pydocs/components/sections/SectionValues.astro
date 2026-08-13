@@ -1,0 +1,61 @@
+---
+/**
+ * Returns, yields and receives sections: an annotation and what it means, with
+ * an optional name for the tuple-returning case.
+ */
+import { renderedSectionEntry } from '../../lib/docstrings.ts';
+import { annotationTokens } from '../../lib/expr.ts';
+import { createStringResolver } from '../../lib/i18n.ts';
+import { unwrapParagraph } from '../../lib/markdown.ts';
+import type { DocObject } from '../../lib/model.ts';
+import type { RenderScope } from '../../lib/render.ts';
+import type { StringKey, StringOverrides } from '../../lib/strings.ts';
+import type { DocstringSectionNamedValues } from '../../lib/types.ts';
+import AnnotationTokens from '../AnnotationTokens.astro';
+
+interface Props {
+  section: DocstringSectionNamedValues;
+  sectionIndex: number;
+  doc: DocObject;
+  scope: RenderScope;
+  headingKey: StringKey;
+  labels?: StringOverrides | undefined;
+}
+
+const { section, sectionIndex, doc, scope, headingKey, labels } = Astro.props;
+
+const resolve = createStringResolver(Astro.locals, labels);
+const entries = Array.isArray(section.value) ? section.value : [];
+
+const rows = entries.map((entry, index) => ({
+  name: entry.name ?? '',
+  annotation:
+    entry.annotation === undefined || entry.annotation === null
+      ? []
+      : annotationTokens(entry.annotation, doc.path, scope.resolver),
+  description: unwrapParagraph(renderedSectionEntry(scope.rendered, doc.canonicalPath, sectionIndex, index)),
+}));
+---
+
+{
+  rows.length === 0 ? null : (
+    <div class="pyd-section" data-pydocs-section={section.kind}>
+      <p class="pyd-section-title">{resolve(headingKey)}</p>
+      <dl class="pyd-values">
+        {rows.map((row) => (
+          <>
+            <dt>
+              {row.name === '' ? null : <code class="pyd-value-name">{row.name}</code>}
+              {row.annotation.length === 0 ? null : (
+                <code class="pyd-value-type">
+                  <AnnotationTokens tokens={row.annotation} scope={scope} />
+                </code>
+              )}
+            </dt>
+            <dd set:html={row.description} />
+          </>
+        ))}
+      </dl>
+    </div>
+  )
+}

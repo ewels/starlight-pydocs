@@ -1,0 +1,32 @@
+---
+/** The chips beside an object heading: kind, griffe labels, deprecation. */
+import { createStringResolver } from '../lib/i18n.ts';
+import type { DocObject } from '../lib/model.ts';
+import { objectBadges } from '../lib/render.ts';
+import type { StringOverrides } from '../lib/strings.ts';
+
+interface Props {
+  doc: DocObject;
+  labels?: StringOverrides | undefined;
+}
+
+const { doc, labels } = Astro.props;
+
+const resolve = createStringResolver(Astro.locals, labels);
+const badges = objectBadges(doc).map((badge) => ({
+  variant: badge.variant,
+  text: badge.key === undefined ? (badge.text ?? '') : resolve(badge.key),
+}));
+---
+
+{
+  badges.length === 0 ? null : (
+    <span class="pyd-badges">
+      {badges.map((badge) => (
+        <span class:list={['pyd-badge', `pyd-badge--${badge.variant}`]} data-pydocs-badge={badge.variant}>
+          {badge.text}
+        </span>
+      ))}
+    </span>
+  )
+}

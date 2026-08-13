@@ -1,0 +1,36 @@
+---
+/**
+ * Link to an object's source.
+ *
+ * Renders only when the model resolved an href: either from the configured
+ * `sourceLink` template or from griffe's own `source_link` field.
+ */
+import { createStringResolver } from '../lib/i18n.ts';
+import type { DocObject } from '../lib/model.ts';
+import type { StringOverrides } from '../lib/strings.ts';
+
+interface Props {
+  doc: DocObject;
+  labels?: StringOverrides | undefined;
+}
+
+const { doc, labels } = Astro.props;
+
+const resolve = createStringResolver(Astro.locals, labels);
+const source = doc.source;
+const href = source?.href;
+const lines =
+  source?.startLine === undefined
+    ? undefined
+    : source.endLine === undefined || source.endLine === source.startLine
+      ? `${source.file ?? ''}:${String(source.startLine)}`
+      : `${source.file ?? ''}:${String(source.startLine)}-${String(source.endLine)}`;
+---
+
+{
+  href === undefined ? null : (
+    <a class="pyd-source-link" href={href} rel="noreferrer" title={lines}>
+      {resolve('viewSource')}
+    </a>
+  )
+}

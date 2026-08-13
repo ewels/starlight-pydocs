@@ -87,7 +87,11 @@ export const STRINGS = {
   searchHint: 'Type part of a name, or a dotted path',
 
   // Page furniture.
+  /** Accessible name of an anchor heading's link, followed by the object path. */
+  permalink: 'Permalink to',
   apiReference: 'API reference',
+  /** Sidebar link to a package's root page. */
+  overview: 'Overview',
   onPage: 'On this page',
   noMembers: 'No documented members.',
   undocumented: 'No description provided.',

@@ -1,0 +1,45 @@
+---
+/**
+ * A signature block with linked annotations.
+ *
+ * Built from griffe's parameter list rather than source text, so the `/` and
+ * `*` markers land in the right places (see `lib/signature.ts`). Classes show
+ * their `__init__` parameters, the mkdocstrings convention. `@overload`
+ * variants stack above the implementation when the dump carries them.
+ *
+ * Long signatures wrap rather than overflow: the layout is CSS's decision, made
+ * from the `pyd-signature--multiline` class this component adds once a
+ * signature has more than three parameters.
+ */
+import type { DocObject } from '../lib/model.ts';
+import type { RenderScope } from '../lib/render.ts';
+import { overloadSignatureTokens, renderedParameterCount, renderedSignatureTokens } from '../lib/signature.ts';
+import type { StringOverrides } from '../lib/strings.ts';
+import AnnotationTokens from './AnnotationTokens.astro';
+
+interface Props {
+  doc: DocObject;
+  scope: RenderScope;
+  labels?: StringOverrides | undefined;
+  class?: string | undefined;
+}
+
+const { doc, scope, class: className } = Astro.props;
+
+const options = { resolver: scope.resolver };
+const tokens = renderedSignatureTokens(doc, options);
+const overloads = (doc.overloads ?? []).map((overload) => overloadSignatureTokens(overload, doc, options));
+const multiline = renderedParameterCount(doc) > 3;
+---
+
+{
+  overloads.map((overload) => (
+    <pre class="pyd-signature pyd-signature--overload" data-pydocs-signature="overload">
+      <code>
+        <span class="pyd-decorator">@overload</span> <AnnotationTokens tokens={overload} scope={scope} />
+      </code>
+    </pre>
+  ))
+}<pre
+  class:list={['pyd-signature', multiline && 'pyd-signature--multiline', className]}
+  data-pydocs-signature={doc.path}><code><AnnotationTokens tokens={tokens} scope={scope} /></code></pre>

@@ -1,0 +1,57 @@
+---
+/**
+ * Document one object anywhere: `<Autodoc name="demopkg.report.Report" />`.
+ *
+ * This is the equivalent of mkdocstrings' `::: demopkg.report.Report`, for
+ * hand-written MDX pages that need an API block in the middle of prose. Names
+ * may be either the documented path or the canonical one griffe found the
+ * definition at.
+ */
+import { PydocsError } from '../lib/errors.ts';
+import { documentedPathFor } from '../lib/model.ts';
+import type { RenderScope } from '../lib/render.ts';
+import { createRenderScope } from '../lib/render.ts';
+import type { StringOverrides } from '../lib/strings.ts';
+import { ModuleDoc } from 'virtual:starlight-pydocs/components';
+import { loadPydocsContext, packageForDottedPath } from './context.ts';
+import ObjectDoc from './ObjectDoc.astro';
+
+interface Props {
+  /** Dotted path of the object to document, e.g. `demopkg.report.Report`. */
+  name: string;
+  /** Which configured package owns the name. Only needed when it is ambiguous. */
+  package?: string | undefined;
+  /** Heading level for the object. Default 2. */
+  headingLevel?: number | undefined;
+  labels?: StringOverrides | undefined;
+}
+
+const { name, package: packageName, headingLevel = 2, labels } = Astro.props;
+
+const context = await loadPydocsContext('Autodoc');
+const pkg = packageName === undefined ? packageForDottedPath(context, name) : { name: packageName };
+if (pkg === undefined) {
+  throw new PydocsError(
+    `starlight-pydocs: <Autodoc name="${name}"> does not start with a configured package name ` +
+      `(configured: ${context.packages.map((entry) => entry.name).join(', ')}); pass the package prop to disambiguate.`,
+  );
+}
+
+const scope: RenderScope = await createRenderScope(context, pkg.name);
+const documentedPath = scope.model.objectsByPath.has(name) ? name : documentedPathFor(scope.model, name);
+const doc = documentedPath === undefined ? undefined : scope.model.objectsByPath.get(documentedPath);
+if (doc === undefined) {
+  throw new PydocsError(
+    `starlight-pydocs: <Autodoc name="${name}"> is not documented in '${pkg.name}'. Check the spelling, ` +
+      'or the members/filters options that may be excluding it.',
+  );
+}
+---
+
+{
+  doc.kind === 'module' ? (
+    <ModuleDoc doc={doc} scope={scope} headingLevel={headingLevel} labels={labels} />
+  ) : (
+    <ObjectDoc doc={doc} scope={scope} headingLevel={headingLevel} labels={labels} />
+  )
+}

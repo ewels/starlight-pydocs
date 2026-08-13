@@ -1,0 +1,30 @@
+---
+/**
+ * Docstring prose.
+ *
+ * The HTML is already rendered: it came from the host's markdown processor at
+ * `astro:config:done` and travelled here in the sidecar JSON (PLAN.md decision
+ * 7). This component only decides the wrapper.
+ */
+import { unwrapParagraph } from '../lib/markdown.ts';
+
+interface Props {
+  /** Pre-rendered HTML from the docstring sidecar. */
+  html: string;
+  /** Unwrap a lone paragraph, for table cells and definition terms. */
+  inline?: boolean | undefined;
+  class?: string | undefined;
+}
+
+const { html, inline = false, class: className } = Astro.props;
+
+const content = inline ? unwrapParagraph(html) : html.trim();
+---
+
+{
+  content === '' ? null : inline ? (
+    <span class:list={['pyd-markdown', 'pyd-markdown--inline', className]} set:html={content} />
+  ) : (
+    <div class:list={['pyd-markdown', className]} set:html={content} />
+  )
+}
