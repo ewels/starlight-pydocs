@@ -27,6 +27,7 @@
     "test": "pnpm --filter starlight-pydocs test",
     "test:e2e": "pnpm --filter starlight-pydocs-docs test:e2e",
     "gen:dumps": "node --experimental-strip-types fixtures/generate-dumps.ts",
+    "gen:inventory": "node --experimental-strip-types fixtures/generate-inventory.ts",
     "release": "pnpm --filter starlight-pydocs publish --access public --no-git-checks"
   },
   "devDependencies": {
