@@ -1,15 +1,17 @@
 import { expect, test } from '@playwright/test';
 
+import { member, section, signature } from '../helpers.ts';
+
 test.describe('demopkg.report', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('api/demopkg/report/');
   });
 
   test('a class signature carries its __init__ parameters', async ({ page }) => {
-    const signature = page.locator('.pyd-signature[data-pydocs-signature="demopkg.report.Report"]');
-    await expect(signature).toContainText('class Report(');
-    await expect(signature).toContainText('name: str');
-    await expect(signature).toContainText('scores: dict[str, float] | None = None');
+    const reportSignature = signature(page, 'demopkg.report.Report');
+    await expect(reportSignature).toContainText('class Report(');
+    await expect(reportSignature).toContainText('name: str');
+    await expect(reportSignature).toContainText('scores: dict[str, float] | None = None');
   });
 
   test('annotations link to documented objects on this site', async ({ page }) => {
@@ -23,16 +25,14 @@ test.describe('demopkg.report', () => {
   });
 
   test('annotations link out through the configured inventory', async ({ page }) => {
-    const parameters = page.locator('.pyd-member[data-pydocs-path="demopkg.report.BaseReport.save"] .pyd-params');
+    const parameters = member(page, 'demopkg.report.BaseReport.save').locator('.pyd-params');
     const external = parameters.locator('a.pyd-type--external');
     await expect(external).toHaveAttribute('href', 'https://docs.python.org/3/library/pathlib.html#pathlib.Path');
     await expect(external).toHaveText('pathlib.Path');
   });
 
   test('parameter tables list every parameter with its type and default', async ({ page }) => {
-    const parameters = page
-      .locator('.pyd-member[data-pydocs-path="demopkg.report.Report"] .pyd-section[data-pydocs-section="parameters"]')
-      .first();
+    const parameters = section(member(page, 'demopkg.report.Report'), 'parameters').first();
     const rows = parameters.locator('.pyd-params tbody tr');
     await expect(rows).toHaveCount(2);
     await expect(rows.nth(0)).toContainText('name');
@@ -61,21 +61,19 @@ test.describe('demopkg.report', () => {
   test('every heading id is the dotted path of the object it documents', async ({ page }) => {
     const mismatched = await page
       .locator('.pyd-member')
-      .evaluateAll((members) =>
-        members
-          .filter((member) => member.querySelector(':scope > .pyd-heading')?.id !== member.dataset['pydocsPath'])
-          .map((member) => member.dataset['pydocsPath'] ?? ''),
+      .evaluateAll((blocks) =>
+        blocks
+          .filter((block) => block.querySelector(':scope > .pyd-heading')?.id !== block.dataset['pydocsPath'])
+          .map((block) => block.dataset['pydocsPath'] ?? ''),
       );
     expect(mismatched).toEqual([]);
 
-    const anchor = page.locator(
-      '.pyd-member[data-pydocs-path="demopkg.report.Report.render"] > .pyd-heading .pyd-anchor',
-    );
+    const anchor = member(page, 'demopkg.report.Report.render').locator('> .pyd-heading .pyd-anchor');
     await expect(anchor).toHaveAttribute('href', '#demopkg.report.Report.render');
   });
 
   test('objects link to their source lines on the configured forge', async ({ page }) => {
-    const source = page.locator('.pyd-member[data-pydocs-path="demopkg.report.Report.generate"] a.pyd-source-link');
+    const source = member(page, 'demopkg.report.Report.generate').locator('a.pyd-source-link');
     await expect(source).toHaveAttribute(
       'href',
       /^https:\/\/github\.com\/ewels\/starlight-pydocs\/blob\/main\/fixtures\/demopkg\/src\/demopkg\/report\.py#L\d+-L\d+$/,
@@ -83,7 +81,7 @@ test.describe('demopkg.report', () => {
   });
 
   test('deprecations are badged and explained', async ({ page }) => {
-    const deprecated = page.locator('.pyd-member[data-pydocs-path="demopkg.report.old_generate"]');
+    const deprecated = member(page, 'demopkg.report.old_generate');
     await expect(deprecated.locator('.pyd-badge[data-pydocs-badge="deprecated"]')).toHaveText('Deprecated');
     const note = deprecated.locator('.pyd-aside[data-pydocs-aside="deprecated"]');
     await expect(note).toContainText('Since 0.3');
@@ -93,13 +91,13 @@ test.describe('demopkg.report', () => {
   });
 
   test('docstring admonitions become asides', async ({ page }) => {
-    const note = page.locator('.pyd-member[data-pydocs-path="demopkg.report.Report.generate"] .pyd-aside');
+    const note = member(page, 'demopkg.report.Report.generate').locator('.pyd-aside');
     await expect(note).toHaveAttribute('data-pydocs-aside', 'note');
     await expect(note).toContainText('deliberately synchronous');
   });
 
   test('mkdocstrings cross-references in prose become links', async ({ page }) => {
-    const prose = page.locator('.pyd-member[data-pydocs-path="demopkg.report.generate_report"] .pyd-markdown').first();
+    const prose = member(page, 'demopkg.report.generate_report').locator('.pyd-markdown').first();
 
     // A target documented on this site, and one resolved through the inventory.
     await expect(prose.locator('a[href$="/api/demopkg/report/#demopkg.report.Report"]')).toHaveText('Report');
@@ -116,8 +114,8 @@ test.describe('demopkg.report', () => {
     await expect(inherited).toBeVisible();
     await expect(inherited.locator('summary')).toContainText('demopkg.report.BaseReport');
 
-    const provenance = inherited
-      .locator('.pyd-member[data-pydocs-path="demopkg.report.Report.save"] [data-pydocs-provenance="inherited"] a')
+    const provenance = member(inherited, 'demopkg.report.Report.save')
+      .locator('[data-pydocs-provenance="inherited"] a')
       .first();
     await expect(provenance).toHaveAttribute('href', /#demopkg\.report\.BaseReport$/);
   });
@@ -126,8 +124,8 @@ test.describe('demopkg.report', () => {
 test('re-exported objects say where they were defined', async ({ page }) => {
   await page.goto('api/demopkg/');
 
-  const provenance = page.locator(
-    '.pyd-member[data-pydocs-path="demopkg.Report"] > .pyd-provenance [data-pydocs-provenance="reexported"] a',
+  const provenance = member(page, 'demopkg.Report').locator(
+    '> .pyd-provenance [data-pydocs-provenance="reexported"] a',
   );
   await expect(provenance).toHaveAttribute('href', /\/api\/demopkg\/report\/$/);
   await expect(provenance).toHaveText('demopkg.report');
@@ -136,9 +134,9 @@ test('re-exported objects say where they were defined', async ({ page }) => {
 test('pydantic models are labelled through the griffe extension', async ({ page }) => {
   await page.goto('api/demopkg/models/');
 
-  const user = page.locator('.pyd-member[data-pydocs-path="demopkg.models.User"]');
+  const user = member(page, 'demopkg.models.User');
   await expect(user.locator('.pyd-badge[data-pydocs-badge="label"]').first()).toHaveText('pydantic model');
-  await expect(
-    user.locator('.pyd-member[data-pydocs-path="demopkg.models.User.email"] .pyd-badge[data-pydocs-badge="label"]'),
-  ).toHaveText('pydantic field');
+  await expect(member(user, 'demopkg.models.User.email').locator('.pyd-badge[data-pydocs-badge="label"]')).toHaveText(
+    'pydantic field',
+  );
 });

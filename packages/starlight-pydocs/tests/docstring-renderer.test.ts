@@ -4,10 +4,11 @@ import path from 'node:path';
 
 import { satteri } from '@astrojs/markdown-satteri';
 import type { AstroConfig } from 'astro';
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test } from 'vitest';
 
 import { renderedSectionBlock, renderedSectionBody, type RenderedDocstrings } from '../lib/docstrings.ts';
 import { PydocsError } from '../lib/errors.ts';
+import type { DocstringRenderer } from '../libs/docstring-renderer.ts';
 import { renderDocstringsForDump, resolveDocstringRenderer } from '../libs/docstring-renderer.ts';
 import { fixturePath } from './helpers.ts';
 
@@ -26,16 +27,41 @@ function markdownConfig(overrides: Record<string, unknown> = {}): MarkdownConfig
   } as unknown as MarkdownConfig;
 }
 
+/** The renderer the docs site ends up with: Astro's default processor. */
+function satteriRenderer(): Promise<DocstringRenderer> {
+  return resolveDocstringRenderer(markdownConfig({ processor: satteri() }));
+}
+
+const temporaryDirectories: string[] = [];
+
+afterEach(async () => {
+  await Promise.all(
+    temporaryDirectories.splice(0).map((directory) => fs.rm(directory, { recursive: true, force: true })),
+  );
+});
+
+/** Path for a sidecar in a fresh temporary directory, removed after the test. */
+async function temporarySidecarPath(): Promise<string> {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'pydocs-rendered-'));
+  temporaryDirectories.push(directory);
+  return path.join(directory, 'rendered.json');
+}
+
+/** The sidecar `renderDocstringsForDump` wrote. */
+async function readSidecar(renderedPath: string): Promise<RenderedDocstrings> {
+  return JSON.parse(await fs.readFile(renderedPath, 'utf8')) as RenderedDocstrings;
+}
+
 describe('resolveDocstringRenderer', () => {
   test('uses the configured processor (Sätteri, the Astro 7.2 default)', async () => {
-    const renderer = await resolveDocstringRenderer(markdownConfig({ processor: satteri() }));
+    const renderer = await satteriRenderer();
     const html = await renderer.render('A *link* to [docs](https://example.com).');
     expect(html).toContain('<em>link</em>');
     expect(html).toContain('href="https://example.com"');
   });
 
   test('renders GFM tables and dual-theme code through the configured processor', async () => {
-    const renderer = await resolveDocstringRenderer(markdownConfig({ processor: satteri() }));
+    const renderer = await satteriRenderer();
     const table = await renderer.render('| a | b |\n| - | - |\n| 1 | 2 |');
     expect(table).toContain('<table>');
 
@@ -75,9 +101,8 @@ describe('resolveDocstringRenderer', () => {
 
 describe('renderDocstringsForDump', () => {
   test('writes a sidecar of rendered prose beside the dump', async () => {
-    const renderer = await resolveDocstringRenderer(markdownConfig({ processor: satteri() }));
-    const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'pydocs-rendered-'));
-    const renderedPath = path.join(directory, 'rendered.json');
+    const renderer = await satteriRenderer();
+    const renderedPath = await temporarySidecarPath();
 
     const { count } = await renderDocstringsForDump({
       dumpPath: fixturePath('demopkg', 'dump.json'),
@@ -86,7 +111,7 @@ describe('renderDocstringsForDump', () => {
     });
     expect(count).toBeGreaterThan(20);
 
-    const rendered = JSON.parse(await fs.readFile(renderedPath, 'utf8')) as RenderedDocstrings;
+    const rendered = await readSidecar(renderedPath);
     const generate = rendered.objects['demopkg.report.Report.generate'];
     expect(generate).toBeDefined();
     expect(JSON.stringify(generate)).toContain('<p>');
@@ -104,14 +129,11 @@ describe('renderDocstringsForDump', () => {
       .map((index) => renderedSectionBody(rendered, 'demopkg', Number(index)))
       .filter((html) => html !== '');
     expect(bodies.some((html) => html.startsWith('<p>'))).toBe(true);
-
-    await fs.rm(directory, { recursive: true, force: true });
   });
 
   test('cross-references are links by the time the processor sees them', async () => {
-    const renderer = await resolveDocstringRenderer(markdownConfig({ processor: satteri() }));
-    const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'pydocs-rendered-'));
-    const renderedPath = path.join(directory, 'rendered.json');
+    const renderer = await satteriRenderer();
+    const renderedPath = await temporarySidecarPath();
 
     await renderDocstringsForDump({
       dumpPath: fixturePath('demopkg', 'dump.json'),
@@ -121,13 +143,11 @@ describe('renderDocstringsForDump', () => {
         target === 'demopkg.report.Report' ? '/api/demopkg/report/#demopkg.report.Report' : undefined,
     });
 
-    const rendered = JSON.parse(await fs.readFile(renderedPath, 'utf8')) as RenderedDocstrings;
+    const rendered = await readSidecar(renderedPath);
     const prose = renderedSectionBody(rendered, 'demopkg.report.generate_report', 0);
     expect(prose).toContain('<a href="/api/demopkg/report/#demopkg.report.Report">Report</a>');
     // The unresolvable one in the same docstring stayed literal.
     expect(prose).toContain('[nosuchpkg.Thing][]');
-
-    await fs.rm(directory, { recursive: true, force: true });
   });
 
   test('a failing render costs that one string, not the build', async () => {
@@ -143,19 +163,16 @@ describe('renderDocstringsForDump', () => {
         }),
     };
     const renderer = await resolveDocstringRenderer(markdownConfig({ processor: failing }));
-    const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'pydocs-rendered-'));
-    const renderedPath = path.join(directory, 'rendered.json');
+    const renderedPath = await temporarySidecarPath();
 
     await renderDocstringsForDump({ dumpPath: fixturePath('demopkg', 'dump.json'), renderedPath, renderer });
-    const rendered = JSON.parse(await fs.readFile(renderedPath, 'utf8')) as RenderedDocstrings;
+    const rendered = await readSidecar(renderedPath);
     expect(JSON.stringify(rendered.objects['demopkg.report.Report.generate'])).not.toContain('Render the report');
     expect(rendered.objects['demopkg']).toBeDefined();
-
-    await fs.rm(directory, { recursive: true, force: true });
   });
 
   test('a missing dump is a PydocsError', async () => {
-    const renderer = await resolveDocstringRenderer(markdownConfig({ processor: satteri() }));
+    const renderer = await satteriRenderer();
     await expect(
       renderDocstringsForDump({ dumpPath: '/nonexistent/dump.json', renderedPath: '/tmp/x.json', renderer }),
     ).rejects.toBeInstanceOf(PydocsError);

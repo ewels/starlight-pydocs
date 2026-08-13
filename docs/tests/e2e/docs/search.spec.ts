@@ -1,16 +1,13 @@
 import { expect, test } from '@playwright/test';
 
+import { searchSymbols, symbolSearch } from '../helpers.ts';
+
 test('the symbol search element finds an object and the keyboard navigates to it', async ({ page }) => {
   // The autodoc guide places `<SymbolSearch />` by hand; the element fetches
   // `symbols.json` on first focus.
   await page.goto('guides/autodoc/');
 
-  const search = page.locator('pydocs-search');
-  const input = search.locator('.pyd-search-input');
-  await input.click();
-  await input.fill('generate');
-
-  const options = search.locator('.pyd-search-option[role="option"]');
+  const { input, options } = await searchSymbols(page, 'generate');
   await expect(options.first()).toBeVisible();
   await expect(options.first()).toContainText('demopkg.Report.generate');
   await expect(input).toHaveAttribute('aria-expanded', 'true');
@@ -25,22 +22,18 @@ test('the symbol search element finds an object and the keyboard navigates to it
 
 test('the generated package page carries a search box, and module pages do not', async ({ page }) => {
   await page.goto('api/demopkg/');
-  await expect(page.locator('pydocs-search')).toHaveCount(1);
+  await expect(symbolSearch(page).root).toHaveCount(1);
 
   await page.goto('api/demopkg/report/');
-  await expect(page.locator('pydocs-search')).toHaveCount(0);
+  await expect(symbolSearch(page).root).toHaveCount(0);
 });
 
 test('the symbol search element reports when nothing matches', async ({ page }) => {
   await page.goto('guides/autodoc/');
 
-  const search = page.locator('pydocs-search');
-  const input = search.locator('.pyd-search-input');
-  await input.click();
-  await input.fill('nosuchsymbol');
-
-  await expect(search.locator('.pyd-search-empty')).toBeVisible();
-  await expect(search.locator('.pyd-search-option')).toHaveCount(0);
+  const { empty, root } = await searchSymbols(page, 'nosuchsymbol');
+  await expect(empty).toBeVisible();
+  await expect(root.locator('.pyd-search-option')).toHaveCount(0);
 });
 
 test('Pagefind indexes the generated pages', async ({ page }) => {

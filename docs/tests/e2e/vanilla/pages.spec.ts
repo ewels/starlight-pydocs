@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { member, searchSymbols, signature } from '../helpers.ts';
+
 /**
  * The plain Astro site in `examples/vanilla`.
  *
@@ -21,9 +23,7 @@ test('a generated module page renders through the built-in layout', async ({ pag
   await expect(toc.locator('a[href="#demopkg.report.Report"]')).toBeVisible();
   await expect(toc.locator('li')).not.toHaveCount(0);
 
-  await expect(page.locator('.pyd-signature[data-pydocs-signature="demopkg.report.Report"]')).toContainText(
-    'class Report(',
-  );
+  await expect(signature(page, 'demopkg.report.Report')).toContainText('class Report(');
 });
 
 test('the package page lists its submodules', async ({ page }) => {
@@ -63,16 +63,11 @@ test('nothing on the page comes from Starlight', async ({ page }) => {
 test('a hand-written page documents one object and searches the package', async ({ page }) => {
   await page.goto('');
 
-  const report = page.locator('.pyd-member[data-pydocs-path="demopkg.Report"]');
+  const report = member(page, 'demopkg.Report');
   await expect(report.locator('> h2[id="demopkg.Report"]')).toBeVisible();
   await expect(report.locator('[data-pydocs-path="demopkg.Report.generate"] > h3')).toBeVisible();
 
-  const search = page.locator('pydocs-search');
-  const input = search.locator('.pyd-search-input');
-  await input.click();
-  await input.fill('Report');
-
-  const options = search.locator('.pyd-search-option[role="option"]');
+  const { input, options } = await searchSymbols(page, 'Report');
   await expect(options.first()).toContainText('demopkg.Report');
 
   await input.press('ArrowDown');

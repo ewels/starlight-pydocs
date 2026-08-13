@@ -11,13 +11,10 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import process from 'node:process';
-import { fileURLToPath } from 'node:url';
 
 import type { InventoryEntry } from '../packages/starlight-pydocs/lib/inventory.ts';
 import { buildInventory } from '../packages/starlight-pydocs/lib/inventory.ts';
-
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+import { repoRoot, runScript } from './shared.ts';
 
 /** `name`, `role` and `uri` as CPython's inventory spells them. */
 const OBJECTS: [name: string, role: string, uri: string][] = [
@@ -52,7 +49,4 @@ async function main(): Promise<void> {
   console.log(`wrote ${path.relative(repoRoot, target)} (${String(entries.length)} entries)`);
 }
 
-await main().catch((error: unknown) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 1;
-});
+await runScript(main);
