@@ -86,12 +86,15 @@ sequencing.
   `createPydocsSidebarGroup()` and normalises to its label string, so one site can
   place different packages in different parts of the sidebar (starlight-openapi's
   `createOpenAPISidebarGroup` pattern).
-- **The docs site documents three packages, and that is the e2e fixture.** `demopkg`
-  (uvx + `griffe_pydantic`, google), `numpkg` (uvx, numpy) and `sphpkg` (no
+- **The docs site documents four package entries, and that is the e2e fixture.**
+  `demopkg` (uvx + `griffe_pydantic`, google), `numpkg` (uvx, numpy), `sphpkg` (no
   extraction at all: `source: { file: '../fixtures/sphpkg/dump.json' }`, sphinx, its
-  own sidebar placeholder). One build therefore exercises both extraction strategies,
-  all three docstring parsers, per-package sidebar placement and multi-package
-  endpoints. Every generated page in the suite is real output, not a fixture render.
+  own sidebar placeholder) and `demopkg` again at `1x/api/demopkg` (pinned to
+  `../fixtures/demopkg/dump.json`, labelled `demopkg 1.x`, its own placeholder under a
+  `v1.x` sidebar section). One build therefore exercises both extraction strategies,
+  all three docstring parsers, per-package sidebar placement, multi-package endpoints
+  and one package name at two bases. Every generated page in the suite is real output,
+  not a fixture render.
 - **Inventories are tested from a checked-in `objects.inv`.** The fixture under
   `fixtures/inventories/` is written by `pnpm gen:inventory`
   (`fixtures/generate-inventory.ts`) with the thirteen stdlib names the fixture
@@ -199,6 +202,9 @@ griffe dump -e griffe_pydantic …`) — the fixture model gets the `pydantic-mo
   "Unknown command"; pass `--port N` with no `--`.
 - The checked-in dumps were produced by **griffe 2.1.0** (what uv resolved on
   2026-08-12) with `python3` 3.11.15 available as the fallback interpreter.
+- `git` 2.43 is available, and `git worktree add --detach` works here, which is what
+  the version-annotation live test exercises. It builds its own repository in a temp
+  directory; nothing in the suite touches this repository's git state.
 
 ## Griffe dump field names, as actually emitted (2.1.0)
 
@@ -249,6 +255,10 @@ Verified against generated dumps, not documentation. `lib/types.ts` follows thes
 - griffe version drift: dumps were generated with the griffe version uv resolved on
   2026-08-12. `pnpm gen:dumps` regenerates; the `runner-live` test guards drift but
   only runs where uv is available.
+- **Adding `versions.refs` to the docs site would need `fetch-depth: 0` in the Pages
+  deploy workflow.** The docs site does not use the option (the fixture packages have no
+  release history), so the workflow is untouched; anybody enabling it on a real site has
+  to deepen the checkout, which `guides/version-annotations.mdx` says.
 - **Without `sourceLink.root`, a `title` on the source link can leak an absolute
   path.** Griffe's `relative_filepath` is relative to its working directory, so when
   the sources sit outside the Astro project (the vanilla example's `../../fixtures`)
@@ -266,6 +276,14 @@ Verified against generated dumps, not documentation. `lib/types.ts` follows thes
   namespacing is the work, and nothing in the base re-key makes it harder.
 
 ## Stuck points and workarounds
+
+- **Version worktrees live under `node_modules/.astro`, which git does not know is
+  disposable.** Deleting `node_modules` leaves the registrations behind, so the next
+  `git worktree add` fails with "already registered" and `git worktree list` shows
+  prunable entries in the meantime. `materialiseWorktree` therefore reuses an existing
+  directory, and on failure runs `git worktree prune` and retries once before giving up.
+  A human wanting them elsewhere can point `cacheDir` at a directory their CI caches,
+  which is the better setup anyway: the ref dumps are then reused across builds.
 
 - eslint's `astro/no-prerender-export-outside-pages` rejects
   `export const prerender = true` in injected-route `.astro` files (they live in the
@@ -388,3 +406,20 @@ str, scores: dict[str, float] | None = None)` signature, six distinct internal
   CamelCase matching the plan describes, vanilla generated pages take labels from
   `Astro.locals.t` (the route passes no `labels` prop), and multi-instance versioning
   does not work (see "Things to double-check").
+- 2026-08-13: ROADMAP item 9 landed, and with it the honest version story. Package
+  entries are now identified by their URL base rather than their import name, so one
+  package can be documented at several bases: the docs site documents `demopkg` twice
+  (from source at `/api/demopkg/`, from the checked-in dump at `/1x/api/demopkg/`, in
+  a `v1.x` sidebar group of its own), which is the shape PLAN.md decision 11 promised
+  and multi-instance registration could not deliver. Version annotations shipped as
+  `versions: { refs: [{ ref, label }] }`: `lib/ref-extract.ts` materialises each ref
+  as a git worktree under the cache directory and dumps it through the same launcher
+  the working tree uses, `lib/versions.ts` does the oldest-first diff, and
+  `DocObject.addedIn` renders as an "Added in <label>" badge beside the kind badge (and
+  in `llms.txt`, and as `addedIn` on loader entries). 385 unit tests, 40 e2e tests, 32
+  built pages. The badge rendering was checked in a real build by pointing the docs
+  fixture at a throwaway branch with one function removed: `demopkg.report.generate_report`
+  came out badged `Added in 0.2` on both its definition page and its re-export, and the
+  pinned 1.x entry stayed unbadged. That configuration was not committed — the fixture
+  packages have no meaningful release history, so the pipeline's regression coverage is
+  the guarded live test against a throwaway repository instead.
