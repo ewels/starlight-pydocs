@@ -1,0 +1,28 @@
+{
+  "name": "starlight-pydocs-example-vanilla",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "starlight-pydocs in a plain Astro site: no Starlight, and the unified markdown pipeline.",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "typecheck": "astro check",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@astrojs/markdown-remark": "^7.2.2",
+    "astro": "^7.2.1",
+    "starlight-pydocs": "workspace:*"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "typescript": "^6.0.3"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

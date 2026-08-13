@@ -1,0 +1,48 @@
+---
+/**
+ * A hand-written page in a site with no Starlight.
+ *
+ * The stylesheet has to be imported here: a plain Astro project has no
+ * `customCss` for the integration to append to.
+ */
+import { Autodoc, SymbolSearch } from 'starlight-pydocs/components';
+import 'starlight-pydocs/styles';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>starlight-pydocs in plain Astro</title>
+    <meta name="description" content="starlight-pydocs without Starlight, on the unified markdown pipeline." />
+  </head>
+  <body class="pyd-page">
+    <div class="pyd-page-inner">
+      <main class="pyd-content">
+        <h1>starlight-pydocs in plain Astro</h1>
+
+        <p>
+          No Starlight anywhere in this site. The integration from <code>starlight-pydocs/astro</code> injected the generated
+          pages under <a href="/api/demopkg/">/api/demopkg/</a>, and the components below are the same ones those pages
+          render.
+        </p>
+
+        <p>
+          Docstring prose goes through this project's markdown processor, which is <code>unified()</code> from
+          <code>@astrojs/markdown-remark</code> rather than Astro's default.
+        </p>
+
+        <h2>Search the API</h2>
+
+        <SymbolSearch package="demopkg" />
+
+        <h2>One class, documented here</h2>
+
+        <Autodoc name="demopkg.Report" />
+
+        <p><a href="/symbols/">Every <code>numpkg</code> symbol as data</a>, through the Content Layer loader.</p>
+      </main>
+    </div>
+  </body>
+</html>
