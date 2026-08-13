@@ -80,7 +80,10 @@ describe('buildGriffeArgs', () => {
 });
 
 /** Record calls and write a dump when griffe is asked to. */
-function recordingExec(recorded: { file: string; args: string[] }[], options: { fail?: string[] } = {}): ExecFileImpl {
+function recordingExec(
+  recorded: { file: string; args: string[] }[],
+  options: { fail?: string[]; stderr?: string } = {},
+): ExecFileImpl {
   return async (file, args) => {
     recorded.push({ file, args });
     if (options.fail?.includes(file) === true) {
@@ -94,7 +97,7 @@ function recordingExec(recorded: { file: string; args: string[] }[], options: { 
       if (target !== undefined)
         await fs.writeFile(target, '{"demopkg":{"kind":"module","name":"demopkg","path":"demopkg"}}');
     }
-    return { stdout: '', stderr: '' };
+    return { stdout: '', stderr: options.stderr ?? '' };
   };
 }
 
@@ -283,17 +286,11 @@ describe('resolveExtraction', () => {
   test('forwards griffe warnings to the logger', async () => {
     const logger = createMemoryLogger();
     const config = configure();
-    const noisy: ExecFileImpl = async (_file, args) => {
-      const outIndex = args.indexOf('-o');
-      const target = outIndex === -1 ? undefined : args[outIndex + 1];
-      if (target !== undefined) await fs.writeFile(target, '{}');
-      return { stdout: '', stderr: 'INFO loading\nWARNING report.py:1: no annotation\n' };
-    };
 
     await resolveExtraction(onlyPackage(config), config, {
       cacheDir: config.cacheDir,
       cwd: workspace,
-      execFileImpl: noisy,
+      execFileImpl: recordingExec([], { stderr: 'INFO loading\nWARNING report.py:1: no annotation\n' }),
       logger,
     });
 

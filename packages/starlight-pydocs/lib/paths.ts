@@ -39,7 +39,7 @@ export function objectHref(
  * trailing slash: these are files, not pages.
  */
 export function assetHref(siteBase: string, base: string, filename: string): string {
-  return `${siteBase}/${stripLeadingAndTrailingSlashes(base)}/${filename}`.replace(/\/{2,}/g, '/');
+  return buildHref(siteBase, `${base}/${filename}`, 'never');
 }
 
 /**

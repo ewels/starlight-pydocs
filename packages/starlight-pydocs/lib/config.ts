@@ -495,10 +495,11 @@ function normaliseSourceLink(
 }
 
 function normaliseFilters(input: PydocsFiltersInput | undefined, optionPath: string): NormalisedFilters {
-  if (input === undefined) return { special: false, private: false, imported: false, inherited: true };
-  if (!isPlainObject(input)) throw configError(optionPath, 'must be an object');
+  // An unset option is an empty one, so every default is written once, in `read`.
+  const filters = input ?? {};
+  if (!isPlainObject(filters)) throw configError(optionPath, 'must be an object');
   const read = (key: keyof NormalisedFilters, fallback: boolean): boolean =>
-    optionalBoolean(input[key], `${optionPath}.${key}`, fallback);
+    optionalBoolean(filters[key], `${optionPath}.${key}`, fallback);
   return {
     special: read('special', false),
     private: read('private', false),
@@ -508,11 +509,11 @@ function normaliseFilters(input: PydocsFiltersInput | undefined, optionPath: str
 }
 
 function normaliseMembers(input: PydocsMembersInput | undefined, optionPath: string): NormalisedMembers {
-  if (input === undefined) return { include: [], exclude: [] };
-  if (!isPlainObject(input)) throw configError(optionPath, 'must be an object');
+  const members = input ?? {};
+  if (!isPlainObject(members)) throw configError(optionPath, 'must be an object');
   return {
-    include: input.include === undefined ? [] : requireStringArray(input.include, `${optionPath}.include`),
-    exclude: input.exclude === undefined ? [] : requireStringArray(input.exclude, `${optionPath}.exclude`),
+    include: members.include === undefined ? [] : requireStringArray(members.include, `${optionPath}.include`),
+    exclude: members.exclude === undefined ? [] : requireStringArray(members.exclude, `${optionPath}.exclude`),
   };
 }
 
