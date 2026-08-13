@@ -185,6 +185,23 @@ describe('createInventoryLookup', () => {
     expect(lookup.size).toBe(3);
   });
 
+  test('drops entries whose absolute URI carries an unsafe scheme', () => {
+    const hostile: InventoryEntry[] = [
+      { name: 'evil.Thing', domain: 'py', role: 'class', priority: 1, uri: 'javascript:alert(1)', dispname: '-' },
+      {
+        name: 'fine.Thing',
+        domain: 'py',
+        role: 'class',
+        priority: 1,
+        uri: 'https://elsewhere.example/fine.html#fine.Thing',
+        dispname: '-',
+      },
+    ];
+    const lookup = createInventoryLookup([{ base: 'https://docs.example/', entries: hostile }]);
+    expect(lookup.lookup('evil.Thing')).toBeUndefined();
+    expect(lookup.lookup('fine.Thing')?.href).toBe('https://elsewhere.example/fine.html#fine.Thing');
+  });
+
   test('earlier inventories win', () => {
     const lookup = createInventoryLookup([
       { base: 'https://first.dev/', entries: [{ ...entries[0]!, uri: 'first.html' }] },

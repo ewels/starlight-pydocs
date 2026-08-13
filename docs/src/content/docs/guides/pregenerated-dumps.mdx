@@ -38,6 +38,11 @@ unreachable or answers with an error and a cached copy exists, the build logs a 
 copy: a documentation build should not fail because a release asset was briefly unavailable. With no
 cached copy, it fails, and the message names the URL and the status.
 
+:::caution[A dump is content for your site]
+Everything in the dump ends up rendered on your pages, and markdown passes raw HTML through unsanitised (the same trust model as mkdocstrings).
+Treat a dump like the rest of your docs: only use dumps whose provenance you trust.
+:::
+
 :::note[The plugin's parser options do not apply]
 The docstrings in a pre-generated dump were parsed when the dump was made, so `docstringStyle`,
 `docstringOptions`, `extensions` and `forceInspection` have no effect on a package configured with

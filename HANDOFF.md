@@ -18,6 +18,15 @@ the list below is done.
 - Enable GitHub Pages (Settings, Pages, Source: GitHub Actions). The deploy workflow
   already runs on every push to `main`. Pages on a private repository needs a paid
   plan, so making the repository public is likely part of this step.
+- Repository settings when flipping public (from the 2026-08-13 security review):
+  enable secret scanning with push protection,
+  branch protection on `main` requiring the CI checks, a tag protection ruleset for
+  `v*` (today any write-access account reaching a `v*` release publishes to npm),
+  and "require approval for first-time contributors" for Actions. Consider gating
+  `release.yml` behind a protected `release` environment registered with the npm
+  trusted publisher, and dropping (or guarding) its `workflow_dispatch` trigger,
+  which skips the tag-matches-version check. A `dependabot.yml` (github-actions +
+  npm ecosystems) would keep the SHA-pinned actions and the dependencies patched.
 
 ## Worth checking once real users appear
 
@@ -32,3 +41,8 @@ the list below is done.
   (`fetch-depth: 0`); the version-annotations guide says so.
 - The twelve non-English locales were machine-authored; a native-speaker pass would
   be prudent before advertising them.
+- Remote-content hardening beyond what the security review fixed, if remote dumps
+  see real use: an optional `source.integrity` (sha256) for `source: { url }`,
+  requiring `https:` rather than merely allowing it, a response-size cap on
+  downloads, `--end-of-options` before user-supplied refs in `lib/ref-extract.ts`,
+  and possibly an opt-in docstring sanitiser (see ARCHITECTURE.md decision 7).

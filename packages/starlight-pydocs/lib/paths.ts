@@ -53,6 +53,27 @@ export function slugifyBase(base: string): string {
   return slug === '' ? 'pydocs' : slug;
 }
 
+/**
+ * A URL scheme prefix, as the browser reads one: a colon in the first path
+ * segment of a relative URL parses as a scheme too, so it counts as one here.
+ */
+const URL_SCHEME_PATTERN = /^[a-z][a-z0-9+.-]*:/i;
+
+/** True when the URL opens with a scheme, i.e. is absolute. */
+export function hasUrlScheme(url: string): boolean {
+  return URL_SCHEME_PATTERN.test(url);
+}
+
+/**
+ * A URL that is safe to emit as an `href`, or undefined. Relative URLs pass;
+ * absolute ones only with an http(s) or mailto scheme, so a dump or a fetched
+ * inventory cannot smuggle a `javascript:` link into the site.
+ */
+export function safeHref(url: string): string | undefined {
+  if (!hasUrlScheme(url)) return url;
+  return /^(https?|mailto):/i.test(url) ? url : undefined;
+}
+
 /** Dotted path of the module a member belongs to, or undefined for a package root. */
 export function parentPath(dottedPath: string): string | undefined {
   const index = dottedPath.lastIndexOf('.');

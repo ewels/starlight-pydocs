@@ -2,7 +2,7 @@
   "name": "starlight-pydocs",
   "version": "1.0.0",
   "type": "module",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "author": "Phil Ewels",
   "description": "Python API reference documentation for Astro and Starlight, extracted with Griffe.",
   "homepage": "https://ewels.github.io/starlight-pydocs",
