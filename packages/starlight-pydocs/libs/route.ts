@@ -12,7 +12,7 @@ import { getModel } from '../lib/data.ts';
 import type { RenderScope } from '../lib/render.ts';
 import { createRenderScope } from '../lib/render.ts';
 import { PydocsError } from '../lib/errors.ts';
-import type { PageModel } from '../lib/model.ts';
+import type { PackageModel, PageModel } from '../lib/model.ts';
 import { stripLeadingAndTrailingSlashes } from '../lib/paths.ts';
 
 export interface PydocsRouteProps {
@@ -91,4 +91,20 @@ export function packageForPathname(context: PydocsContext, pathname: string): Py
   const base = context.siteBase;
   const withoutBase = base !== '' && pathname.startsWith(base) ? pathname.slice(base.length) : pathname;
   return packageForSlug(context, stripLeadingAndTrailingSlashes(withoutBase));
+}
+
+/**
+ * The package and model behind an endpoint request, or a clear error naming
+ * the pathname when nothing is configured there. The three endpoint routes
+ * share this preamble the way the page routes share {@link resolvePydocsPage}.
+ */
+export async function packageModelForPathname(
+  context: PydocsContext,
+  pathname: string,
+): Promise<{ pkg: PydocsPackageContext; model: PackageModel }> {
+  const pkg = packageForPathname(context, pathname);
+  if (pkg === undefined) {
+    throw new PydocsError(`starlight-pydocs: no configured package serves ${pathname}`);
+  }
+  return { pkg, model: await getModel(context, pkg.base) };
 }

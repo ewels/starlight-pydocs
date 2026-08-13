@@ -120,17 +120,17 @@ declare namespace App {
 Resolution order for every label is: the `labels` prop, then the host's translation for
 `starlightPydocs.<key>`, then the bundled English default. The keys are grouped by what they label:
 
-- Member groups: `attributes`, `properties`, `classes`, `functions`, `methods`, `modules`.
+- Member groups: `attributes`, `properties`, `classes`, `functions`, `methods`, `modules`,
+  `typeAliases`.
 - Docstring sections: `parameters`, `otherParameters`, `typeParameters`, `returns`, `yields`,
-  `receives`, `raises`, `warns`, `examples`, `notes`, `references`.
-- Signatures and metadata: `bases`, `default`, `required`, `overload`, `overloads`,
-  `inheritedFrom`, `reexportedFrom`, `aliasOf`, `deprecated`, `deprecatedSince`, `addedIn`,
-  `viewSource`, `sourceCode`.
+  `receives`, `raises`, `warns`, `examples`.
+- Signatures and metadata: `bases`, `default`, `required`, `inheritedFrom`,
+  `reexportedFrom`, `aliasOf`, `deprecated`, `deprecatedSince`, `addedIn`, `viewSource`.
 - Table columns: `columnName`, `columnType`, `columnDescription`, `columnDefault`.
 - Kinds and labels: `kindModule`, `kindClass`, `kindFunction`, `kindMethod`, `kindAttribute`,
   `kindProperty`, `kindAlias`, and the `label*` badges.
 - Search: `searchLabel`, `searchPlaceholder`, `searchNoResults`, `searchResults`, `searchHint`.
-- Page furniture: `permalink`, `apiReference`, `overview`, `onPage`, `noMembers`, `undocumented`.
+- Page furniture: `permalink`, `overview`, `onPage`, `noMembers`, `undocumented`.
 
 `lib/strings.ts` in the package is the authoritative list, and the unit tests check that every
 locale's keys exist in it.

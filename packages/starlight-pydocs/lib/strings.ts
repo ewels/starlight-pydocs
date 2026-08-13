@@ -14,6 +14,7 @@ export const STRINGS = {
   functions: 'Functions',
   methods: 'Methods',
   modules: 'Modules',
+  typeAliases: 'Type aliases',
 
   // Docstring section headings.
   parameters: 'Parameters',
@@ -25,15 +26,11 @@ export const STRINGS = {
   raises: 'Raises',
   warns: 'Warns',
   examples: 'Examples',
-  notes: 'Notes',
-  references: 'References',
 
   // Signature and member metadata.
   bases: 'Bases',
   default: 'default',
   required: 'required',
-  overload: 'Overload',
-  overloads: 'Overloads',
   inheritedFrom: 'Inherited from',
   reexportedFrom: 'Re-exported from',
   aliasOf: 'Alias of',
@@ -41,7 +38,6 @@ export const STRINGS = {
   deprecatedSince: 'Deprecated since',
   addedIn: 'Added in',
   viewSource: 'View source',
-  sourceCode: 'Source code',
 
   // Table column headings, used by the parameter and attribute tables.
   columnName: 'Name',
@@ -83,7 +79,6 @@ export const STRINGS = {
   // Page furniture.
   /** Accessible name of an anchor heading's link, followed by the object path. */
   permalink: 'Permalink to',
-  apiReference: 'API reference',
   /** Sidebar link to a package's root page. */
   overview: 'Overview',
   onPage: 'On this page',

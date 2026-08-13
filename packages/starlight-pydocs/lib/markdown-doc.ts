@@ -205,9 +205,8 @@ function headingKey(kind: StringKey | 'other parameters' | 'type parameters' | '
       return 'otherParameters';
     case 'type parameters':
       return 'typeParameters';
-    // A list of type aliases is shown under the modules heading.
     case 'type aliases':
-      return 'modules';
+      return 'typeAliases';
     default:
       return kind;
   }

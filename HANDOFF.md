@@ -474,3 +474,21 @@ str, scores: dict[str, float] | None = None)` signature, six distinct internal
   shared vanilla-example layout are declined on churn and pedagogy grounds. The
   per-package extraction and render loops stay sequential by design: ordered
   logs and bounded memory are worth more than the parallel speed-up.
+- 2026-08-13: second whole-project /simplify pass, same four-section worktree
+  setup, higher bar. Net result across the four sections plus the coordinator's
+  cross-section commit: one duplicated alias-chain walker, a `memoize` that owns
+  its own lookup, the middleware's per-page sidebar work reduced from one full
+  tree walk and copy per placeholder to one walk total, a per-page double model
+  resolution removed, and dead surface deleted (a written-but-never-read search
+  attribute, two internal-only exports, an unfailable test, seven dead string
+  keys with their seventy-one locale entries). Cross-section resolutions applied
+  immediately per the owner's standing instruction: the three endpoint routes
+  share `packageModelForPathname`; `--pyd-surface-strong` is gone from the
+  stylesheet and the theming guide (it was defined three times, used by no rule,
+  and documented as doing something it did not); both renderers now file a
+  `type aliases` docstring section under a new `typeAliases` heading key,
+  translated in all thirteen locales, where the HTML renderer previously said
+  "attributes" and the Markdown renderer said "modules". Second-pass verdicts
+  worth keeping: the vanilla example keeps its duplicated page shell on purpose
+  (self-contained pages are the pedagogy), and exporting `VanillaLayout` for
+  hand-written vanilla pages is noted as a possible future nicety, not a gap.

@@ -70,7 +70,7 @@ describe('Translations', () => {
       const missing = expected.filter((key) => !translated.has(key));
       // Italian keeps "overload" as an invariable noun, so its singular is the
       // English default rather than a repeated entry.
-      expect(missing, `${locale} is missing translations`).toEqual(locale === 'it' ? ['overload'] : []);
+      expect(missing, `${locale} is missing translations`).toEqual([]);
     }
   });
 
