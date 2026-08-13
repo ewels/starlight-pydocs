@@ -77,6 +77,11 @@ sequencing.
 - **Theme tokens are `--pyd-*`**, not the `--pydocs-*` this file and PLAN.md first
   said; the class prefix is `.pyd-` and having the two agree is worth more than the
   older spelling. CLAUDE.md is updated to match.
+- **`sourceLink.root` was added to the config surface.** Griffe's
+  `relative_filepath` is relative to its working directory (the Astro project
+  root), so a docs site with sources one level up got absolute paths in public
+  URLs. `root` names the directory `{path}` is computed against, from the absolute
+  `filepath`; unset, behaviour is unchanged. The docs site uses `root: '..'`.
 - **`sidebar.group` on a package config** accepts a placeholder from
   `createPydocsSidebarGroup()` and normalises to its label string, so one site can
   place different packages in different parts of the sidebar (starlight-openapi's
