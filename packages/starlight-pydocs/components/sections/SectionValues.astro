@@ -29,10 +29,8 @@ const entries = Array.isArray(section.value) ? section.value : [];
 
 const rows = entries.map((entry, index) => ({
   name: entry.name ?? '',
-  annotation:
-    entry.annotation === undefined || entry.annotation === null
-      ? []
-      : annotationTokens(entry.annotation, doc.path, scope.resolver),
+  // A missing annotation yields no tokens, so there is nothing to guard.
+  annotation: annotationTokens(entry.annotation, doc.path, scope.resolver),
   description: unwrapParagraph(renderedSectionEntry(scope.rendered, doc.canonicalPath, sectionIndex, index)),
 }));
 ---

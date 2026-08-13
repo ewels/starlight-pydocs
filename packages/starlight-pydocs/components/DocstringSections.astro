@@ -41,24 +41,33 @@ interface Props {
 
 const { doc, scope, labels } = Astro.props;
 
-const NAMED_VALUE_HEADINGS: Record<string, StringKey> = {
-  parameters: 'parameters',
-  'other parameters': 'otherParameters',
-  'type parameters': 'typeParameters',
-  attributes: 'attributes',
-};
+/** How one section kind is rendered. */
+interface SectionPlan {
+  renderer: 'namedValues' | 'values' | 'thrown' | 'references';
+  heading: StringKey;
+  /** Only parameters carry defaults; the column is dropped everywhere else. */
+  withDefaults?: boolean;
+}
 
-const VALUE_HEADINGS: Record<string, StringKey> = {
-  returns: 'returns',
-  yields: 'yields',
-  receives: 'receives',
-};
-
-const REFERENCE_HEADINGS: Record<string, StringKey> = {
-  functions: 'functions',
-  classes: 'classes',
-  modules: 'modules',
-  'type aliases': 'attributes',
+/**
+ * Every section kind that becomes a table or a list, and what it becomes. Text,
+ * examples and admonitions are not here: they take different props, so they stay
+ * explicit below.
+ */
+const SECTION_PLANS: Record<string, SectionPlan> = {
+  parameters: { renderer: 'namedValues', heading: 'parameters', withDefaults: true },
+  'other parameters': { renderer: 'namedValues', heading: 'otherParameters', withDefaults: true },
+  'type parameters': { renderer: 'namedValues', heading: 'typeParameters' },
+  attributes: { renderer: 'namedValues', heading: 'attributes' },
+  returns: { renderer: 'values', heading: 'returns' },
+  yields: { renderer: 'values', heading: 'yields' },
+  receives: { renderer: 'values', heading: 'receives' },
+  raises: { renderer: 'thrown', heading: 'raises' },
+  warns: { renderer: 'thrown', heading: 'warns' },
+  functions: { renderer: 'references', heading: 'functions' },
+  classes: { renderer: 'references', heading: 'classes' },
+  modules: { renderer: 'references', heading: 'modules' },
+  'type aliases': { renderer: 'references', heading: 'attributes' },
 };
 
 /** True for the admonition the google parser makes of a `Deprecated:` block. */
@@ -76,45 +85,6 @@ const sections = (doc.docstring?.sections ?? [])
   sections.map(({ section, index }) => {
     if (section.kind === 'text') {
       return <Markdown html={renderedSectionBody(scope.rendered, doc.canonicalPath, index)} />;
-    }
-    const namedValues = NAMED_VALUE_HEADINGS[section.kind];
-    if (namedValues !== undefined) {
-      return (
-        <SectionNamedValues
-          section={section as DocstringSectionNamedValues}
-          sectionIndex={index}
-          doc={doc}
-          scope={scope}
-          headingKey={namedValues}
-          withDefaults={section.kind === 'parameters' || section.kind === 'other parameters'}
-          labels={labels}
-        />
-      );
-    }
-    const values = VALUE_HEADINGS[section.kind];
-    if (values !== undefined) {
-      return (
-        <SectionValues
-          section={section as DocstringSectionNamedValues}
-          sectionIndex={index}
-          doc={doc}
-          scope={scope}
-          headingKey={values}
-          labels={labels}
-        />
-      );
-    }
-    if (section.kind === 'raises' || section.kind === 'warns') {
-      return (
-        <SectionThrown
-          section={section as DocstringSectionThrown}
-          sectionIndex={index}
-          doc={doc}
-          scope={scope}
-          headingKey={section.kind === 'raises' ? 'raises' : 'warns'}
-          labels={labels}
-        />
-      );
     }
     if (section.kind === 'examples') {
       return (
@@ -137,19 +107,26 @@ const sections = (doc.docstring?.sections ?? [])
         />
       );
     }
-    const references = REFERENCE_HEADINGS[section.kind];
-    if (references !== undefined) {
-      return (
-        <SectionReferences
-          section={section as DocstringSectionReferences}
-          sectionIndex={index}
-          doc={doc}
-          scope={scope}
-          headingKey={references}
-          labels={labels}
-        />
-      );
+
+    const plan = SECTION_PLANS[section.kind];
+    if (plan === undefined) return null;
+    const common = { sectionIndex: index, doc, scope, headingKey: plan.heading, labels };
+
+    switch (plan.renderer) {
+      case 'namedValues':
+        return (
+          <SectionNamedValues
+            section={section as DocstringSectionNamedValues}
+            withDefaults={plan.withDefaults ?? false}
+            {...common}
+          />
+        );
+      case 'values':
+        return <SectionValues section={section as DocstringSectionNamedValues} {...common} />;
+      case 'thrown':
+        return <SectionThrown section={section as DocstringSectionThrown} {...common} />;
+      case 'references':
+        return <SectionReferences section={section as DocstringSectionReferences} {...common} />;
     }
-    return null;
   })
 }

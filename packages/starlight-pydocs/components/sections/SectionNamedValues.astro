@@ -34,14 +34,12 @@ const { section, sectionIndex, doc, scope, headingKey, withDefaults = false, lab
 const resolve = createStringResolver(Astro.locals, labels);
 const entries = Array.isArray(section.value) ? section.value : [];
 
+// `annotationTokens` takes a missing annotation and returns no tokens, so an
+// entry without a type or a default needs no guard here.
 const rows = entries.map((entry, index) => ({
   name: entry.name ?? '',
-  annotation:
-    entry.annotation === undefined || entry.annotation === null
-      ? []
-      : annotationTokens(entry.annotation, doc.path, scope.resolver),
-  default:
-    entry.value === undefined || entry.value === null ? [] : annotationTokens(entry.value, doc.path, scope.resolver),
+  annotation: annotationTokens(entry.annotation, doc.path, scope.resolver),
+  default: annotationTokens(entry.value, doc.path, scope.resolver),
   description: unwrapParagraph(renderedSectionEntry(scope.rendered, doc.canonicalPath, sectionIndex, index)),
 }));
 

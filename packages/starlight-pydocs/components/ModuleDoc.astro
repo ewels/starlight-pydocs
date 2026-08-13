@@ -28,17 +28,18 @@ const { doc, scope, headingLevel = 2, labels } = Astro.props;
 
 const resolve = createStringResolver(Astro.locals, labels);
 
-const submodules = doc.members
-  .filter((member) => member.kind === 'module')
-  .map((member) => ({
-    path: member.path,
-    name: member.name,
-    href: pageHref(scope, member.pageSlug),
-    brief: member.summary,
-  }));
-
+// The model already buckets members, submodules included, so nothing here has
+// to look at kinds: the `modules` group is the submodule list.
 const groups = doc.groups.filter((group) => group.id !== 'modules');
-const hasMembers = groups.length > 0 || submodules.length > 0;
+const submodules = (doc.groups.find((group) => group.id === 'modules')?.members ?? []).map((member) => ({
+  name: member.name,
+  href: pageHref(scope, member.pageSlug),
+  brief: member.summary,
+}));
+
+// Empty groups are dropped when the model builds them, so any group at all
+// means the module documents something.
+const hasMembers = doc.groups.length > 0;
 ---
 
 <div class="pyd-module" data-pydocs-kind="module" data-pydocs-path={doc.path}>

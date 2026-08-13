@@ -83,12 +83,30 @@ const listId = `pyd-search-list-${idSuffix}`;
 }
 
 <script>
-  import { groupMatchesByKind, matchHref, matchSymbols, type SearchEntry } from '../lib/search-match';
+  import {
+    groupMatchesByKind,
+    matchHref,
+    matchSymbols,
+    type SearchEntry,
+    type SearchLinkOptions,
+  } from '../lib/search-match';
 
   interface SymbolsPayload {
     package: string;
     generated: string;
     symbols: SearchEntry[];
+  }
+
+  /** Every node in a result row is a class plus some text, so make one here. */
+  function element<K extends keyof HTMLElementTagNameMap>(
+    tag: K,
+    className: string,
+    text?: string,
+  ): HTMLElementTagNameMap[K] {
+    const node = document.createElement(tag);
+    node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
   }
 
   class PydocsSearchElement extends HTMLElement {
@@ -98,6 +116,9 @@ const listId = `pyd-search-list-${idSuffix}`;
     #loading: Promise<void> | undefined;
     #options: HTMLAnchorElement[] = [];
     #active = -1;
+    /** Labels and link options, read off the dataset once instead of per keystroke. */
+    #kindLabels: Record<string, string> = {};
+    #linkOptions: SearchLinkOptions = { siteBase: '', trailingSlash: 'always' };
 
     connectedCallback() {
       // Query `this`, never the document: view transitions create a fresh
@@ -105,6 +126,12 @@ const listId = `pyd-search-list-${idSuffix}`;
       this.#input = this.querySelector('input.pyd-search-input');
       this.#results = this.querySelector('.pyd-search-results');
       if (!this.#input || !this.#results) return;
+
+      this.#kindLabels = JSON.parse(this.dataset['kindLabels'] ?? '{}') as Record<string, string>;
+      this.#linkOptions = {
+        siteBase: this.dataset['siteBase'] ?? '',
+        trailingSlash: (this.dataset['trailingSlash'] ?? 'always') as 'always' | 'never' | 'ignore',
+      };
 
       this.#input.addEventListener('focus', () => void this.#load());
       this.#input.addEventListener('input', () => void this.#render());
@@ -142,62 +169,44 @@ const listId = `pyd-search-list-${idSuffix}`;
       }
 
       const matches = matchSymbols(this.#entries ?? [], query);
-      const kindLabels = JSON.parse(this.dataset['kindLabels'] ?? '{}') as Record<string, string>;
-      const linkOptions = {
-        siteBase: this.dataset['siteBase'] ?? '',
-        trailingSlash: (this.dataset['trailingSlash'] ?? 'always') as 'always' | 'never' | 'ignore',
-      };
+      const options: HTMLAnchorElement[] = [];
 
       results.textContent = '';
       if (matches.length === 0) {
-        const empty = document.createElement('p');
-        empty.className = 'pyd-search-empty';
-        empty.textContent = this.dataset['noResults'] ?? 'No matching symbols';
-        results.append(empty);
+        results.append(element('p', 'pyd-search-empty', this.dataset['noResults'] ?? 'No matching symbols'));
       } else {
         for (const group of groupMatchesByKind(matches)) {
-          const section = document.createElement('div');
-          section.className = 'pyd-search-group';
+          const label = this.#kindLabels[group.kind] ?? group.kind;
+          const section = element('div', 'pyd-search-group');
           section.setAttribute('role', 'group');
-          const label = kindLabels[group.kind] ?? group.kind;
           section.setAttribute('aria-label', label);
-
-          const heading = document.createElement('p');
-          heading.className = 'pyd-search-group-label';
-          heading.textContent = label;
-          section.append(heading);
+          section.append(element('p', 'pyd-search-group-label', label));
 
           for (const match of group.matches) {
-            const option = document.createElement('a');
-            option.className = 'pyd-search-option';
+            const option = element('a', 'pyd-search-option');
             option.setAttribute('role', 'option');
             option.setAttribute('aria-selected', 'false');
-            option.id = `pyd-search-option-${String(this.#options.length)}`;
-            option.href = matchHref(match, linkOptions);
+            option.id = `pyd-search-option-${String(options.length)}`;
+            option.href = matchHref(match, this.#linkOptions);
             option.dataset['kind'] = match.entry.kind;
-
-            const name = document.createElement('span');
-            name.className = 'pyd-search-option-name';
-            name.textContent = match.name;
-            const path = document.createElement('span');
-            path.className = 'pyd-search-option-path';
-            path.textContent = match.entry.path;
-            option.append(name, path);
-
+            option.append(
+              element('span', 'pyd-search-option-name', match.name),
+              element('span', 'pyd-search-option-path', match.entry.path),
+            );
             if (match.entry.brief) {
-              const brief = document.createElement('span');
-              brief.className = 'pyd-search-option-brief';
-              brief.textContent = match.entry.brief;
-              option.append(brief);
+              option.append(element('span', 'pyd-search-option-brief', match.entry.brief));
             }
 
             section.append(option);
+            options.push(option);
           }
           results.append(section);
         }
       }
 
-      this.#options = [...results.querySelectorAll<HTMLAnchorElement>('.pyd-search-option')];
+      // Collected while building, so the ids are unique and nothing has to be
+      // queried back out of the DOM.
+      this.#options = options;
       this.#active = -1;
       results.hidden = false;
       input.setAttribute('aria-expanded', 'true');

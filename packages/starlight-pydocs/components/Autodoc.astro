@@ -36,7 +36,9 @@ const context = await loadPydocsContext('Autodoc');
 const pkg = packageForAutodoc(context, name, packageReference);
 
 const scope: RenderScope = await createRenderScope(context, pkg.base);
-const documentedPath = scope.model.objectsByPath.has(name) ? name : documentedPathFor(scope.model, name);
+// `documentedPathFor` returns a documented path unchanged, so this accepts both
+// the path an object is documented at and the canonical one griffe found.
+const documentedPath = documentedPathFor(scope.model, name);
 const doc = documentedPath === undefined ? undefined : scope.model.objectsByPath.get(documentedPath);
 if (doc === undefined) {
   throw new PydocsError(
