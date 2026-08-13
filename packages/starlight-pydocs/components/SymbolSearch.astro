@@ -9,7 +9,7 @@
 import { matchPackageReference } from '../lib/context.ts';
 import { createStringResolver } from '../lib/i18n.ts';
 import { assetHref, slugifyBase } from '../lib/paths.ts';
-import type { StringKey, StringOverrides } from '../lib/strings.ts';
+import type { StringOverrides } from '../lib/strings.ts';
 import { loadPydocsContext } from './context.ts';
 
 interface Props {
@@ -32,15 +32,15 @@ const pkg = match === undefined ? context.packages[0] : match.kind === 'match' ?
 
 const resolve = createStringResolver(Astro.locals, labels);
 
-const KIND_LABEL_KEYS: Record<string, StringKey> = {
-  module: 'kindModule',
-  class: 'kindClass',
-  function: 'kindFunction',
-  attribute: 'kindAttribute',
-  alias: 'kindAlias',
+// Group headings for the result list, keyed by the `kind` of a symbols.json
+// entry. Resolved here because the element builds those headings in the browser.
+const kindLabels: Record<string, string> = {
+  module: resolve('kindModule'),
+  class: resolve('kindClass'),
+  function: resolve('kindFunction'),
+  attribute: resolve('kindAttribute'),
+  alias: resolve('kindAlias'),
 };
-
-const kindLabels = Object.fromEntries(Object.entries(KIND_LABEL_KEYS).map(([kind, key]) => [kind, resolve(key)]));
 
 const symbolsUrl = pkg === undefined ? undefined : assetHref(context.siteBase, pkg.base, 'symbols.json');
 // Ids come from the base, not the name: two boxes on one page searching two
@@ -59,7 +59,6 @@ const listId = `pyd-search-list-${idSuffix}`;
       data-trailing-slash={context.trailingSlash}
       data-kind-labels={JSON.stringify(kindLabels)}
       data-no-results={resolve('searchNoResults')}
-      data-results-label={resolve('searchResults')}
     >
       <label class="pyd-search-label" for={inputId}>
         {resolve('searchLabel')}
@@ -90,12 +89,6 @@ const listId = `pyd-search-list-${idSuffix}`;
     type SearchEntry,
     type SearchLinkOptions,
   } from '../lib/search-match';
-
-  interface SymbolsPayload {
-    package: string;
-    generated: string;
-    symbols: SearchEntry[];
-  }
 
   /** Every node in a result row is a class plus some text, so make one here. */
   function element<K extends keyof HTMLElementTagNameMap>(
@@ -147,7 +140,8 @@ const listId = `pyd-search-list-${idSuffix}`;
       if (!url) return;
       this.#loading = fetch(url)
         .then((response) => (response.ok ? response.json() : Promise.reject(new Error(String(response.status)))))
-        .then((payload: SymbolsPayload) => {
+        // Only `symbols` is read; the endpoint's other fields are for humans.
+        .then((payload: { symbols?: SearchEntry[] }) => {
           this.#entries = Array.isArray(payload.symbols) ? payload.symbols : [];
         })
         .catch(() => {

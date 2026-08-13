@@ -10,6 +10,7 @@ import context from 'virtual:starlight-pydocs/context';
 
 import { getModel } from '../lib/data.ts';
 import { PydocsError } from '../lib/errors.ts';
+import type { SearchEntry } from '../lib/search-match.ts';
 import { packageForPathname } from '../libs/route.ts';
 
 export const GET: APIRoute = async ({ url }) => {
@@ -23,7 +24,9 @@ export const GET: APIRoute = async ({ url }) => {
     package: pkg.name,
     base: pkg.base,
     generated: new Date().toISOString(),
-    symbols: model.symbols.map((entry) => ({
+    // Typed as the search element's own entry type, so producer and consumer
+    // cannot drift: this is the shape the browser reads back.
+    symbols: model.symbols.map((entry): SearchEntry => ({
       path: entry.path,
       kind: entry.kind,
       page: entry.pageSlug,
