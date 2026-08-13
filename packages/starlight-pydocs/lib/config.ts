@@ -98,6 +98,13 @@ export interface PydocsSidebarInput {
   label?: string | undefined;
   /** Render the group collapsed. Default `false`. */
   collapsed?: boolean | undefined;
+  /**
+   * Sidebar placeholder this package's group replaces, from
+   * `createPydocsSidebarGroup()`. Use it to place several packages in different
+   * parts of the sidebar; without it every package goes into the shared
+   * `pydocsSidebarGroup` placeholder.
+   */
+  group?: { label: string } | undefined;
 }
 
 /** A documented version of a package (stretch feature, see ROADMAP item 9). */
@@ -180,6 +187,25 @@ export type PydocsInventoryPreset = 'python';
 
 export type PydocsInventoryConfigInput = PydocsInventoryInput | PydocsInventoryPreset;
 
+/**
+ * The components a site may replace with its own. Every dispatching component
+ * imports these through `virtual:starlight-pydocs/components`, so an override
+ * applies everywhere, `<Autodoc>` included.
+ */
+export const OVERRIDABLE_COMPONENTS = [
+  'ModuleDoc',
+  'ClassDoc',
+  'FunctionDoc',
+  'AttributeDoc',
+  'Signature',
+  'DocstringSections',
+  'MemberSummary',
+  'SourceLink',
+  'Heading',
+] as const;
+
+export type OverridableComponentName = (typeof OVERRIDABLE_COMPONENTS)[number];
+
 /** Everything the plugin and the vanilla integration accept. */
 export interface PydocsUserConfig {
   /** The packages to document. At least one is required. */
@@ -194,8 +220,12 @@ export interface PydocsUserConfig {
   symbolSearch?: boolean | undefined;
   /** Serve a plain-Markdown rendition of the API at `llms.txt`. Default `true`. */
   llmsTxt?: boolean | undefined;
-  /** Component overrides, keyed by component name, valued by import path. */
-  components?: Record<string, string> | undefined;
+  /**
+   * Component overrides, keyed by one of {@link OVERRIDABLE_COMPONENTS} and
+   * valued by an import path (relative to the project root) or a package
+   * specifier.
+   */
+  components?: Partial<Record<OverridableComponentName, string>> | undefined;
   /** Inject the package stylesheet. Default `true`. */
   injectStyles?: boolean | undefined;
   /** Directory for cached dumps and inventories. Default `node_modules/.astro`. */
@@ -244,8 +274,15 @@ export interface PydocsPackageConfig {
   members: NormalisedMembers;
   filters: NormalisedFilters;
   sourceLink: NormalisedSourceLink | undefined;
-  sidebar: { label: string; collapsed: boolean };
+  sidebar: PydocsSidebarConfig;
   versions: PydocsVersionInput[];
+}
+
+export interface PydocsSidebarConfig {
+  label: string;
+  collapsed: boolean;
+  /** Label of the placeholder group this package replaces, when it has its own. */
+  group: string | undefined;
 }
 
 export interface NormalisedInventory {
@@ -265,7 +302,7 @@ export interface PydocsConfig {
   publishInventory: boolean;
   symbolSearch: boolean;
   llmsTxt: boolean;
-  components: Record<string, string>;
+  components: Partial<Record<OverridableComponentName, string>>;
   injectStyles: boolean;
   /** Absolute cache directory. */
   cacheDir: string;
@@ -524,6 +561,15 @@ function normalisePackage(input: PydocsPackageInput, optionPath: string, project
   const collapsed = sidebarInput.collapsed ?? false;
   if (typeof collapsed !== 'boolean') throw configError(`${optionPath}.sidebar.collapsed`, 'must be a boolean');
 
+  const groupInput = sidebarInput.group;
+  let group: string | undefined;
+  if (groupInput !== undefined) {
+    if (!isPlainObject(groupInput) || typeof groupInput.label !== 'string' || groupInput.label.trim() === '') {
+      throw configError(`${optionPath}.sidebar.group`, 'must be a placeholder from createPydocsSidebarGroup()');
+    }
+    group = groupInput.label;
+  }
+
   const forceInspection = input.forceInspection ?? false;
   if (typeof forceInspection !== 'boolean') throw configError(`${optionPath}.forceInspection`, 'must be a boolean');
 
@@ -543,7 +589,7 @@ function normalisePackage(input: PydocsPackageInput, optionPath: string, project
     members: normaliseMembers(input.members, `${optionPath}.members`),
     filters: normaliseFilters(input.filters, `${optionPath}.filters`),
     sourceLink: normaliseSourceLink(input.sourceLink, `${optionPath}.sourceLink`),
-    sidebar: { label: sidebarLabel, collapsed },
+    sidebar: { label: sidebarLabel, collapsed, group },
     versions: normaliseVersions(input.versions, `${optionPath}.versions`),
   };
 }
@@ -616,6 +662,9 @@ export function normalizeConfig(user: PydocsUserConfig, projectRoot: string): Py
   const components = user.components ?? {};
   if (!isPlainObject(components)) throw configError('components', 'must be an object');
   for (const [key, value] of Object.entries(components)) {
+    if (!(OVERRIDABLE_COMPONENTS as readonly string[]).includes(key)) {
+      throw configError(`components.${key}`, `is not overridable; choose one of ${OVERRIDABLE_COMPONENTS.join(', ')}`);
+    }
     if (typeof value !== 'string' || value.trim() === '') {
       throw configError(`components.${key}`, 'must be an import path or specifier');
     }
@@ -639,7 +688,7 @@ export function normalizeConfig(user: PydocsUserConfig, projectRoot: string): Py
     publishInventory: booleanOption(user.publishInventory, 'publishInventory', true),
     symbolSearch: booleanOption(user.symbolSearch, 'symbolSearch', true),
     llmsTxt: booleanOption(user.llmsTxt, 'llmsTxt', true),
-    components: components as Record<string, string>,
+    components: components as Partial<Record<OverridableComponentName, string>>,
     injectStyles: booleanOption(user.injectStyles, 'injectStyles', true),
     cacheDir: path.resolve(projectRoot, cacheDirInput ?? path.join('node_modules', '.astro')),
     projectRoot,

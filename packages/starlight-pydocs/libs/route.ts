@@ -1,0 +1,66 @@
+/**
+ * Static paths and page lookup, shared by the Starlight and vanilla routes.
+ *
+ * Props stay JSON-light — a package name and a slug — because Astro serialises
+ * them per route. The route component re-derives the model from the
+ * per-process cache, which is free after the first page.
+ */
+
+import type { PydocsContext, PydocsPackageContext } from '../lib/context.ts';
+import { packageForSlug } from '../lib/context.ts';
+import { getModel } from '../lib/data.ts';
+import { PydocsError } from '../lib/errors.ts';
+import type { PageModel } from '../lib/model.ts';
+import { stripLeadingAndTrailingSlashes } from '../lib/paths.ts';
+
+export interface PydocsRouteProps {
+  /** Import name of the package this page documents. */
+  pydocsPackage: string;
+  /** Page slug, without leading or trailing slashes. */
+  pydocsSlug: string;
+}
+
+export interface PydocsRoute {
+  params: { pydocsSlug: string };
+  props: PydocsRouteProps;
+}
+
+/** One route per module page of every configured package. */
+export async function getPydocsStaticPaths(context: PydocsContext): Promise<PydocsRoute[]> {
+  const routes: PydocsRoute[] = [];
+  for (const pkg of context.packages) {
+    const model = await getModel(context, pkg.name);
+    for (const page of model.pages) {
+      routes.push({
+        params: { pydocsSlug: page.slug },
+        props: { pydocsPackage: pkg.name, pydocsSlug: page.slug },
+      });
+    }
+  }
+  return routes;
+}
+
+/** The page a route's props point at. */
+export async function getPydocsPage(context: PydocsContext, props: PydocsRouteProps): Promise<PageModel> {
+  const model = await getModel(context, props.pydocsPackage);
+  const page = model.pagesBySlug.get(props.pydocsSlug);
+  if (page === undefined) {
+    throw new PydocsError(
+      `starlight-pydocs: no generated page for '${props.pydocsSlug}' in '${props.pydocsPackage}'; ` +
+        'this usually means a stale build cache, so try removing node_modules/.astro.',
+    );
+  }
+  return page;
+}
+
+/**
+ * The package that owns a request pathname, for the endpoint routes.
+ *
+ * Endpoints are injected at exact patterns (`api/demopkg/symbols.json`) and so
+ * have no params to read; the pathname is the only thing that identifies them.
+ */
+export function packageForPathname(context: PydocsContext, pathname: string): PydocsPackageContext | undefined {
+  const base = context.siteBase;
+  const withoutBase = base !== '' && pathname.startsWith(base) ? pathname.slice(base.length) : pathname;
+  return packageForSlug(context, stripLeadingAndTrailingSlashes(withoutBase));
+}
