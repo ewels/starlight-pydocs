@@ -86,6 +86,28 @@ sequencing.
   `createPydocsSidebarGroup()` and normalises to its label string, so one site can
   place different packages in different parts of the sidebar (starlight-openapi's
   `createOpenAPISidebarGroup` pattern).
+- **The docs site documents three packages, and that is the e2e fixture.** `demopkg`
+  (uvx + `griffe_pydantic`, google), `numpkg` (uvx, numpy) and `sphpkg` (no
+  extraction at all: `source: { file: '../fixtures/sphpkg/dump.json' }`, sphinx, its
+  own sidebar placeholder). One build therefore exercises both extraction strategies,
+  all three docstring parsers, per-package sidebar placement and multi-package
+  endpoints. Every generated page in the suite is real output, not a fixture render.
+- **Inventories are tested from a checked-in `objects.inv`.** The fixture under
+  `fixtures/inventories/` is written by `pnpm gen:inventory`
+  (`fixtures/generate-inventory.ts`) with the thirteen stdlib names the fixture
+  packages annotate with, at CPython's real URIs, and the docs site consumes it with
+  `base: 'https://docs.python.org/3/'`. That makes external annotation links
+  assertable offline (`pathlib.Path` → `library/pathlib.html#pathlib.Path`), which
+  matters because this sandbox cannot reach docs.python.org.
+- **One Playwright configuration owns both sites.** `docs/playwright.config.ts` has a
+  two-entry `webServer` array (docs on 4321 under `/starlight-pydocs`, the vanilla
+  example on 4322) and two projects with matching `baseURL`s and their own `testDir`.
+  Root `pnpm test:e2e` still filters to the docs package.
+- **The vanilla example pins `markdown: { processor: unified() }`.** PLAN.md decision
+  7 promises both engines are exercised in CI; the docs site runs Astro's default
+  (Sätteri), so the example imports `unified()` from `@astrojs/markdown-remark`. The
+  e2e assertions are engine-visible on purpose: expressive-code figures on the docs
+  site, `.astro-code` on the vanilla one.
 
 ## Environment notes (this sandbox)
 
@@ -99,6 +121,15 @@ griffe dump -e griffe_pydantic …`) — the fixture model gets the `pydantic-mo
 - Playwright must use the pre-installed Chromium at `/opt/pw-browsers/chromium`
   (config handles the fallback), and `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` is set —
   don't run `playwright install` here.
+- **`astro preview` daemonises itself when it detects an agentic environment**
+  (`am-i-vibing` sees `CLAUDECODE`), so Playwright's `webServer` saw the command exit
+  immediately and gave up with "Process from config.webServer exited early". Setting
+  `ASTRO_PREVIEW_BACKGROUND=1` opts out of the detection and keeps the server in the
+  foreground, which is why both `webServer` entries pass it in `env`. Counter-intuitive
+  name, correct behaviour (astro's `dist/cli/preview/index.js`), and a no-op wherever
+  no agent is detected, CI included. Related: `pnpm --filter … preview -- --port N`
+  does **not** work — astro reads the extra `--` as a subcommand and exits with
+  "Unknown command"; pass `--port N` with no `--`.
 - The checked-in dumps were produced by **griffe 2.1.0** (what uv resolved on
   2026-08-12) with `python3` 3.11.15 available as the fallback interpreter.
 
@@ -151,6 +182,29 @@ Verified against generated dumps, not documentation. `lib/types.ts` follows thes
 - griffe version drift: dumps were generated with the griffe version uv resolved on
   2026-08-12. `pnpm gen:dumps` regenerates; the `runner-live` test guards drift but
   only runs where uv is available.
+- **The symbol search element is not placed on generated package pages.** PLAN.md
+  decision 8 says "the plugin puts it on generated package index pages"; the
+  implementation only exports the component, so it appears where a page places it by
+  hand (`docs/src/content/docs/guides/autodoc.mdx`, `examples/vanilla/src/pages/index.astro`,
+  which is where the e2e suite drives it). Adding it to `ModuleDoc` is a few lines but
+  it is a design decision — whether a search box belongs above every module's
+  docstring, and what happens inside an `<Autodoc>` of a package root — so it is left
+  for a human. Either implement it or soften decision 8.
+- **mkdocstrings cross-reference syntax in docstring prose is not resolved.** The
+  fixture docstrings use mkdocstrings' `[label][dotted.path]` reference form, which is
+  what mkdocstrings users have in their docstrings, and it survives into the page as
+  literal `[…][…]` text: nothing rewrites those references before the markdown pass.
+  Annotations link (decision 6); prose does not. It would be an autoref pass over the
+  docstring markdown, and it is a feature, not a fix, so it is unimplemented and
+  unclaimed. The e2e assertions deliberately check the rendered `<code>` rather than a
+  link, so implementing it later will not break them.
+- **Without `sourceLink.root`, a `title` on the source link can leak an absolute
+  path.** Griffe's `relative_filepath` is relative to its working directory, so when
+  the sources sit outside the Astro project (the vanilla example's `../../fixtures`)
+  it is an absolute path, and `SourceLink` puts it in the link's `title`. The href is
+  fine (griffe's own commit-pinned `source_link` is used when no template is
+  configured). Setting `sourceLink.root` fixes both; the docs site does, the vanilla
+  example deliberately does not, so the griffe fallback keeps its coverage.
 
 ## Stuck points and workarounds
 
@@ -186,6 +240,22 @@ Verified against generated dumps, not documentation. `lib/types.ts` follows thes
 - **`pnpm format` wants to reformat PLAN.md** (`*emphasis*` → `_emphasis_` on one
   line). Left alone deliberately — this agent was told not to touch PLAN.md — so the
   first `prek run --all-files` will show that one-line diff.
+- **Three bugs fell out of building the two fixture sites, all fixed.** (1)
+  `loadInventories` read local `objects.inv` files through
+  `await import('node:fs/promises')`, and it runs from `config:setup`, whose module
+  runner Vite has already closed: every file inventory was dropped with a warning and
+  annotations quietly lost their external links. The builtin is imported statically
+  now. (2) The vanilla integration forwarded only `astro:config:setup` and
+  `astro:server:setup` to the shared integration, so `astro:config:done` never ran and
+  no plain-Astro build could render a page ("the pre-rendered docstrings … are
+  missing"). Every hook of the shared integration must be forwarded. (3)
+  `import 'starlight-pydocs/styles'` failed `astro check` in a consumer project
+  (ts(2882), `noUncheckedSideEffectImports` from `astro/tsconfigs/strictest`); the
+  subpath now resolves to an empty `styles.d.ts` under the `types` condition.
+- **Prerendered endpoints are served by file extension, not by their `Response`
+  headers.** `llms.txt` sets `text/markdown` in the route, and a static host serves it
+  as `text/plain`; the e2e assertion matches the static behaviour, which is what
+  everybody deploying these pages will see.
 - **`<pre>` contents in `.astro` rely on JSX-style whitespace trimming.** Prettier
   reflows the signature markup inside `{...map()}` expressions; Astro drops
   whitespace-only text nodes that contain a newline inside expressions, so the built
@@ -227,3 +297,16 @@ str, scores: dict[str, float] | None = None)` signature, six distinct internal
   `data-pagefind-body`. `examples/vanilla` and the Playwright suite are next
   (ROADMAP item 6); nothing here has been exercised without Starlight yet beyond
   type-checking.
+- 2026-08-13: ROADMAP item 6 landed — both fixture sites and the end-to-end suite.
+  The docs site grew to three packages (`demopkg`, `numpkg`, `sphpkg`) plus the local
+  inventory fixture and four content pages (introduction, getting started, vanilla
+  Astro, autodoc; `autodoc-demo.mdx` is gone, the slug is `/guides/autodoc/`).
+  `examples/vanilla` is a plain Astro site on the unified markdown pipeline with the
+  integration, a hand-written `<Autodoc>`/`<SymbolSearch>` page and a Content Layer
+  loader page. `docs/playwright.config.ts` builds and previews both and runs seven
+  spec files, 34 tests, all passing in about 28 s end to end including both builds
+  (uvx cache warm). Three package bugs surfaced and were fixed (see "Stuck points"):
+  the inventory dynamic import, the missing `astro:config:done` forward in the vanilla
+  integration, and the untyped `styles` export. Unit tests stayed at 321. Two gaps are
+  recorded rather than papered over: symbol search is not auto-placed on generated
+  pages, and mkdocstrings cross-references inside docstring prose are not resolved.
