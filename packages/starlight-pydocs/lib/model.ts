@@ -23,7 +23,7 @@ import { formatSourceLink } from './config.ts';
 import { PydocsError } from './errors.ts';
 import type { AnnotationResolver } from './expr.ts';
 import { createAnnotationResolver, expressionToPath } from './expr.ts';
-import { isInside, matchesDottedGlob, moduleSlug, parentPath, shortName } from './paths.ts';
+import { isInside, matchesDottedGlob, moduleSlug, parentPath, safeHref, shortName } from './paths.ts';
 import type {
   DocstringSection,
   DocstringSectionAdmonition,
@@ -601,7 +601,9 @@ class ModelBuilder {
     const file = this.sourceFile(object);
     const startLine = typeof object.lineno === 'number' ? object.lineno : undefined;
     const endLine = typeof object.endlineno === 'number' ? object.endlineno : startLine;
-    const griffeLink = typeof object.source_link === 'string' ? object.source_link : undefined;
+    // The dump's own link is scheme-checked: a pre-generated dump could carry
+    // anything, and this href renders both as an anchor and in llms.txt.
+    const griffeLink = typeof object.source_link === 'string' ? safeHref(object.source_link) : undefined;
 
     const link = this.options.sourceLink;
     const href =

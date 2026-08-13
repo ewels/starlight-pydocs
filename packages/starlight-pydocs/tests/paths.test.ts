@@ -7,6 +7,7 @@ import {
   moduleSlug,
   objectHref,
   parentPath,
+  safeHref,
   shortName,
   stripLeadingAndTrailingSlashes,
 } from '../lib/paths.ts';
@@ -81,5 +82,28 @@ describe('matchesDottedGlob', () => {
     expect(matchesDottedGlob('demopkg.report+', 'demopkg.report+')).toBe(true);
     expect(matchesDottedGlob('demopkg.report+', 'demopkg.reportt')).toBe(false);
     expect(matchesDottedGlob('a.b', 'axb')).toBe(false);
+  });
+});
+
+describe('safeHref', () => {
+  test('passes http(s), mailto and relative URLs through', () => {
+    expect(safeHref('https://example.com/a')).toBe('https://example.com/a');
+    expect(safeHref('http://example.com/a')).toBe('http://example.com/a');
+    expect(safeHref('mailto:dev@example.com')).toBe('mailto:dev@example.com');
+    expect(safeHref('/api/demopkg/#demopkg.Report')).toBe('/api/demopkg/#demopkg.Report');
+    expect(safeHref('report/#anchor')).toBe('report/#anchor');
+    expect(safeHref('#demopkg.Report')).toBe('#demopkg.Report');
+  });
+
+  test('rejects active and unknown schemes', () => {
+    expect(safeHref('javascript:alert(1)')).toBeUndefined();
+    expect(safeHref('JavaScript:alert(1)')).toBeUndefined();
+    expect(safeHref('data:text/html,x')).toBeUndefined();
+    expect(safeHref('vbscript:x')).toBeUndefined();
+    expect(safeHref('file:///etc/passwd')).toBeUndefined();
+  });
+
+  test('treats a colon in the first segment as the browser would: a scheme', () => {
+    expect(safeHref('odd:path/segment')).toBeUndefined();
   });
 });

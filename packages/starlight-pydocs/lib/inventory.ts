@@ -24,6 +24,7 @@ import { deflateSync, inflateSync } from 'node:zlib';
 import type { CacheMode, NormalisedInventory } from './config.ts';
 import { fetchToCache, remoteCacheDirectory } from './cache.ts';
 import { PydocsError } from './errors.ts';
+import { safeHref } from './paths.ts';
 import type { PydocsLogger } from './logger.ts';
 import { silentLogger } from './logger.ts';
 
@@ -165,11 +166,9 @@ export function createInventoryLookup(inventories: { base: string; entries: Inve
       // Python annotation.
       if (entry.domain !== 'py') continue;
       if (table.has(entry.name)) continue;
-      table.set(entry.name, {
-        href: joinUrl(inventory.base, entry.uri),
-        role: entry.role,
-        dispname: entry.dispname,
-      });
+      const href = joinUrl(inventory.base, entry.uri);
+      if (href === undefined) continue;
+      table.set(entry.name, { href, role: entry.role, dispname: entry.dispname });
     }
   }
 
@@ -179,8 +178,14 @@ export function createInventoryLookup(inventories: { base: string; entries: Inve
   };
 }
 
-function joinUrl(base: string, uri: string): string {
-  if (/^[a-z][a-z0-9+.-]*:/i.test(uri)) return uri;
+/**
+ * Resolve an entry URI against the inventory base, or undefined for a URI that
+ * must not become a link. The inventory file is fetched from elsewhere, so an
+ * absolute URI in it only passes with an http(s) scheme; anything else
+ * (`javascript:` foremost) drops the entry rather than the whole inventory.
+ */
+function joinUrl(base: string, uri: string): string | undefined {
+  if (/^[a-z][a-z0-9+.-]*:/i.test(uri)) return safeHref(uri);
   return `${base.endsWith('/') ? base : `${base}/`}${uri.replace(/^\//, '')}`;
 }
 

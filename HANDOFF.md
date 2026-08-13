@@ -492,3 +492,19 @@ str, scores: dict[str, float] | None = None)` signature, six distinct internal
   worth keeping: the vanilla example keeps its duplicated page shell on purpose
   (self-contained pages are the pedagogy), and exporting `VanillaLayout` for
   hand-written vanilla pages is noted as a possible future nicety, not a gap.
+- 2026-08-13: security review before going public. Two href sinks scheme-checked
+  (`safeHref` in `lib/paths.ts`): a dump's `source_link` and absolute URIs in Sphinx
+  inventories only become links when `http(s)`, so neither a pre-generated dump nor a
+  hostile `objects.inv` can plant a `javascript:` link. Rendered docstring HTML is now
+  filtered through a sanitize-html allowlist (`lib/sanitize.ts`, the package's first
+  and only runtime dependency, config-process-only) because markdown passes raw HTML
+  through; the allowlist deliberately keeps Shiki/Expressive Code inline styles, task
+  lists and inline SVG, `style` attributes pass unparsed (postcss reserialisation
+  garbles `--shiki-*` custom properties), and `sanitizeDocstrings: false` is the
+  escape hatch when the allowlist bites. License contradiction resolved to MIT (the
+  LICENSE text was MIT; README and package.json said Apache-2.0). Review findings not
+  acted on, for later consideration: `source.integrity` (sha256) for remote dumps,
+  requiring https over http for `source.url`/inventories, a response-size cap on
+  downloads, `--end-of-options` before git version refs, a `dependabot.yml`, and the
+  release workflow's unguarded `workflow_dispatch` path (plus tag protection and a
+  protected `release` environment in repo settings when flipping public).

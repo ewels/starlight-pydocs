@@ -216,6 +216,7 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
         renderedPath: pkg.renderedPath,
         renderer,
         crossReferences: await getCrossReferenceResolver(setup.context, pkg.base),
+        sanitize: setup.config.sanitizeDocstrings,
         logger,
       });
       logger.debug(`rendered ${String(count)} docstring strings of '/${pkg.base}' with ${renderer.name}`);

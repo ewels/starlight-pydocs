@@ -53,6 +53,25 @@ export function slugifyBase(base: string): string {
   return slug === '' ? 'pydocs' : slug;
 }
 
+/** URL schemes an href from a dump or inventory may carry. */
+const SAFE_HREF_SCHEMES = new Set(['http', 'https', 'mailto']);
+
+/**
+ * A URL that is safe to emit as an `href`, or undefined.
+ *
+ * Dumps and inventories are only as trustworthy as wherever they came from, so
+ * links taken from them must not smuggle a `javascript:` (or other active)
+ * scheme into the site. Relative URLs and fragments pass through; absolute URLs
+ * pass only with an http(s) or mailto scheme. A relative path whose first
+ * segment contains a colon parses as a scheme in the browser too, so treating
+ * it as one here rejects exactly what the browser would misread.
+ */
+export function safeHref(url: string): string | undefined {
+  const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(url);
+  if (scheme?.[1] === undefined) return url;
+  return SAFE_HREF_SCHEMES.has(scheme[1].toLowerCase()) ? url : undefined;
+}
+
 /** Dotted path of the module a member belongs to, or undefined for a package root. */
 export function parentPath(dottedPath: string): string | undefined {
   const index = dottedPath.lastIndexOf('.');

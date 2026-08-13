@@ -38,6 +38,15 @@ unreachable or answers with an error and a cached copy exists, the build logs a 
 copy: a documentation build should not fail because a release asset was briefly unavailable. With no
 cached copy, it fails, and the message names the URL and the status.
 
+:::caution[A dump is content for your site]
+Everything in the dump — docstring prose above all — ends up rendered on your pages, so only point
+`source` at dumps whose provenance you trust, over URLs you control. Rendered docstring HTML is
+filtered through an allowlist by default
+([`sanitizeDocstrings`](/starlight-pydocs/guides/configuration/#top-level-options)), which removes
+scripts, event handlers and `javascript:` links; keep that filter on for any dump you did not
+generate yourself.
+:::
+
 :::note[The plugin's parser options do not apply]
 The docstrings in a pre-generated dump were parsed when the dump was made, so `docstringStyle`,
 `docstringOptions`, `extensions` and `forceInspection` have no effect on a package configured with

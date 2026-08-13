@@ -27,6 +27,7 @@ import { assembleRenderedDocstrings, collectDocstringMarkdown } from '../lib/doc
 import { errorMessage, PydocsError } from '../lib/errors.ts';
 import type { PydocsLogger } from '../lib/logger.ts';
 import { silentLogger } from '../lib/logger.ts';
+import { sanitizeDocstringHtml } from '../lib/sanitize.ts';
 
 const legacyMarkdownRemark = import('@astrojs/markdown-remark').catch(() => null);
 
@@ -111,6 +112,11 @@ export interface RenderDocstringsOptions {
    * references are left as written.
    */
   crossReferences?: CrossReferenceResolver | undefined;
+  /**
+   * Filter the rendered HTML through {@link sanitizeDocstringHtml}. Defaults to
+   * on; `false` is the `sanitizeDocstrings: false` escape hatch.
+   */
+  sanitize?: boolean | undefined;
   logger?: PydocsLogger | undefined;
 }
 
@@ -138,7 +144,8 @@ export async function renderDocstringsForDump(options: RenderDocstringsOptions):
           const markdown =
             crossReferences === undefined ? item.markdown : resolveCrossReferences(item.markdown, crossReferences);
           try {
-            return (await options.renderer.render(markdown)).trim();
+            const rendered = (await options.renderer.render(markdown)).trim();
+            return options.sanitize === false ? rendered : sanitizeDocstringHtml(rendered);
           } catch (cause) {
             // One unrenderable docstring must not fail a build; the prose is
             // dropped and the object still documents its structure.

@@ -34,6 +34,7 @@ describe('normalizeConfig defaults', () => {
       symbolSearch: true,
       llmsTxt: true,
       injectStyles: true,
+      sanitizeDocstrings: true,
       components: {},
       inventories: [],
       projectRoot: root,
@@ -388,6 +389,11 @@ describe('normalizeConfig errors', () => {
       // @ts-expect-error deliberately invalid input
       normalizeConfig({ packages: [{ name: 'demopkg' }], llmsTxt: 'yes' }, root),
     ).toThrow(/llmsTxt: must be a boolean/);
+  });
+
+  test('sanitizeDocstrings can be turned off', () => {
+    const config = normalizeConfig({ packages: [{ name: 'demopkg' }], sanitizeDocstrings: false }, root);
+    expect(config.sanitizeDocstrings).toBe(false);
   });
 
   test('rejects a relative project root', () => {

@@ -409,6 +409,26 @@ describe('source links', () => {
   test('leaves the href undefined when neither is available', () => {
     expect(demopkg.objectsByPath.get('demopkg.report.Report.generate')?.source?.href).toBeUndefined();
   });
+
+  test('drops a griffe source_link with an unsafe scheme', () => {
+    // A pre-generated dump could put anything in `source_link`; only http(s)
+    // may become a clickable href.
+    const dump = {
+      pkg: {
+        kind: 'module',
+        name: 'pkg',
+        path: 'pkg',
+        relative_filepath: 'src/pkg/__init__.py',
+        lineno: 1,
+        endlineno: 2,
+        source_link: 'javascript:alert(1)',
+      },
+    } as unknown as Parameters<typeof buildModel>[0];
+
+    const model = buildModel(dump, modelOptions('pkg'));
+    expect(model.root.source?.href).toBeUndefined();
+    expect(model.root.source?.file).toBe('src/pkg/__init__.py');
+  });
 });
 
 describe('deprecations', () => {
