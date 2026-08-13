@@ -150,6 +150,51 @@ function isVariadic(kind: string): boolean {
   return kind === 'variadic positional' || kind === 'variadic keyword';
 }
 
+/**
+ * The `__init__` of a class, straight from the griffe object.
+ *
+ * Read off `object.members` rather than the model's members because `__init__`
+ * is a special member and the default filters hide it.
+ */
+export function constructorOf(doc: DocObject): GriffeFunction | undefined {
+  if (doc.kind !== 'class') return undefined;
+  const members = doc.object.kind === 'class' ? doc.object.members : undefined;
+  const init = members?.['__init__'];
+  return init?.kind === 'function' ? init : undefined;
+}
+
+/**
+ * Signature tokens as the HTML renderer shows them.
+ *
+ * The one difference from {@link signatureTokens} is the mkdocstrings
+ * convention of merging a class' `__init__` into the class signature, so
+ * `class Report(name: str, scores: dict[str, float] | None = None)` documents
+ * how the class is actually called. Base classes are listed separately by the
+ * class renderer, which is why they are not repeated here.
+ */
+export function renderedSignatureTokens(doc: DocObject, options: SignatureOptions = {}): AnnotationToken[] {
+  const constructor = constructorOf(doc);
+  if (constructor === undefined) return signatureTokens(doc, options);
+
+  const tokens: AnnotationToken[] = [];
+  if (options.includeKeyword !== false) tokens.push({ text: 'class ' });
+  tokens.push({ text: options.qualified === true ? doc.path : doc.name });
+  tokens.push(...parameterTokens(constructor, doc.path, options));
+  return merge(tokens);
+}
+
+/**
+ * Number of parameters a rendered signature shows, so the renderer can decide
+ * between a one-line and a one-per-line layout.
+ */
+export function renderedParameterCount(doc: DocObject): number {
+  const fn = constructorOf(doc) ?? (doc.object.kind === 'function' ? doc.object : undefined);
+  if (fn === undefined) return 0;
+  const parameters = fn.parameters ?? [];
+  const first = parameters[0];
+  return first !== undefined && IMPLICIT_FIRST_PARAMETERS.has(first.name) ? parameters.length - 1 : parameters.length;
+}
+
 /** Plain-text signature, used in code fences and in the Markdown renderer. */
 export function signatureText(doc: DocObject, options: SignatureOptions = {}): string {
   return signatureTokens(doc, options)
@@ -158,12 +203,21 @@ export function signatureText(doc: DocObject, options: SignatureOptions = {}): s
 }
 
 /** Signature of one `@overload` variant, which has no model object of its own. */
-export function overloadSignatureText(overload: GriffeFunction, doc: DocObject): string {
-  const tokens: AnnotationToken[] = [{ text: `def ${overload.name}` }, ...parameterTokens(overload, doc.path)];
+export function overloadSignatureTokens(
+  overload: GriffeFunction,
+  doc: DocObject,
+  options: SignatureOptions = {},
+): AnnotationToken[] {
+  const tokens: AnnotationToken[] = [{ text: `def ${overload.name}` }, ...parameterTokens(overload, doc.path, options)];
   if (overload.returns !== undefined && overload.returns !== null) {
-    tokens.push({ text: ' -> ' }, ...annotationTokens(overload.returns, doc.path));
+    tokens.push({ text: ' -> ' }, ...annotationTokens(overload.returns, doc.path, options.resolver));
   }
-  return merge(tokens)
+  return merge(tokens);
+}
+
+/** Plain-text signature of one `@overload` variant. */
+export function overloadSignatureText(overload: GriffeFunction, doc: DocObject): string {
+  return overloadSignatureTokens(overload, doc)
     .map((token) => token.text)
     .join('');
 }

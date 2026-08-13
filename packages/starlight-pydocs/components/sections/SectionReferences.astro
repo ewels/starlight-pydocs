@@ -1,0 +1,60 @@
+---
+/**
+ * The cross-reference sections numpy-style docstrings produce (`functions`,
+ * `classes`, `modules`, `type aliases`): a name and a summary, linked when the
+ * name is something we document.
+ */
+import { renderedSectionEntry } from '../../lib/docstrings.ts';
+import { createStringResolver } from '../../lib/i18n.ts';
+import { unwrapParagraph } from '../../lib/markdown.ts';
+import type { DocObject } from '../../lib/model.ts';
+import type { RenderScope } from '../../lib/render.ts';
+import { hrefForPath } from '../../lib/render.ts';
+import type { StringKey, StringOverrides } from '../../lib/strings.ts';
+import type { DocstringSectionReferences } from '../../lib/types.ts';
+
+interface Props {
+  section: DocstringSectionReferences;
+  sectionIndex: number;
+  doc: DocObject;
+  scope: RenderScope;
+  headingKey: StringKey;
+  labels?: StringOverrides | undefined;
+}
+
+const { section, sectionIndex, doc, scope, headingKey, labels } = Astro.props;
+
+const resolve = createStringResolver(Astro.locals, labels);
+const entries = Array.isArray(section.value) ? section.value : [];
+
+const rows = entries.map((entry, index) => {
+  const name = entry.name ?? '';
+  return {
+    name,
+    href: name === '' ? undefined : hrefForPath(scope, name),
+    description: unwrapParagraph(renderedSectionEntry(scope.rendered, doc.canonicalPath, sectionIndex, index)),
+  };
+});
+---
+
+{
+  rows.length === 0 ? null : (
+    <div class="pyd-section" data-pydocs-section={section.kind}>
+      <p class="pyd-section-title">{resolve(headingKey)}</p>
+      <ul class="pyd-references">
+        {rows.map((row) => (
+          <li>
+            {row.href === undefined ? (
+              <code>{row.name}</code>
+            ) : (
+              <a href={row.href}>
+                <code>{row.name}</code>
+              </a>
+            )}
+            {row.description === '' ? null : <span class="pyd-reference-brief" set:html={row.description} />}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}

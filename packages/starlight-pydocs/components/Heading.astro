@@ -1,0 +1,34 @@
+---
+/**
+ * An anchor heading.
+ *
+ * We render our own rather than using Starlight's `AnchorHeading`, so the same
+ * component works in vanilla Astro. The id is always the dotted object path,
+ * matching mkdocstrings' anchor scheme. No `scroll-margin-top` here: Starlight
+ * already sets `scroll-padding-top` on `<html>` and the two would double up.
+ */
+import { createStringResolver } from '../lib/i18n.ts';
+import type { StringOverrides } from '../lib/strings.ts';
+
+interface Props {
+  /** Heading depth, 1 to 6. */
+  level: number;
+  /** Heading id, and the anchor the permalink points at. */
+  id: string;
+  class?: string | undefined;
+  labels?: StringOverrides | undefined;
+}
+
+const { level, id, class: className, labels } = Astro.props;
+
+const resolve = createStringResolver(Astro.locals, labels);
+const Tag = `h${String(Math.min(Math.max(Math.round(level), 1), 6))}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+---
+
+<Tag id={id} class:list={['pyd-heading', className]}>
+  <span class="pyd-heading-text"><slot /></span><a
+    class="pyd-anchor"
+    href={`#${id}`}
+    aria-label={`${resolve('permalink')} ${id}`}>#</a
+  >
+</Tag>

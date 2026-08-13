@@ -1,0 +1,243 @@
+---
+/**
+ * Client-side symbol search over one package's `symbols.json`.
+ *
+ * Pagefind already searches the prose; this searches the API surface by name,
+ * which is what people actually type. The index is fetched on first focus, not
+ * on load, so a page that nobody searches costs nothing.
+ */
+import { createStringResolver } from '../lib/i18n.ts';
+import { assetHref } from '../lib/paths.ts';
+import type { StringKey, StringOverrides } from '../lib/strings.ts';
+import { loadPydocsContext } from './context.ts';
+
+interface Props {
+  /** Which configured package to search. Defaults to the first one. */
+  package?: string | undefined;
+  class?: string | undefined;
+  labels?: StringOverrides | undefined;
+}
+
+const { package: packageName, class: className, labels } = Astro.props;
+
+const context = await loadPydocsContext('SymbolSearch');
+const pkg =
+  packageName === undefined ? context.packages[0] : context.packages.find((entry) => entry.name === packageName);
+
+const resolve = createStringResolver(Astro.locals, labels);
+
+const KIND_LABEL_KEYS: Record<string, StringKey> = {
+  module: 'kindModule',
+  class: 'kindClass',
+  function: 'kindFunction',
+  attribute: 'kindAttribute',
+  alias: 'kindAlias',
+};
+
+const kindLabels = Object.fromEntries(Object.entries(KIND_LABEL_KEYS).map(([kind, key]) => [kind, resolve(key)]));
+
+const symbolsUrl = pkg === undefined ? undefined : assetHref(context.siteBase, pkg.base, 'symbols.json');
+const inputId = `pyd-search-input-${pkg?.name ?? 'pydocs'}`;
+const listId = `pyd-search-list-${pkg?.name ?? 'pydocs'}`;
+---
+
+{
+  symbolsUrl === undefined || !context.symbolSearch ? null : (
+    <pydocs-search
+      class:list={['pyd-search', className]}
+      data-symbols-url={symbolsUrl}
+      data-site-base={context.siteBase}
+      data-trailing-slash={context.trailingSlash}
+      data-kind-labels={JSON.stringify(kindLabels)}
+      data-no-results={resolve('searchNoResults')}
+      data-results-label={resolve('searchResults')}
+    >
+      <label class="pyd-search-label" for={inputId}>
+        {resolve('searchLabel')}
+      </label>
+      <input
+        id={inputId}
+        class="pyd-search-input"
+        type="text"
+        role="combobox"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder={resolve('searchPlaceholder')}
+        aria-controls={listId}
+        aria-expanded="false"
+        aria-autocomplete="list"
+      />
+      <p class="pyd-search-hint">{resolve('searchHint')}</p>
+      <div class="pyd-search-results" id={listId} role="listbox" aria-label={resolve('searchResults')} hidden />
+    </pydocs-search>
+  )
+}
+
+<script>
+  import { groupMatchesByKind, matchHref, matchSymbols, type SearchEntry } from '../lib/search-match';
+
+  interface SymbolsPayload {
+    package: string;
+    generated: string;
+    symbols: SearchEntry[];
+  }
+
+  class PydocsSearchElement extends HTMLElement {
+    #input: HTMLInputElement | null = null;
+    #results: HTMLElement | null = null;
+    #entries: SearchEntry[] | undefined;
+    #loading: Promise<void> | undefined;
+    #options: HTMLAnchorElement[] = [];
+    #active = -1;
+
+    connectedCallback() {
+      // Query `this`, never the document: view transitions create a fresh
+      // element per navigation and several may share a page.
+      this.#input = this.querySelector('input.pyd-search-input');
+      this.#results = this.querySelector('.pyd-search-results');
+      if (!this.#input || !this.#results) return;
+
+      this.#input.addEventListener('focus', () => void this.#load());
+      this.#input.addEventListener('input', () => void this.#render());
+      this.#input.addEventListener('keydown', (event) => this.#onKeydown(event));
+      this.addEventListener('focusout', (event) => {
+        if (!this.contains(event.relatedTarget as Node | null)) this.#close();
+      });
+    }
+
+    async #load() {
+      if (this.#entries || this.#loading) return this.#loading;
+      const url = this.dataset['symbolsUrl'];
+      if (!url) return;
+      this.#loading = fetch(url)
+        .then((response) => (response.ok ? response.json() : Promise.reject(new Error(String(response.status)))))
+        .then((payload: SymbolsPayload) => {
+          this.#entries = Array.isArray(payload.symbols) ? payload.symbols : [];
+        })
+        .catch(() => {
+          this.#entries = [];
+        });
+      return this.#loading;
+    }
+
+    async #render() {
+      await this.#load();
+      const input = this.#input;
+      const results = this.#results;
+      if (!input || !results) return;
+
+      const query = input.value;
+      if (query.trim() === '') {
+        this.#close();
+        return;
+      }
+
+      const matches = matchSymbols(this.#entries ?? [], query);
+      const kindLabels = JSON.parse(this.dataset['kindLabels'] ?? '{}') as Record<string, string>;
+      const linkOptions = {
+        siteBase: this.dataset['siteBase'] ?? '',
+        trailingSlash: (this.dataset['trailingSlash'] ?? 'always') as 'always' | 'never' | 'ignore',
+      };
+
+      results.textContent = '';
+      if (matches.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'pyd-search-empty';
+        empty.textContent = this.dataset['noResults'] ?? 'No matching symbols';
+        results.append(empty);
+      } else {
+        for (const group of groupMatchesByKind(matches)) {
+          const section = document.createElement('div');
+          section.className = 'pyd-search-group';
+          section.setAttribute('role', 'group');
+          const label = kindLabels[group.kind] ?? group.kind;
+          section.setAttribute('aria-label', label);
+
+          const heading = document.createElement('p');
+          heading.className = 'pyd-search-group-label';
+          heading.textContent = label;
+          section.append(heading);
+
+          for (const match of group.matches) {
+            const option = document.createElement('a');
+            option.className = 'pyd-search-option';
+            option.setAttribute('role', 'option');
+            option.setAttribute('aria-selected', 'false');
+            option.id = `pyd-search-option-${String(this.#options.length)}`;
+            option.href = matchHref(match, linkOptions);
+            option.dataset['kind'] = match.entry.kind;
+
+            const name = document.createElement('span');
+            name.className = 'pyd-search-option-name';
+            name.textContent = match.name;
+            const path = document.createElement('span');
+            path.className = 'pyd-search-option-path';
+            path.textContent = match.entry.path;
+            option.append(name, path);
+
+            if (match.entry.brief) {
+              const brief = document.createElement('span');
+              brief.className = 'pyd-search-option-brief';
+              brief.textContent = match.entry.brief;
+              option.append(brief);
+            }
+
+            section.append(option);
+          }
+          results.append(section);
+        }
+      }
+
+      this.#options = [...results.querySelectorAll<HTMLAnchorElement>('.pyd-search-option')];
+      this.#active = -1;
+      results.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+      input.removeAttribute('aria-activedescendant');
+    }
+
+    #onKeydown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        this.#close();
+        return;
+      }
+      if (event.key === 'Enter') {
+        const active = this.#options[this.#active];
+        if (active) {
+          event.preventDefault();
+          active.click();
+        }
+        return;
+      }
+      if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+      if (this.#options.length === 0) return;
+      event.preventDefault();
+      const step = event.key === 'ArrowDown' ? 1 : -1;
+      this.#active = (this.#active + step + this.#options.length) % this.#options.length;
+      this.#options.forEach((option, index) => {
+        const selected = index === this.#active;
+        option.setAttribute('aria-selected', selected ? 'true' : 'false');
+        option.classList.toggle('pyd-search-option--active', selected);
+        if (selected) {
+          this.#input?.setAttribute('aria-activedescendant', option.id);
+          option.scrollIntoView({ block: 'nearest' });
+        }
+      });
+    }
+
+    #close() {
+      if (this.#results) {
+        this.#results.hidden = true;
+        this.#results.textContent = '';
+      }
+      this.#options = [];
+      this.#active = -1;
+      this.#input?.setAttribute('aria-expanded', 'false');
+      this.#input?.removeAttribute('aria-activedescendant');
+    }
+  }
+
+  // Define once: view transitions re-run this script per navigation.
+  if (!customElements.get('pydocs-search')) {
+    customElements.define('pydocs-search', PydocsSearchElement);
+  }
+</script>

@@ -1,0 +1,155 @@
+---
+/**
+ * Every parsed docstring section of one object, in docstring order.
+ *
+ * Prose comes from the pre-rendered sidecar, addressed by the object's canonical
+ * path and the section's index in the docstring, so this component passes both
+ * down and renders no markdown itself.
+ *
+ * `deprecated` sections and the `Deprecated:` admonition (which the google parser
+ * routes through `admonition`, see HANDOFF.md) are skipped here: the deprecation
+ * badge and note in `ObjectDoc` already carry that content.
+ *
+ * Unknown section kinds are ignored rather than guessed at, so a future griffe
+ * release cannot break a page.
+ */
+import { renderedSectionBody } from '../lib/docstrings.ts';
+import type { DocObject } from '../lib/model.ts';
+import type { RenderScope } from '../lib/render.ts';
+import type { StringKey, StringOverrides } from '../lib/strings.ts';
+import type {
+  DocstringSection,
+  DocstringSectionAdmonition,
+  DocstringSectionExamples,
+  DocstringSectionNamedValues,
+  DocstringSectionReferences,
+  DocstringSectionThrown,
+} from '../lib/types.ts';
+import Markdown from './Markdown.astro';
+import SectionAdmonition from './sections/SectionAdmonition.astro';
+import SectionExamples from './sections/SectionExamples.astro';
+import SectionNamedValues from './sections/SectionNamedValues.astro';
+import SectionReferences from './sections/SectionReferences.astro';
+import SectionThrown from './sections/SectionThrown.astro';
+import SectionValues from './sections/SectionValues.astro';
+
+interface Props {
+  doc: DocObject;
+  scope: RenderScope;
+  labels?: StringOverrides | undefined;
+}
+
+const { doc, scope, labels } = Astro.props;
+
+const NAMED_VALUE_HEADINGS: Record<string, StringKey> = {
+  parameters: 'parameters',
+  'other parameters': 'otherParameters',
+  'type parameters': 'typeParameters',
+  attributes: 'attributes',
+};
+
+const VALUE_HEADINGS: Record<string, StringKey> = {
+  returns: 'returns',
+  yields: 'yields',
+  receives: 'receives',
+};
+
+const REFERENCE_HEADINGS: Record<string, StringKey> = {
+  functions: 'functions',
+  classes: 'classes',
+  modules: 'modules',
+  'type aliases': 'attributes',
+};
+
+/** True for the admonition the google parser makes of a `Deprecated:` block. */
+function isDeprecationAdmonition(section: DocstringSection): boolean {
+  return section.kind === 'admonition' && (section as DocstringSectionAdmonition).value?.annotation === 'deprecated';
+}
+
+// Indices are kept because the sidecar is keyed by them.
+const sections = (doc.docstring?.sections ?? [])
+  .map((section, index) => ({ section, index }))
+  .filter(({ section }) => section.kind !== 'deprecated' && !isDeprecationAdmonition(section));
+---
+
+{
+  sections.map(({ section, index }) => {
+    if (section.kind === 'text') {
+      return <Markdown html={renderedSectionBody(scope.rendered, doc.canonicalPath, index)} />;
+    }
+    const namedValues = NAMED_VALUE_HEADINGS[section.kind];
+    if (namedValues !== undefined) {
+      return (
+        <SectionNamedValues
+          section={section as DocstringSectionNamedValues}
+          sectionIndex={index}
+          doc={doc}
+          scope={scope}
+          headingKey={namedValues}
+          withDefaults={section.kind === 'parameters' || section.kind === 'other parameters'}
+          labels={labels}
+        />
+      );
+    }
+    const values = VALUE_HEADINGS[section.kind];
+    if (values !== undefined) {
+      return (
+        <SectionValues
+          section={section as DocstringSectionNamedValues}
+          sectionIndex={index}
+          doc={doc}
+          scope={scope}
+          headingKey={values}
+          labels={labels}
+        />
+      );
+    }
+    if (section.kind === 'raises' || section.kind === 'warns') {
+      return (
+        <SectionThrown
+          section={section as DocstringSectionThrown}
+          sectionIndex={index}
+          doc={doc}
+          scope={scope}
+          headingKey={section.kind === 'raises' ? 'raises' : 'warns'}
+          labels={labels}
+        />
+      );
+    }
+    if (section.kind === 'examples') {
+      return (
+        <SectionExamples
+          section={section as DocstringSectionExamples}
+          sectionIndex={index}
+          doc={doc}
+          scope={scope}
+          labels={labels}
+        />
+      );
+    }
+    if (section.kind === 'admonition') {
+      return (
+        <SectionAdmonition
+          section={section as DocstringSectionAdmonition}
+          sectionIndex={index}
+          doc={doc}
+          scope={scope}
+        />
+      );
+    }
+    const references = REFERENCE_HEADINGS[section.kind];
+    if (references !== undefined) {
+      return (
+        <SectionReferences
+          section={section as DocstringSectionReferences}
+          sectionIndex={index}
+          doc={doc}
+          scope={scope}
+          headingKey={references}
+          labels={labels}
+        />
+      );
+    }
+    return null;
+  })
+}

@@ -1,0 +1,18 @@
+---
+/** The body of a function or method: signature (overloads included) and docstring. */
+import type { DocObject } from '../lib/model.ts';
+import type { RenderScope } from '../lib/render.ts';
+import type { StringOverrides } from '../lib/strings.ts';
+import { DocstringSections, Signature } from 'virtual:starlight-pydocs/components';
+
+interface Props {
+  doc: DocObject;
+  scope: RenderScope;
+  labels?: StringOverrides | undefined;
+}
+
+const { doc, scope, labels } = Astro.props;
+---
+
+<Signature doc={doc} scope={scope} labels={labels} />
+<DocstringSections doc={doc} scope={scope} labels={labels} />

@@ -1,0 +1,141 @@
+---
+/**
+ * One documented object: heading, badges, provenance, source link, the
+ * kind-specific body, then its members.
+ *
+ * The body components come from `virtual:starlight-pydocs/components`, so a
+ * site can replace `ClassDoc`, `Signature` or any other overridable piece and
+ * have it apply everywhere, `<Autodoc>` included. Members recurse through
+ * `Astro.self` rather than an import, which keeps the module graph acyclic.
+ *
+ * Every member gets a real heading whose id is its dotted path, including
+ * attributes: the table of contents is built from the same list (see
+ * `pageHeadings` in `lib/model.ts`), so an entry without a heading would be a
+ * dead link.
+ */
+import { renderedDeprecation } from '../lib/docstrings.ts';
+import { createStringResolver } from '../lib/i18n.ts';
+import type { DocObject } from '../lib/model.ts';
+import { groupMembers } from '../lib/model.ts';
+import type { RenderScope } from '../lib/render.ts';
+import { hrefForPath, splitInherited } from '../lib/render.ts';
+import type { StringOverrides } from '../lib/strings.ts';
+import { AttributeDoc, ClassDoc, FunctionDoc, Heading, SourceLink } from 'virtual:starlight-pydocs/components';
+import Badges from './Badges.astro';
+import Markdown from './Markdown.astro';
+
+interface Props {
+  doc: DocObject;
+  scope: RenderScope;
+  /** Heading level for this object. Members get one level deeper. */
+  headingLevel?: number | undefined;
+  labels?: StringOverrides | undefined;
+}
+
+const { doc, scope, headingLevel = 2, labels } = Astro.props;
+
+const resolve = createStringResolver(Astro.locals, labels);
+
+const Body = doc.kind === 'class' ? ClassDoc : doc.kind === 'function' ? FunctionDoc : AttributeDoc;
+
+const memberParentKind = doc.kind === 'class' ? 'class' : 'module';
+const { own, inherited } = splitInherited(doc.members);
+const ownGroups = groupMembers(own, memberParentKind);
+const inheritedGroups = inherited.map((bucket) => ({
+  from: bucket.from,
+  groups: groupMembers(bucket.members, memberParentKind),
+}));
+
+const reexportHref = doc.reexportedFrom === undefined ? undefined : hrefForPath(scope, doc.reexportedFrom);
+const inheritedHref = doc.inheritedFrom === undefined ? undefined : hrefForPath(scope, doc.inheritedFrom);
+const deprecation = doc.deprecated;
+const deprecationHtml = deprecation === undefined ? '' : renderedDeprecation(scope.rendered, doc.canonicalPath);
+---
+
+<section class="pyd-member" data-pydocs-kind={doc.kind} data-pydocs-path={doc.path}>
+  <Heading level={headingLevel} id={doc.path} labels={labels}>
+    <code class="pyd-member-name">{doc.name}</code>
+    <Badges doc={doc} labels={labels} />
+  </Heading>
+
+  <div class="pyd-provenance">
+    {
+      doc.inheritedFrom === undefined ? null : (
+        <span class="pyd-provenance-item" data-pydocs-provenance="inherited">
+          {resolve('inheritedFrom')}{' '}
+          {inheritedHref === undefined ? (
+            <code>{doc.inheritedFrom}</code>
+          ) : (
+            <a href={inheritedHref}>
+              <code>{doc.inheritedFrom}</code>
+            </a>
+          )}
+        </span>
+      )
+    }
+    {
+      doc.reexportedFrom === undefined ? null : (
+        <span class="pyd-provenance-item" data-pydocs-provenance="reexported">
+          {resolve('reexportedFrom')}{' '}
+          {reexportHref === undefined ? (
+            <code>{doc.reexportedFrom}</code>
+          ) : (
+            <a href={reexportHref}>
+              <code>{doc.reexportedFrom}</code>
+            </a>
+          )}
+        </span>
+      )
+    }
+    {
+      doc.externalTargetPath === undefined ? null : (
+        <span class="pyd-provenance-item" data-pydocs-provenance="alias">
+          {resolve('aliasOf')} <code>{doc.externalTargetPath}</code>
+        </span>
+      )
+    }
+    <SourceLink doc={doc} labels={labels} />
+  </div>
+
+  {
+    deprecation === undefined ? null : (
+      <aside class="pyd-aside pyd-aside--caution pyd-deprecated" data-pydocs-aside="deprecated">
+        <p class="pyd-aside-title">
+          {deprecation.version === undefined
+            ? resolve('deprecated')
+            : `${resolve('deprecatedSince')} ${deprecation.version}`}
+        </p>
+        <Markdown html={deprecationHtml} />
+      </aside>
+    )
+  }
+
+  <Body doc={doc} scope={scope} labels={labels} />
+
+  {
+    ownGroups.map((group) => (
+      <div class="pyd-group" data-pydocs-group={group.id}>
+        {group.members.map((member) => (
+          <Astro.self doc={member} scope={scope} headingLevel={headingLevel + 1} labels={labels} />
+        ))}
+      </div>
+    ))
+  }
+
+  {
+    inheritedGroups.map((bucket) => (
+      <details class="pyd-inherited" data-pydocs-inherited={bucket.from} open>
+        <summary>
+          {resolve('inheritedFrom')} <code>{bucket.from}</code>
+        </summary>
+        {bucket.groups.map((group) => (
+          <div class="pyd-group" data-pydocs-group={group.id}>
+            {group.members.map((member) => (
+              <Astro.self doc={member} scope={scope} headingLevel={headingLevel + 1} labels={labels} />
+            ))}
+          </div>
+        ))}
+      </details>
+    ))
+  }
+</section>

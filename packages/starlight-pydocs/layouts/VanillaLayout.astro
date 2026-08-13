@@ -1,0 +1,60 @@
+---
+/**
+ * The built-in layout for sites without Starlight.
+ *
+ * Deliberately minimal: a document, a content column, a table of contents built
+ * from the same headings the model produced, and the package stylesheet. Sites
+ * that want their own chrome pass `layout` to the `pydocs()` integration and get
+ * these props instead.
+ */
+import { createStringResolver } from '../lib/i18n.ts';
+import type { PageHeading } from '../lib/model.ts';
+import type { StringOverrides } from '../lib/strings.ts';
+import '../styles.css';
+
+interface Props {
+  /** Page title: the module's dotted path. */
+  title: string;
+  /** Headings of the page, for the table of contents. */
+  headings: PageHeading[];
+  /** Meta description: the module's one-line brief. */
+  description?: string | undefined;
+  labels?: StringOverrides | undefined;
+}
+
+const { title, headings, description, labels } = Astro.props;
+
+const resolve = createStringResolver(Astro.locals, labels);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    {description === undefined || description === '' ? null : <meta name="description" content={description} />}
+  </head>
+  <body class="pyd-page">
+    <div class="pyd-page-inner">
+      <main class="pyd-content">
+        <h1 class="pyd-page-title">{title}</h1>
+        <slot />
+      </main>
+      {
+        headings.length === 0 ? null : (
+          <nav class="pyd-toc" aria-label={resolve('onPage')}>
+            <p class="pyd-toc-title">{resolve('onPage')}</p>
+            <ul>
+              {headings.map((heading) => (
+                <li class:list={[`pyd-toc-depth-${String(heading.depth)}`]}>
+                  <a href={`#${heading.slug}`}>{heading.text}</a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )
+      }
+    </div>
+  </body>
+</html>

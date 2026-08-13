@@ -1,0 +1,79 @@
+---
+/**
+ * The overview tables at the top of a module or class page: one table per
+ * member group, each row a link to the member's heading plus its one-line
+ * brief.
+ *
+ * Submodules are left out: they are pages rather than headings, and `ModuleDoc`
+ * lists them separately.
+ */
+import { createStringResolver } from '../lib/i18n.ts';
+import type { DocObject } from '../lib/model.ts';
+import type { RenderScope } from '../lib/render.ts';
+import { hrefForPath } from '../lib/render.ts';
+import type { StringOverrides } from '../lib/strings.ts';
+
+interface Props {
+  doc: DocObject;
+  scope: RenderScope;
+  labels?: StringOverrides | undefined;
+}
+
+const { doc, scope, labels } = Astro.props;
+
+const resolve = createStringResolver(Astro.locals, labels);
+
+const groups = doc.groups
+  .filter((group) => group.id !== 'modules')
+  .map((group) => ({
+    id: group.id,
+    rows: group.members.map((member) => ({
+      name: member.name,
+      href: hrefForPath(scope, member.path) ?? `#${member.path}`,
+      brief: member.summary,
+      inheritedFrom: member.inheritedFrom,
+    })),
+  }));
+---
+
+{
+  groups.length === 0 ? null : (
+    <div class="pyd-summary" data-pydocs-summary={doc.path}>
+      {groups.map((group) => (
+        <div class="pyd-summary-group" data-pydocs-group={group.id}>
+          <p class="pyd-section-title">{resolve(group.id)}</p>
+          <div class="pyd-table-wrap">
+            <table class="pyd-summary-table">
+              <thead>
+                <tr>
+                  <th scope="col">{resolve('columnName')}</th>
+                  <th scope="col">{resolve('columnDescription')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {group.rows.map((row) => (
+                  <tr>
+                    <th scope="row">
+                      <a href={row.href}>
+                        <code>{row.name}</code>
+                      </a>
+                    </th>
+                    <td>
+                      {row.brief === '' ? <span class="pyd-undocumented">{resolve('undocumented')}</span> : row.brief}
+                      {row.inheritedFrom === undefined ? null : (
+                        <span class="pyd-inherited-note">
+                          {' '}
+                          ({resolve('inheritedFrom')} <code>{row.inheritedFrom}</code>)
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}

@@ -1,0 +1,41 @@
+---
+/**
+ * Renders an annotation as text with links.
+ *
+ * Tokens come from `lib/expr.ts`, which has already resolved each name to a
+ * documented object, an inventory entry, or nothing at all. Everything here is
+ * presentation.
+ */
+import type { AnnotationToken } from '../lib/expr.ts';
+import type { RenderScope } from '../lib/render.ts';
+import { hrefForTarget } from '../lib/render.ts';
+
+interface Props {
+  tokens: AnnotationToken[];
+  scope: RenderScope;
+}
+
+const { tokens, scope } = Astro.props;
+
+const rendered = tokens.map((token) => ({
+  text: token.text,
+  href: hrefForTarget(scope, token.target),
+  external: token.target?.kind === 'external',
+}));
+---
+
+{
+  rendered.map((token) =>
+    token.href === undefined ? (
+      token.text
+    ) : (
+      <a
+        class:list={['pyd-type', token.external && 'pyd-type--external']}
+        href={token.href}
+        rel={token.external ? 'noreferrer' : undefined}
+      >
+        {token.text}
+      </a>
+    ),
+  )
+}

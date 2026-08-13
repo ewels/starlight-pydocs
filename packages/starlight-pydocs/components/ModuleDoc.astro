@@ -1,0 +1,78 @@
+---
+/**
+ * A module page: the module docstring, an overview of its members, links to its
+ * submodules, then the full documentation of every member.
+ *
+ * The page title is the module's dotted path and is rendered by the host layout
+ * (`StarlightPage` under Starlight), so this component starts at the docstring
+ * and puts members at heading level 2 — matching the depths `pageHeadings`
+ * records for the table of contents.
+ */
+import { createStringResolver } from '../lib/i18n.ts';
+import type { DocObject } from '../lib/model.ts';
+import type { RenderScope } from '../lib/render.ts';
+import { pageHref } from '../lib/render.ts';
+import type { StringOverrides } from '../lib/strings.ts';
+import { DocstringSections, MemberSummary } from 'virtual:starlight-pydocs/components';
+import ObjectDoc from './ObjectDoc.astro';
+
+interface Props {
+  doc: DocObject;
+  scope: RenderScope;
+  /** Heading level for the module's own members. Default 2. */
+  headingLevel?: number | undefined;
+  labels?: StringOverrides | undefined;
+}
+
+const { doc, scope, headingLevel = 2, labels } = Astro.props;
+
+const resolve = createStringResolver(Astro.locals, labels);
+
+const submodules = doc.members
+  .filter((member) => member.kind === 'module')
+  .map((member) => ({
+    path: member.path,
+    name: member.name,
+    href: pageHref(scope, member.pageSlug),
+    brief: member.summary,
+  }));
+
+const groups = doc.groups.filter((group) => group.id !== 'modules');
+const hasMembers = groups.length > 0 || submodules.length > 0;
+---
+
+<div class="pyd-module" data-pydocs-kind="module" data-pydocs-path={doc.path}>
+  <DocstringSections doc={doc} scope={scope} labels={labels} />
+
+  <MemberSummary doc={doc} scope={scope} labels={labels} />
+
+  {
+    submodules.length === 0 ? null : (
+      <div class="pyd-submodules" data-pydocs-group="modules">
+        <p class="pyd-section-title">{resolve('modules')}</p>
+        <ul>
+          {submodules.map((submodule) => (
+            <li>
+              <a href={submodule.href}>
+                <code>{submodule.name}</code>
+              </a>
+              {submodule.brief === '' ? null : <span class="pyd-reference-brief">{submodule.brief}</span>}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+
+  {
+    groups.map((group) => (
+      <div class="pyd-group" data-pydocs-group={group.id}>
+        {group.members.map((member) => (
+          <ObjectDoc doc={member} scope={scope} headingLevel={headingLevel} labels={labels} />
+        ))}
+      </div>
+    ))
+  }
+
+  {hasMembers ? null : <p class="pyd-no-members">{resolve('noMembers')}</p>}
+</div>

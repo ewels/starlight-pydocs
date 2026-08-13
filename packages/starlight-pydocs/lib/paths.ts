@@ -33,6 +33,15 @@ export function objectHref(
   return anchor === undefined || anchor === '' ? page : `${page}#${anchor}`;
 }
 
+/**
+ * Href of a file served next to a package's pages (`symbols.json`,
+ * `objects.inv`, `llms.txt`). Unlike {@link buildHref} this never appends a
+ * trailing slash: these are files, not pages.
+ */
+export function assetHref(siteBase: string, base: string, filename: string): string {
+  return `${siteBase}/${stripLeadingAndTrailingSlashes(base)}/${filename}`.replace(/\/{2,}/g, '/');
+}
+
 /** Dotted path of the module a member belongs to, or undefined for a package root. */
 export function parentPath(dottedPath: string): string | undefined {
   const index = dottedPath.lastIndexOf('.');

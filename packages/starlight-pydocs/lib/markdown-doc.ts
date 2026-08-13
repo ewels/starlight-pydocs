@@ -126,7 +126,8 @@ function objectBadges(doc: DocObject, options: MarkdownDocOptions): string[] {
   return badges;
 }
 
-function kindLabelKey(doc: DocObject): StringKey | undefined {
+/** Exported so the components label badges exactly as the Markdown renderer does. */
+export function kindLabelKey(doc: DocObject): StringKey | undefined {
   switch (doc.kind) {
     case 'module':
       return 'kindModule';
@@ -158,7 +159,8 @@ const LABEL_KEYS: Record<string, StringKey> = {
   property: 'kindProperty',
 };
 
-function labelKeyFor(raw: string): StringKey | undefined {
+/** The `STRINGS` key for a raw griffe label, when we have a translation for it. */
+export function labelKeyFor(raw: string): StringKey | undefined {
   return LABEL_KEYS[raw];
 }
 
