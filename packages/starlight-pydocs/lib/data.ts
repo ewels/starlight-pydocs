@@ -38,8 +38,15 @@ const inventoryCache = new Map<string, Promise<InventoryLookup>>();
 const renderedCache = new Map<string, CachedJson<RenderedDocstrings>>();
 const versionsCache = new Map<string, Promise<Map<string, string>>>();
 
-/** Cache `promise` under `key`, evicting it again if it rejects. */
-function remember<K, V>(cache: Map<K, Promise<V>>, key: K, promise: Promise<V>): Promise<V> {
+/**
+ * The promise cached under `key`, or `build()`'s, cached and evicted again if it
+ * rejects so a transient failure does not poison later retries.
+ */
+function memoize<K, V>(cache: Map<K, Promise<V>>, key: K, build: () => Promise<V>): Promise<V> {
+  const cached = cache.get(key);
+  if (cached !== undefined) return cached;
+
+  const promise = build();
   cache.set(key, promise);
   promise.catch(() => {
     if (cache.get(key) === promise) cache.delete(key);
@@ -132,7 +139,7 @@ export async function loadDump(dumpPath: string): Promise<GriffeDump> {
  * @throws {PydocsError} When the sidecar is missing, which means the
  *   `astro:config:done` render did not run for this build.
  */
-export async function loadRendered(renderedPath: string): Promise<RenderedDocstrings> {
+async function loadRendered(renderedPath: string): Promise<RenderedDocstrings> {
   if (renderedPath === '') {
     throw new PydocsError(
       'starlight-pydocs: no pre-rendered docstring path was recorded for this package (extraction did not run)',
@@ -197,22 +204,18 @@ export function modelOptionsFor(pkg: PydocsPackageContext): ModelOptions {
  * A missing or broken sidecar is not fatal: the badges disappear and the rest of
  * the page is unaffected.
  */
-export async function getVersionLabels(context: PydocsContext, base: string): Promise<Map<string, string>> {
+async function getVersionLabels(context: PydocsContext, base: string): Promise<Map<string, string>> {
   const pkg = requirePackage(context, base);
   if (pkg.versionsPath === '') return new Map();
 
-  const cached = versionsCache.get(pkg.versionsPath);
-  if (cached !== undefined) return cached;
-
-  const read = (async () => {
+  return memoize(versionsCache, pkg.versionsPath, async () => {
     try {
       return versionLabelsFrom(JSON.parse(await fs.readFile(pkg.versionsPath, 'utf8')) as VersionAnnotations);
     } catch {
       // Written at setup; if it is not there, the setup did not run for this build.
       return new Map<string, string>();
     }
-  })();
-  return remember(versionsCache, pkg.versionsPath, read);
+  });
 }
 
 /**
@@ -231,14 +234,10 @@ export async function getModel(context: PydocsContext, base: string): Promise<Pa
   // not: they are derived from the package's configuration, so they cannot differ
   // for one base within a process.
   const key = JSON.stringify([pkg.dumpPath, pkg.versionsPath, options]);
-  const cached = modelCache.get(key);
-  if (cached !== undefined) return cached;
-
-  const build = (async () => {
+  return memoize(modelCache, key, async () => {
     const [dump, addedIn] = await Promise.all([loadDump(pkg.dumpPath), getVersionLabels(context, base)]);
     return buildModel(dump, addedIn.size === 0 ? options : { ...options, addedIn });
-  })();
-  return remember(modelCache, key, build);
+  });
 }
 
 /** Models for every configured package, keyed by base. */
@@ -252,11 +251,7 @@ export async function getAllModels(context: PydocsContext): Promise<Map<string, 
 
 /** Inventory lookup for the whole site, cached per process. */
 export async function getInventoryLookup(context: PydocsContext): Promise<InventoryLookup> {
-  const key = JSON.stringify(context.inventories);
-  const cached = inventoryCache.get(key);
-  if (cached !== undefined) return cached;
-
-  return remember(inventoryCache, key, buildInventoryLookup(context));
+  return memoize(inventoryCache, JSON.stringify(context.inventories), () => buildInventoryLookup(context));
 }
 
 async function buildInventoryLookup(context: PydocsContext): Promise<InventoryLookup> {
