@@ -18,19 +18,19 @@ work sequence, `HANDOFF.md` for the running log of decisions and known rough edg
 
 A pnpm workspace:
 
-- `packages/starlight-pydocs` — the published package (the only thing shipped to npm).
-- `docs` — a Starlight site (`starlight-pydocs-docs`) that dogfoods the plugin and
+- `packages/starlight-pydocs`: the published package (the only thing shipped to npm).
+- `docs`: a Starlight site (`starlight-pydocs-docs`) that dogfoods the plugin and
   doubles as the fixture for the end-to-end tests. It documents all three fixture
   packages: `demopkg` (extracted through uvx, google docstrings, pydantic,
   deprecations, inheritance, `__all__`), `numpkg` (numpy docstrings) and `sphpkg`
   (sphinx docstrings from a pre-generated dump, so the no-extraction path is built
   too). The Playwright configuration lives here and owns both sites.
-- `examples/vanilla` — a plain Astro site proving the no-Starlight path, pinned to the
+- `examples/vanilla`: a plain Astro site proving the no-Starlight path, pinned to the
   unified markdown pipeline so CI renders docstrings through both engines; also an e2e
   fixture.
-- `fixtures/` — Python fixture packages plus checked-in `griffe dump` JSON for each
+- `fixtures/`: Python fixture packages plus checked-in `griffe dump` JSON for each
   (so tests never require Python), regenerated with `pnpm gen:dumps` (needs `uv`), and
-  `fixtures/inventories/` — a small checked-in `objects.inv` standing in for CPython's,
+  `fixtures/inventories/`, a small checked-in `objects.inv` standing in for CPython's,
   written by `pnpm gen:inventory`, so external annotation links are testable offline.
 
 ## Commands
@@ -52,13 +52,13 @@ Run from the repo root unless noted. Node >= 22.12, pnpm 10.33.
 
 `prek.toml` defines the prettier → eslint → typecheck hooks; `prek install` wires the
 git pre-commit hook and CI runs the exact same `prek run --all-files`. There is no
-build step for the package — it ships its `.ts`/`.astro` source and is consumed and
+build step for the package: it ships its `.ts`/`.astro` source and is consumed and
 transpiled by the host Astro project.
 
 Playwright uses the pre-installed Chromium at `/opt/pw-browsers/chromium` when present
 (this environment), else a managed download. `docs/playwright.config.ts` has one
-`webServer` entry per site — the docs site on port 4321 under base `/starlight-pydocs`,
-the vanilla example on 4322 — and one project per site, each running only the specs in
+`webServer` entry per site (the docs site on port 4321 under base `/starlight-pydocs`,
+the vanilla example on 4322) and one project per site, each running only the specs in
 its own `testDir` (`docs/tests/e2e/docs`, `docs/tests/e2e/vanilla`). Both entries set
 `ASTRO_PREVIEW_BACKGROUND=1`, which stops `astro preview` daemonising itself when it
 detects an agentic environment (Playwright would see the command exit immediately).
@@ -74,7 +74,7 @@ as raw text instead of structured sections. The runner (`lib/runner.ts`) resolve
 order: an explicit `runner.command`, a pre-generated dump (`source.file`/`source.url`),
 `uvx --from griffe`, `python -m griffe`. Dumps cache to `node_modules/.astro` keyed on
 argv + source file mtimes; they are large (megabytes) and are never sent to the
-browser or inlined into virtual modules — `virtual:starlight-pydocs/context` carries
+browser or inlined into virtual modules: `virtual:starlight-pydocs/context` carries
 config and dump paths only, and `lib/data.ts` parses lazily server-side.
 
 **A package entry is identified by its `base`, never by its import name.** Bases are
@@ -85,8 +85,8 @@ lookup are keyed by base; `name` is only the dump key and what a human types.
 `<Autodoc>`/`<SymbolSearch>` resolve their `package` prop as a base first, an import
 name second, and refuse an ambiguous name with the candidate bases listed.
 
-Pages are injected routes (`[...slug]` per package), not generated Markdown — see
-PLAN.md decision 1. Under Starlight the route renders
+Pages are injected routes (`[...slug]` per package), not generated Markdown (see
+PLAN.md decision 1). Under Starlight the route renders
 `@astrojs/starlight/components/StarlightPage.astro` with `{ frontmatter, headings }`
 props (that is what feeds the ToC; Pagefind indexes the standard shell it renders).
 The sidebar is a placeholder group (`pydocsSidebarGroup`) swapped for generated links
@@ -95,8 +95,8 @@ with a minimal built-in layout.
 
 ### Two consumption modes
 
-- **Starlight plugin** — the default export of `index.ts`.
-- **Vanilla integration** — `starlight-pydocs/astro`; `<Autodoc>` and the component
+- **Starlight plugin**: the default export of `index.ts`.
+- **Vanilla integration**: `starlight-pydocs/astro`; `<Autodoc>` and the component
   set come from `starlight-pydocs/components` and take label props for i18n.
 
 Hard rule: **`lib/` never imports `astro` or `@astrojs/starlight`**, and
@@ -122,7 +122,7 @@ Sphinx inventories (`lib/inventory.ts` handles objects.inv in both directions).
 ### Docstring prose
 
 Rendered through **the host's configured markdown processor**
-(`astroConfig.markdown.processor.createRenderer(...)` — Sätteri on current Astro,
+(`astroConfig.markdown.processor.createRenderer(...)`: Sätteri on current Astro,
 `unified()` where the site pins it, with a Starlight-style optional-peer fallback
 to `@astrojs/markdown-remark` for Astro 7.0.x). The package depends on neither
 engine and registers no remark/rehype/mdast/hast plugin anywhere. Because the live
@@ -147,9 +147,9 @@ oldest listed ref and objects in none of the refs are deliberately unbadged.
 
 ### Two runtime contexts for `lib/` code
 
-- **Browser** — only the search element (`lib/search-element.ts`) and any component
+- **Browser**: only the search element (`lib/search-element.ts`) and any component
   `<script>`; bundled by Vite; relative imports omit the extension.
-- **Node** — the runner, cache, and everything imported by route/endpoint code and
+- **Node**: the runner, cache, and everything imported by route/endpoint code and
   scripts executed directly (type-stripping), so their relative imports need explicit
   `.ts` extensions.
 
@@ -170,15 +170,15 @@ them. `pnpm typecheck` runs both.
 - Dumps in `fixtures/*/dump*.json` are checked in; tests run against them. If you
   change a fixture package, run `pnpm gen:dumps` and commit the JSON too. A guarded
   test regenerates live when `uv` is available and diffs the surface, catching drift.
-- The docs deploy to GitHub Pages under base `/starlight-pydocs` — keep links and
+- The docs deploy to GitHub Pages under base `/starlight-pydocs`: keep links and
   Playwright `baseURL` base-path-aware.
 - Releases are manual: changelog entries live under `CHANGELOG.md` **Unreleased**;
   releasing moves them into a dated `## **Version X.Y.Z**` section, bumps the package
   version, and publishes a GitHub release tagged `vX.Y.Z`, which triggers
   `.github/workflows/release.yml` (npm trusted publishing via OIDC, no token; the
   workflow guards tag == package version; the very first publish is manual).
-- MDX is excluded from Prettier and `*.md` uses `embeddedLanguageFormatting: 'off'`
-  — Prettier reflows the Python signatures and directive examples in docs pages.
+- MDX is excluded from Prettier and `*.md` uses `embeddedLanguageFormatting: 'off'`:
+  Prettier reflows the Python signatures and directive examples in docs pages.
 
 ## Starlight integration gotchas (learned the hard way, some inherited from starlight-quiz)
 
@@ -200,7 +200,7 @@ them. `pnpm typecheck` runs both.
   inside Starlight DOM, use inline styles or higher specificity, and note why.
 - **StarlightPage props, not `starlightRoute` mutation, set the ToC** for injected
   routes: pass `headings` (and `frontmatter`) as props. Route middleware handles the
-  sidebar swap and pagination and runs for every page — build the tree once per
+  sidebar swap and pagination and runs for every page, so build the tree once per
   process and return early when the route is neither a pydocs page nor holds a
   placeholder.
 - **`astro check` in `docs` only sees files inside `docs`** unless
@@ -209,5 +209,5 @@ them. `pnpm typecheck` runs both.
   type-checked.
 - **Don't add `scroll-margin-top`** to anchor targets; Starlight's `scroll-padding-top`
   on `<html>` already clears the fixed header and doubles up with any custom margin.
-- **Custom elements query `this`, never `document`, and self-define idempotently** —
+- **Custom elements query `this`, never `document`, and self-define idempotently**:
   Astro view transitions create fresh elements per navigation.
