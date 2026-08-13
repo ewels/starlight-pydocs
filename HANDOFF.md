@@ -237,9 +237,9 @@ Verified against generated dumps, not documentation. `lib/types.ts` follows thes
   not take a `Uint8Array<ArrayBufferLike>`, so `buildInventory` now returns
   `Uint8Array<ArrayBuffer>`; and `exactOptionalPropertyTypes` needs one commented cast
   on the Astro 7.0.x `createMarkdownProcessor` fallback).
-- **`pnpm format` wants to reformat PLAN.md** (`*emphasis*` → `_emphasis_` on one
-  line). Left alone deliberately — this agent was told not to touch PLAN.md — so the
-  first `prek run --all-files` will show that one-line diff.
+- **`pnpm format` once wanted to reformat PLAN.md** (`*emphasis*` → `_emphasis_` on one
+  line). Since resolved: the file was run through prettier, and `pnpm format:check` is
+  clean across the repository.
 - **Three bugs fell out of building the two fixture sites, all fixed.** (1)
   `loadInventories` read local `objects.inv` files through
   `await import('node:fs/promises')`, and it runs from `config:setup`, whose module
