@@ -267,7 +267,9 @@ the symbol index), and a `<PydocsSearch>` custom element does client-side substr
 CamelCase/dot-segment matching, grouped by kind, keyboard accessible. The plugin puts
 it on generated package index pages; users can place it anywhere via
 `starlight-pydocs/components`. Vanilla sites get the same component; nothing in it
-touches Starlight.
+touches Starlight. Implemented as promised: both page routes render `<SymbolSearch>`
+above the module documentation on the page whose object is a package root module,
+which keeps it out of `<Autodoc>` blocks and off every deeper module page.
 
 ### 9. Sphinx inventories, both directions
 

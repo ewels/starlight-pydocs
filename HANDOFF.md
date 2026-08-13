@@ -103,6 +103,25 @@ sequencing.
   two-entry `webServer` array (docs on 4321 under `/starlight-pydocs`, the vanilla
   example on 4322) and two projects with matching `baseURL`s and their own `testDir`.
   Root `pnpm test:e2e` still filters to the docs package.
+- **Cross-references in docstring prose are resolved by rewriting the Markdown**, not
+  by a plugin in the host's pipeline (which decision 7 rules out). `lib/crossrefs.ts`
+  turns `[title][dotted.path]` and `[dotted.path][]` into ordinary Markdown links
+  before the string reaches the processor, and only when the target resolves: fenced
+  code, inline code spans, escaped brackets and targets that have a real reference
+  definition in the same string are left alone, and an unresolved target keeps its
+  brackets. Resolution order is the rendered package's symbol index, then the other
+  configured packages', then the Sphinx inventories, wired in `getCrossReferenceResolver`
+  and applied by `renderDocstringsForDump`. This closes the gap the previous session
+  left for a human. Indented (four-space) code blocks are not detected as code:
+  telling them from list continuations needs a block parser, and griffe hands us
+  dedented prose whose examples arrive fenced.
+- **The symbol search box is placed on package root pages by the routes**, which is
+  what PLAN.md decision 8 promised and the previous session left unimplemented. Both
+  `routes/starlight.astro` and `routes/vanilla.astro` render `<SymbolSearch>` above
+  `<ModuleDoc>` when `isPackageRootPage(page)` and `symbolSearch` is on. It sits in the
+  routes rather than in `ModuleDoc` on purpose: an `<Autodoc name="mypkg" />` of a
+  package root would otherwise grow a search box in the middle of a hand-written page,
+  and no module page below the root needs its own.
 - **The vanilla example pins `markdown: { processor: unified() }`.** PLAN.md decision
   7 promises both engines are exercised in CI; the docs site runs Astro's default
   (Sätteri), so the example imports `unified()` from `@astrojs/markdown-remark`. The
@@ -182,22 +201,6 @@ Verified against generated dumps, not documentation. `lib/types.ts` follows thes
 - griffe version drift: dumps were generated with the griffe version uv resolved on
   2026-08-12. `pnpm gen:dumps` regenerates; the `runner-live` test guards drift but
   only runs where uv is available.
-- **The symbol search element is not placed on generated package pages.** PLAN.md
-  decision 8 says "the plugin puts it on generated package index pages"; the
-  implementation only exports the component, so it appears where a page places it by
-  hand (`docs/src/content/docs/guides/autodoc.mdx`, `examples/vanilla/src/pages/index.astro`,
-  which is where the e2e suite drives it). Adding it to `ModuleDoc` is a few lines but
-  it is a design decision — whether a search box belongs above every module's
-  docstring, and what happens inside an `<Autodoc>` of a package root — so it is left
-  for a human. Either implement it or soften decision 8.
-- **mkdocstrings cross-reference syntax in docstring prose is not resolved.** The
-  fixture docstrings use mkdocstrings' `[label][dotted.path]` reference form, which is
-  what mkdocstrings users have in their docstrings, and it survives into the page as
-  literal `[…][…]` text: nothing rewrites those references before the markdown pass.
-  Annotations link (decision 6); prose does not. It would be an autoref pass over the
-  docstring markdown, and it is a feature, not a fix, so it is unimplemented and
-  unclaimed. The e2e assertions deliberately check the rendered `<code>` rather than a
-  link, so implementing it later will not break them.
 - **Without `sourceLink.root`, a `title` on the source link can leak an absolute
   path.** Griffe's `relative_filepath` is relative to its working directory, so when
   the sources sit outside the Astro project (the vanilla example's `../../fixtures`)

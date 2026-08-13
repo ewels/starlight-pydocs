@@ -23,6 +23,14 @@ test('the symbol search element finds an object and the keyboard navigates to it
   await expect(page.locator('[id="demopkg.Report.generate"]')).toBeVisible();
 });
 
+test('the generated package page carries a search box, and module pages do not', async ({ page }) => {
+  await page.goto('api/demopkg/');
+  await expect(page.locator('pydocs-search')).toHaveCount(1);
+
+  await page.goto('api/demopkg/report/');
+  await expect(page.locator('pydocs-search')).toHaveCount(0);
+});
+
 test('the symbol search element reports when nothing matches', async ({ page }) => {
   await page.goto('guides/autodoc/');
 
