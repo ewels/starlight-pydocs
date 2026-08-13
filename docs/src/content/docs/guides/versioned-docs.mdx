@@ -191,6 +191,13 @@ DOCS_VERSION=v1.4.3 pnpm build && mv dist public-site/v1.4.3
 Every href the plugin emits goes through Astro's `base`, so the archived pages work under their
 prefix with no further configuration.
 
+## Version annotations are a different thing
+
+Documenting several versions gives each release its own pages. Badging one release's pages with the
+version each object appeared in is separate, needs no extra `packages` entry, and is described in
+[Version annotations](/starlight-pydocs/guides/version-annotations/). The two compose: the current
+entry can carry "Added in" badges while archived entries stay as they were.
+
 :::note[Registering the plugin twice does not work]
 Two `starlightPydocs()` instances in one Starlight config would share one virtual context module and
 inject the same catch-all route, so the second instance's pages do not exist. Everything on this

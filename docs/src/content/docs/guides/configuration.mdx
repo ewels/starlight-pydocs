@@ -51,7 +51,7 @@ Each entry of `packages` describes one Python package.
 | `filters`           | `{ special?, private?, imported?, inherited? }` | see below | Coarse member switches.                                       |
 | `sourceLink`        | `{ template, ref?, root? }` or `{ host, repo, ref?, root? }` | none | Link objects to their source lines.        |
 | `sidebar`           | `{ label?, collapsed?, group? }`       | `{}`           | Sidebar presentation, Starlight only.                                  |
-| `versions`          | `{ ref, label }[]`                     | `[]`           | Reserved for version annotations; not rendered yet.                    |
+| `versions`          | `{ refs: { ref, label }[] }`            | none           | Badge objects with the release they appeared in. See [Version annotations](/starlight-pydocs/guides/version-annotations/). |
 
 `search` points at the _parent_ of the package directory: `../src` for `../src/mypkg`. Leave it
 unset only when the package sits in the Astro project root.
@@ -144,7 +144,10 @@ used and a warning is logged: a docs build should not fail because a CDN blinked
 `cacheDir` defaults to `node_modules/.astro`, which is where Astro keeps its own cache. Point it
 somewhere persistent if your CI caches a different directory. Pre-rendered docstring HTML lives
 beside the dump it belongs to, or under `<cacheDir>/starlight-pydocs/rendered/` when the dump is a
-file you own and we must not write next to.
+file you own and we must not write next to. Dumps of configured
+[version refs](/starlight-pydocs/guides/version-annotations/) live under
+`<cacheDir>/starlight-pydocs/versions/`, keyed by commit, and their worktrees under
+`<cacheDir>/starlight-pydocs/worktrees/`.
 
 In `astro dev`, the search paths are watched: saving a `.py` file re-extracts, re-renders the
 prose and triggers a reload. Packages configured with `source` are not watched, because nothing

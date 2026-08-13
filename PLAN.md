@@ -334,7 +334,7 @@ remain documented as the alternative for sites that want wholly separate
 deployments. Covered by an e2e fixture: the docs site documents `demopkg` twice,
 at `api/demopkg` from source and at `1x/api/demopkg` from the checked-in dump.
 
-### 12. Stretch: version annotations by diffing dumps across refs
+### 12. Version annotations by diffing dumps across refs
 
 `griffe check` has no machine-readable output, so annotations come from data we
 already know how to produce: for each configured `{ ref, label }` the runner
@@ -343,7 +343,33 @@ keyed by the ref's commit SHA, so re-runs are free) and dumps it. Comparing obje
 paths across successive dumps yields "added in <label>" for each object's first
 appearance; `is_deprecated` and docstring `deprecated` sections yield deprecation
 badges with the deprecating version. Rendered as Starlight-style badges next to the
-symbol heading. Ships only if the core lands first (ROADMAP item 9).
+symbol heading.
+
+**Shipped (2026-08-13), as `versions: { refs: [{ ref, label }, …] }` per package,
+oldest first.** The split is git on one side and arithmetic on the other:
+`lib/ref-extract.ts` resolves each ref with `git rev-parse --verify <ref>^{commit}`,
+checks it out with `git worktree add --detach <cacheDir>/starlight-pydocs/worktrees/<sha>`
+(reusing an existing directory, pruning and retrying once if git disagrees), rebases
+the package's search paths onto the worktree and runs the same `griffe dump` through
+the launcher the current source uses — `lib/runner.ts` grew `resolveGriffeLauncher`
+and a reusable `runGriffe` for that, argv arrays throughout. Ref dumps live at
+`<cacheDir>/starlight-pydocs/versions/<name>-<sha12>-<options12>/dump.json`; a commit
+is immutable, so an existing dump is never re-made and later builds do no git work.
+`lib/versions.ts` is pure and unit tested: `collectDumpPaths` over a dump,
+`firstSeenLabels` over the snapshots oldest-first, `addedInLabel` falling back from
+the documented path to the canonical one so re-exports and inherited members inherit
+their definition's history. The labels are written to a sidecar beside the dump
+(`versions-<key>.json`), loaded by `lib/data.ts` and passed into `buildModel`, which
+sets `DocObject.addedIn`; `objectBadges` puts it next to the kind badge and the
+Markdown renderer emits the same text. Deliberate silences: objects in the oldest
+listed ref get no badge (pre-history is noise), and objects in none of the refs get
+none either (they exist only in the current source, which has no version number).
+`versions` with `source.file`/`source.url` is a config error, since a pinned dump has
+no history behind it. Coverage: pure diff tests over synthetic dumps, config
+validation, and a git+uv-guarded live test that builds a throwaway two-commit
+repository and asserts the badge lands on the function the second commit added. No
+e2e: the fixture packages have no meaningful history, and the live test covers the
+pipeline end to end.
 
 ### 13. Everything else follows starlight-quiz conventions
 
@@ -387,7 +413,7 @@ starlightPydocs({
         ref: 'main',
       },
       sidebar: { label: 'demopkg', collapsed: false },
-      versions: [{ ref: 'v1.0.0', label: '1.0' }],  // stretch feature
+      versions: { refs: [{ ref: 'v1.0.0', label: '1.0' }] },  // 'added in' badges
     },
   ],
   runner: { command: undefined, python: undefined },   // explicit overrides

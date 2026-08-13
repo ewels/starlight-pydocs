@@ -94,6 +94,7 @@ export default defineConfig({
             { label: 'Source links', link: '/guides/source-links/' },
             { label: 'Multiple packages', link: '/guides/multiple-packages/' },
             { label: 'Pre-generated dumps', link: '/guides/pregenerated-dumps/' },
+            { label: 'Version annotations', link: '/guides/version-annotations/' },
           ],
         },
         {
