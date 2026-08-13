@@ -53,9 +53,8 @@ const ENTRY_PATTERN = /^(.+?)\s+(\S+):(\S*)\s+(-?\d+)\s+(\S*)\s+(.*)$/;
  * odd entries, and one bad line should not cost every link.
  */
 export function parseInventory(buffer: Uint8Array): InventoryEntry[] {
-  const text = new TextDecoder().decode(buffer);
-  const headerEnd = findHeaderEnd(text);
-  const header = text.slice(0, headerEnd).split('\n');
+  const headerEnd = findHeaderEnd(buffer);
+  const header = new TextDecoder().decode(buffer.subarray(0, headerEnd)).split('\n');
 
   if (header[0]?.trim() !== HEADER_LINE) {
     throw new PydocsError(`starlight-pydocs: not a Sphinx v2 inventory (first line was '${header[0]?.trim() ?? ''}')`);
@@ -93,10 +92,15 @@ export function parseInventory(buffer: Uint8Array): InventoryEntry[] {
 }
 
 /** Byte offset just past the four header lines. */
-function findHeaderEnd(text: string): number {
+/**
+ * Byte offset just past the fourth newline. Counted on the raw bytes, not on
+ * decoded text: a multi-byte character in a header line (a project name,
+ * typically) would otherwise shift where the zlib payload is sliced.
+ */
+function findHeaderEnd(buffer: Uint8Array): number {
   let offset = 0;
   for (let line = 0; line < 4; line += 1) {
-    const next = text.indexOf('\n', offset);
+    const next = buffer.indexOf(0x0a, offset);
     if (next === -1) throw new PydocsError('starlight-pydocs: inventory is truncated (fewer than four header lines)');
     offset = next + 1;
   }
