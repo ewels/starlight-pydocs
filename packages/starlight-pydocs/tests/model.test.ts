@@ -373,6 +373,35 @@ describe('source links', () => {
     );
   });
 
+  test('computes the path against sourceLink.root when griffe reported an absolute one', async () => {
+    // What griffe emits when the search path lies outside its working directory:
+    // `relative_filepath` is the absolute path, which must never reach a URL.
+    const dump = {
+      pkg: {
+        kind: 'module',
+        name: 'pkg',
+        path: 'pkg',
+        filepath: '/repo/py/src/pkg/__init__.py',
+        relative_filepath: '/repo/py/src/pkg/__init__.py',
+        lineno: 1,
+        endlineno: 2,
+      },
+    } as unknown as Parameters<typeof buildModel>[0];
+
+    const withRoot = buildModel(dump, {
+      ...modelOptions('pkg'),
+      sourceLink: { template: 'https://example.dev/blob/{ref}/{path}#L{start}', ref: 'main', root: '/repo' },
+    });
+    expect(withRoot.root.source?.file).toBe('py/src/pkg/__init__.py');
+    expect(withRoot.root.source?.href).toBe('https://example.dev/blob/main/py/src/pkg/__init__.py#L1');
+
+    const withoutRoot = buildModel(dump, {
+      ...modelOptions('pkg'),
+      sourceLink: { template: 'https://example.dev/blob/{ref}/{path}#L{start}', ref: 'main', root: undefined },
+    });
+    expect(withoutRoot.root.source?.file).toBe('/repo/py/src/pkg/__init__.py');
+  });
+
   test('falls back to griffe source_link when no template is configured', () => {
     expect(synthetic.objectsByPath.get('ovpkg.render')?.source?.href).toBe(
       'https://example.dev/o/r/blob/abc123/src/ovpkg/__init__.py#L10-L14',
