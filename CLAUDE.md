@@ -85,8 +85,10 @@ with a minimal built-in layout.
 Hard rule: **`lib/` never imports `astro` or `@astrojs/starlight`**, and
 **components never import `@astrojs/starlight`** (they must work in vanilla Astro;
 we render our own anchor headings rather than Starlight's `AnchorHeading`).
-Starlight glue is isolated in `index.ts`, `libs/starlight.ts`, `middleware.ts`,
-`routes/starlight/`.
+Starlight glue is isolated in `index.ts`, `libs/starlight.ts`, `middleware.ts` and
+`routes/starlight.astro`. `libs/integration.ts`, `libs/vite.ts`,
+`libs/docstring-renderer.ts` and `libs/route.ts` are shared by both hosts and may
+import Astro types but never Starlight.
 
 ### Model layer
 
@@ -152,18 +154,30 @@ them. `pnpm typecheck` runs both.
 ## Starlight integration gotchas (learned the hard way, some inherited from starlight-quiz)
 
 - **Remark plugins don't run in this Astro 7 / Starlight-MDX pipeline** when appended
-  from an integration's `astro:config:setup`. Don't reach for remark; render
-  docstring markdown through our own processor.
+  from an integration's `astro:config:setup`. We register no markdown plugins at all;
+  we only call the host processor's renderer on docstring strings.
+- **Never build a markdown processor that runs in the SSR graph.** Astro tree-shakes
+  Shiki's bundled themes and languages out of the server bundle, so a processor
+  created at render time cannot resolve a theme the host's own config never asked for
+  (`Theme 'github-light' is not included in this bundle`). Rendering happens at
+  `astro:config:done`, in the config process, where the full bundle exists.
 - **Starlight colour tokens are contrast tokens, not literal colours.**
   `--sl-color-white` flips to dark in light mode. Follow the LinkButton pattern
   (`background: var(--sl-color-text-accent)`, `color: var(--sl-color-black)`); all
-  our colours go through `--pydocs-*` custom properties with vanilla fallbacks.
+  our colours go through `--pyd-*` custom properties with static vanilla fallbacks,
+  matching the `.pyd-` class prefix.
 - **`styles.css` is wrapped in `@layer starlight-pydocs`** (deliberately low
   priority). Starlight's own unlayered rules beat layered ones; where we must win
   inside Starlight DOM, use inline styles or higher specificity, and note why.
 - **StarlightPage props, not `starlightRoute` mutation, set the ToC** for injected
-  routes: pass `headings` (and `frontmatter`) as props. Route middleware is only for
-  the sidebar swap and runs for every page — return early on non-pydocs routes.
+  routes: pass `headings` (and `frontmatter`) as props. Route middleware handles the
+  sidebar swap and pagination and runs for every page — build the tree once per
+  process and return early when the route is neither a pydocs page nor holds a
+  placeholder.
+- **`astro check` in `docs` only sees files inside `docs`** unless
+  `docs/tsconfig.json` includes them. It includes the package's `.astro` components,
+  routes, layouts and glue on purpose; without that they are compiled but never
+  type-checked.
 - **Don't add `scroll-margin-top`** to anchor targets; Starlight's `scroll-padding-top`
   on `<html>` already clears the fixed header and doubles up with any custom margin.
 - **Custom elements query `this`, never `document`, and self-define idempotently** —
