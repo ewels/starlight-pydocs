@@ -21,7 +21,7 @@ import type { PydocsConfig, PydocsUserConfig } from '../lib/config.ts';
 import { normalizeConfig } from '../lib/config.ts';
 import type { PydocsContext, PydocsInventoryContext } from '../lib/context.ts';
 import { createContext } from '../lib/context.ts';
-import { clearCaches } from '../lib/data.ts';
+import { clearCaches, getCrossReferenceResolver } from '../lib/data.ts';
 import { loadInventories } from '../lib/inventory.ts';
 import type { PydocsLogger } from '../lib/logger.ts';
 import { resolveAllExtractions, watchPaths } from '../lib/runner.ts';
@@ -141,6 +141,7 @@ export function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOption
         dumpPath: pkg.dumpPath,
         renderedPath: pkg.renderedPath,
         renderer,
+        crossReferences: await getCrossReferenceResolver(setup.context, pkg.name),
         logger: pydocsLogger,
       });
       logger.debug(`rendered ${String(count)} docstring strings of '${pkg.name}' with ${renderer.name}`);

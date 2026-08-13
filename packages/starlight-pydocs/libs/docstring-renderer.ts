@@ -20,6 +20,8 @@
 import type { AstroConfig } from 'astro';
 
 import { writeAtomic } from '../lib/cache.ts';
+import type { CrossReferenceResolver } from '../lib/crossrefs.ts';
+import { resolveCrossReferences } from '../lib/crossrefs.ts';
 import { loadDump } from '../lib/data.ts';
 import { assembleRenderedDocstrings, collectDocstringMarkdown } from '../lib/docstrings.ts';
 import { PydocsError } from '../lib/errors.ts';
@@ -104,6 +106,11 @@ export interface RenderDocstringsOptions {
   /** Absolute path of the sidecar JSON to write. */
   renderedPath: string;
   renderer: DocstringRenderer;
+  /**
+   * Resolves mkdocstrings-style `[title][target]` references. Without one the
+   * references are left as written.
+   */
+  crossReferences?: CrossReferenceResolver | undefined;
   logger?: PydocsLogger | undefined;
 }
 
@@ -118,6 +125,7 @@ export interface RenderDocstringsOptions {
 export async function renderDocstringsForDump(options: RenderDocstringsOptions): Promise<{ count: number }> {
   const logger = options.logger ?? silentLogger;
   const items = collectDocstringMarkdown(await loadDump(options.dumpPath));
+  const crossReferences = options.crossReferences;
 
   const html: string[] = [];
   for (let start = 0; start < items.length; start += RENDER_BATCH) {
@@ -125,8 +133,12 @@ export async function renderDocstringsForDump(options: RenderDocstringsOptions):
     html.push(
       ...(await Promise.all(
         batch.map(async (item) => {
+          // Cross-references become ordinary Markdown links before the
+          // processor sees them; nothing downstream knows they were special.
+          const markdown =
+            crossReferences === undefined ? item.markdown : resolveCrossReferences(item.markdown, crossReferences);
           try {
-            return (await options.renderer.render(item.markdown)).trim();
+            return (await options.renderer.render(markdown)).trim();
           } catch (cause) {
             // One unrenderable docstring must not fail a build; the prose is
             // dropped and the object still documents its structure.

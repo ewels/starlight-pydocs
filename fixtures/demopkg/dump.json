@@ -2242,8 +2242,8 @@
             ],
             "decorators": [],
             "docstring": {
-              "endlineno": 205,
-              "lineno": 205,
+              "endlineno": 210,
+              "lineno": 210,
               "parsed": [
                 {
                   "kind": "text",
@@ -2252,7 +2252,7 @@
               ],
               "value": "Raised when a report cannot be generated."
             },
-            "endlineno": 205,
+            "endlineno": 210,
             "filepath": "fixtures/demopkg/src/demopkg/report.py",
             "is_class_private": false,
             "is_deprecated": false,
@@ -2263,7 +2263,7 @@
             "is_special": false,
             "is_wildcard_exposed": true,
             "kind": "class",
-            "lineno": 204,
+            "lineno": 209,
             "name": "ReportError",
             "path": "demopkg.report.ReportError",
             "relative_filepath": "fixtures/demopkg/src/demopkg/report.py",
@@ -2281,8 +2281,8 @@
             ],
             "decorators": [],
             "docstring": {
-              "endlineno": 209,
-              "lineno": 209,
+              "endlineno": 214,
+              "lineno": 214,
               "parsed": [
                 {
                   "kind": "text",
@@ -2291,7 +2291,7 @@
               ],
               "value": "Warned when a report is generated with incomplete data."
             },
-            "endlineno": 209,
+            "endlineno": 214,
             "filepath": "fixtures/demopkg/src/demopkg/report.py",
             "is_class_private": false,
             "is_deprecated": false,
@@ -2302,7 +2302,7 @@
             "is_special": false,
             "is_wildcard_exposed": true,
             "kind": "class",
-            "lineno": 208,
+            "lineno": 213,
             "name": "ReportWarning",
             "path": "demopkg.report.ReportWarning",
             "relative_filepath": "fixtures/demopkg/src/demopkg/report.py",
@@ -2351,12 +2351,12 @@
             "analysis": "static",
             "decorators": [],
             "docstring": {
-              "endlineno": 179,
+              "endlineno": 184,
               "lineno": 164,
               "parsed": [
                 {
                   "kind": "text",
-                  "value": "Build a report from a source object.\n\nExercises a positional-only parameter (`source`, before the `/`) and a\nkeyword-only one (`fmt`, after the `*`)."
+                  "value": "Build a report from a source object.\n\nExercises a positional-only parameter (`source`, before the `/`) and a\nkeyword-only one (`fmt`, after the `*`).\n\nReturns a [Report][demopkg.report.Report] whose\n[generate][demopkg.report.Report.generate] method writes a\n[pathlib.Path][pathlib.Path]. A reference nothing resolves, such as\n[nosuchpkg.Thing][], is left exactly as it was written."
                 },
                 {
                   "kind": "parameters",
@@ -2415,9 +2415,9 @@
                   ]
                 }
               ],
-              "value": "Build a report from a source object.\n\nExercises a positional-only parameter (`source`, before the `/`) and a\nkeyword-only one (`fmt`, after the `*`).\n\nArgs:\n    source: Anything with a `read()` method; deliberately unannotated.\n    name: Name for the resulting report.\n    fmt: Output format for the report.\n\nReturns:\n    A populated report.\n\nRaises:\n    ReportError: If `source` cannot be read."
+              "value": "Build a report from a source object.\n\nExercises a positional-only parameter (`source`, before the `/`) and a\nkeyword-only one (`fmt`, after the `*`).\n\nReturns a [Report][demopkg.report.Report] whose\n[generate][demopkg.report.Report.generate] method writes a\n[pathlib.Path][pathlib.Path]. A reference nothing resolves, such as\n[nosuchpkg.Thing][], is left exactly as it was written.\n\nArgs:\n    source: Anything with a `read()` method; deliberately unannotated.\n    name: Name for the resulting report.\n    fmt: Output format for the report.\n\nReturns:\n    A populated report.\n\nRaises:\n    ReportError: If `source` cannot be read."
             },
-            "endlineno": 182,
+            "endlineno": 187,
             "filepath": "fixtures/demopkg/src/demopkg/report.py",
             "is_class_private": false,
             "is_deprecated": false,
@@ -2472,8 +2472,8 @@
             "analysis": "static",
             "decorators": [
               {
-                "endlineno": 188,
-                "lineno": 188,
+                "endlineno": 193,
+                "lineno": 193,
                 "value": {
                   "arguments": [
                     "'use generate_report instead'"
@@ -2488,8 +2488,8 @@
               }
             ],
             "docstring": {
-              "endlineno": 200,
-              "lineno": 190,
+              "endlineno": 205,
+              "lineno": 195,
               "parsed": [
                 {
                   "kind": "text",
@@ -2534,7 +2534,7 @@
               ],
               "value": "Build a report the old way.\n\nDeprecated:\n    Since 0.3. Use [`generate_report`][demopkg.report.generate_report].\n\nArgs:\n    name: Name for the resulting report.\n\nReturns:\n    A populated report."
             },
-            "endlineno": 201,
+            "endlineno": 206,
             "filepath": "fixtures/demopkg/src/demopkg/report.py",
             "is_class_private": false,
             "is_deprecated": false,
@@ -2545,7 +2545,7 @@
             "is_special": false,
             "is_wildcard_exposed": true,
             "kind": "function",
-            "lineno": 188,
+            "lineno": 193,
             "name": "old_generate",
             "parameters": [
               {

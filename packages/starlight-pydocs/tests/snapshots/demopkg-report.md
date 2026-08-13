@@ -323,7 +323,7 @@ Bases: `Exception`
 
 Raised when a report cannot be generated.
 
-[View source](https://github.com/ewels/starlight-pydocs/blob/main/fixtures/demopkg/src/demopkg/report.py#L204-L205)
+[View source](https://github.com/ewels/starlight-pydocs/blob/main/fixtures/demopkg/src/demopkg/report.py#L209-L210)
 
 ## demopkg.report.ReportWarning
 
@@ -337,7 +337,7 @@ Bases: `UserWarning`
 
 Warned when a report is generated with incomplete data.
 
-[View source](https://github.com/ewels/starlight-pydocs/blob/main/fixtures/demopkg/src/demopkg/report.py#L208-L209)
+[View source](https://github.com/ewels/starlight-pydocs/blob/main/fixtures/demopkg/src/demopkg/report.py#L213-L214)
 
 ## demopkg.report.generate_report
 
@@ -351,6 +351,11 @@ Build a report from a source object.
 
 Exercises a positional-only parameter (`source`, before the `/`) and a
 keyword-only one (`fmt`, after the `*`).
+
+Returns a [Report][demopkg.report.Report] whose
+[generate][demopkg.report.Report.generate] method writes a
+[pathlib.Path][pathlib.Path]. A reference nothing resolves, such as
+[nosuchpkg.Thing][], is left exactly as it was written.
 
 **Parameters**
 
@@ -366,7 +371,7 @@ keyword-only one (`fmt`, after the `*`).
 
 - `ReportError` — If `source` cannot be read.
 
-[View source](https://github.com/ewels/starlight-pydocs/blob/main/fixtures/demopkg/src/demopkg/report.py#L163-L182)
+[View source](https://github.com/ewels/starlight-pydocs/blob/main/fixtures/demopkg/src/demopkg/report.py#L163-L187)
 
 ## demopkg.report.old_generate
 
@@ -388,4 +393,4 @@ Build a report the old way.
 
 - (`Report`) — A populated report.
 
-[View source](https://github.com/ewels/starlight-pydocs/blob/main/fixtures/demopkg/src/demopkg/report.py#L188-L201)
+[View source](https://github.com/ewels/starlight-pydocs/blob/main/fixtures/demopkg/src/demopkg/report.py#L193-L206)

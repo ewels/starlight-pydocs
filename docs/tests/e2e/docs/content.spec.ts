@@ -98,6 +98,19 @@ test.describe('demopkg.report', () => {
     await expect(note).toContainText('deliberately synchronous');
   });
 
+  test('mkdocstrings cross-references in prose become links', async ({ page }) => {
+    const prose = page.locator('.pyd-member[data-pydocs-path="demopkg.report.generate_report"] .pyd-markdown').first();
+
+    // A target documented on this site, and one resolved through the inventory.
+    await expect(prose.locator('a[href$="/api/demopkg/report/#demopkg.report.Report"]')).toHaveText('Report');
+    await expect(prose.locator('a[href="https://docs.python.org/3/library/pathlib.html#pathlib.Path"]')).toHaveText(
+      'pathlib.Path',
+    );
+
+    // A target nothing resolves keeps the brackets it was written with.
+    await expect(prose).toContainText('[nosuchpkg.Thing][]');
+  });
+
   test('inherited members are collected and attributed to their base class', async ({ page }) => {
     const inherited = page.locator('details.pyd-inherited[data-pydocs-inherited="demopkg.report.BaseReport"]');
     await expect(inherited).toBeVisible();
