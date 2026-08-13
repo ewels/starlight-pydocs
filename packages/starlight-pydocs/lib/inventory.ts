@@ -102,8 +102,13 @@ function findHeaderEnd(text: string): number {
   return offset;
 }
 
-/** Serialise entries into an `objects.inv` payload. */
-export function buildInventory(project: string, version: string, entries: InventoryEntry[]): Uint8Array {
+/**
+ * Serialise entries into an `objects.inv` payload.
+ *
+ * The bytes are assembled into a plain `ArrayBuffer` rather than concatenated
+ * `Buffer`s so the result is a `BodyInit` a `Response` accepts without a cast.
+ */
+export function buildInventory(project: string, version: string, entries: InventoryEntry[]): Uint8Array<ArrayBuffer> {
   const header = [
     HEADER_LINE,
     `# Project: ${project}`,
@@ -125,7 +130,12 @@ export function buildInventory(project: string, version: string, entries: Invent
 
   const body = lines.length === 0 ? '' : `${lines.join('\n')}\n`;
   const compressed = deflateSync(Buffer.from(body, 'utf8'));
-  return Buffer.concat([Buffer.from(header, 'utf8'), compressed]);
+  const headerBytes = new TextEncoder().encode(header);
+
+  const payload = new Uint8Array(headerBytes.length + compressed.length);
+  payload.set(headerBytes, 0);
+  payload.set(compressed, headerBytes.length);
+  return payload;
 }
 
 export interface InventoryLookupEntry {

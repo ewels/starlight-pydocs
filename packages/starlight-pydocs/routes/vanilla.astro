@@ -1,16 +1,15 @@
 ---
 /**
- * The generated module pages, under Starlight.
+ * The generated module pages, in plain Astro.
  *
- * `StarlightPage` gets `frontmatter` and `headings` as props: that is what
- * feeds the table of contents for an injected route, and it renders the standard
- * page shell so Pagefind indexes the content. Prerendering comes from the
- * `injectRoute` call, not an export (eslint rejects the export outside
- * `src/pages`, and the flag is sufficient).
+ * The layout comes from `virtual:starlight-pydocs/vanilla-layout`, which points
+ * at either our minimal built-in layout or the component named by the
+ * integration's `layout` option. Resolving it through a virtual module rather
+ * than a dynamic import keeps it a normal, statically analysable import.
  */
-import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import context from 'virtual:starlight-pydocs/context';
 import { ModuleDoc } from 'virtual:starlight-pydocs/components';
+import Layout from 'virtual:starlight-pydocs/vanilla-layout';
 
 import { createRenderScope } from '../lib/render.ts';
 import type { PydocsRouteProps } from '../libs/route.ts';
@@ -29,6 +28,6 @@ const [scope, page] = await Promise.all([
 ]);
 ---
 
-<StarlightPage frontmatter={{ title: page.title, pagefind: true }} headings={page.headings}>
+<Layout title={page.title} headings={page.headings} description={page.object.summary}>
   <ModuleDoc doc={page.object} scope={scope} />
-</StarlightPage>
+</Layout>
