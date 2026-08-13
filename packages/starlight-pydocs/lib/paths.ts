@@ -71,6 +71,14 @@ export function isInside(candidate: string, ancestor: string): boolean {
 }
 
 /**
+ * The slug equivalent of {@link isInside}: true when `slug` is `base` itself or a
+ * page underneath it. Both are expected without surrounding slashes.
+ */
+export function isUnderBase(slug: string, base: string): boolean {
+  return slug === base || slug.startsWith(`${base}/`);
+}
+
+/**
  * Match a dotted path against a tiny glob dialect: `*` matches within one dotted
  * segment, `**` matches across segments. No other metacharacters are supported,
  * which keeps patterns readable and needs no dependency.

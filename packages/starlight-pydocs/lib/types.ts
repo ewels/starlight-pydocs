@@ -486,12 +486,6 @@ export function isExpr(value: unknown): value is Expr {
   return typeof value === 'object' && value !== null && typeof (value as { cls?: unknown }).cls === 'string';
 }
 
-export function isGriffeObject(value: unknown): value is GriffeObject {
-  if (typeof value !== 'object' || value === null) return false;
-  const candidate = value as { kind?: unknown; name?: unknown };
-  return typeof candidate.kind === 'string' && typeof candidate.name === 'string';
-}
-
 export function hasMembers(object: GriffeObject): object is GriffeParent {
   return object.kind === 'module' || object.kind === 'class';
 }

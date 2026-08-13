@@ -17,7 +17,7 @@ import type {
   PydocsConfig,
   PydocsSidebarConfig,
 } from './config.ts';
-import { stripLeadingAndTrailingSlashes } from './paths.ts';
+import { isInside, isUnderBase, stripLeadingAndTrailingSlashes } from './paths.ts';
 
 export interface PydocsPackageContext {
   /** Python import name of the documented package. */
@@ -129,7 +129,7 @@ export function createContext(config: PydocsConfig, options: CreateContextOption
 /** The package that owns a URL slug, or undefined when none does. */
 export function packageForSlug(context: PydocsContext, slug: string): PydocsPackageContext | undefined {
   const normalised = stripLeadingAndTrailingSlashes(slug);
-  return context.packages.find((pkg) => normalised === pkg.base || normalised.startsWith(`${pkg.base}/`));
+  return context.packages.find((pkg) => isUnderBase(normalised, pkg.base));
 }
 
 /** Look up a package by its base, the identity render-time code is keyed on. */
@@ -188,7 +188,7 @@ export function matchPackageReference(context: PydocsContext, reference: string)
  */
 export function matchPackageForDottedPath(context: PydocsContext, dottedPath: string): PackageMatch {
   const names = [...new Set(context.packages.map((pkg) => pkg.name))].sort((left, right) => right.length - left.length);
-  const name = names.find((candidate) => dottedPath === candidate || dottedPath.startsWith(`${candidate}.`));
+  const name = names.find((candidate) => isInside(dottedPath, candidate));
   if (name === undefined) return { kind: 'none' };
   return matchOne(packagesByName(context, name), name);
 }

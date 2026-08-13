@@ -4,11 +4,12 @@ import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 
-import type { PydocsConfig, PydocsPackageConfig } from '../lib/config.ts';
+import type { PydocsConfig } from '../lib/config.ts';
 import { normalizeConfig } from '../lib/config.ts';
 import { createMemoryLogger } from '../lib/logger.ts';
 import type { ExecFileImpl } from '../lib/runner.ts';
 import { buildGriffeArgs, resolveExtraction, watchPaths } from '../lib/runner.ts';
+import { onlyPackage } from './helpers.ts';
 
 let workspace: string;
 
@@ -31,12 +32,6 @@ function configure(overrides: Record<string, unknown> = {}, top: Record<string, 
     },
     workspace,
   );
-}
-
-function onlyPackage(config: PydocsConfig): PydocsPackageConfig {
-  const pkg = config.packages[0];
-  if (pkg === undefined) throw new Error('no package');
-  return pkg;
 }
 
 describe('buildGriffeArgs', () => {

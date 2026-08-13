@@ -24,21 +24,62 @@ import type { GriffeDump } from './types.ts';
 import type { VersionAnnotations } from './versions.ts';
 import { versionLabelsFrom } from './versions.ts';
 
-interface CachedDump {
+interface CachedJson<T> {
   mtimeMs: number;
-  dump: GriffeDump;
+  value: T;
 }
 
-interface CachedRendered {
-  mtimeMs: number;
-  rendered: RenderedDocstrings;
-}
-
-const dumpCache = new Map<string, CachedDump>();
+const dumpCache = new Map<string, CachedJson<GriffeDump>>();
 const modelCache = new Map<string, PackageModel>();
 const inventoryCache = new Map<string, InventoryLookup>();
-const renderedCache = new Map<string, CachedRendered>();
+const renderedCache = new Map<string, CachedJson<RenderedDocstrings>>();
 const versionsCache = new Map<string, Map<string, string>>();
+
+interface LoadJsonOptions<T> {
+  /** Per-process cache, keyed by path and invalidated by mtime. */
+  cache: Map<string, CachedJson<T>>;
+  /** Absolute path of the file to read. */
+  path: string;
+  /** Message for a file that cannot be stat'ed. */
+  unreadable: string;
+  /** Message for a file that is not JSON. */
+  invalidJson: string;
+  /** Turn the parsed JSON into the value to cache, or throw if it is not one. */
+  interpret: (parsed: unknown) => T;
+}
+
+/**
+ * Read a JSON file through a per-process cache, re-reading it only once its
+ * mtime has moved.
+ *
+ * The dumps and their sidecars are the only large files we touch at render time
+ * and every page render asks for them, so both go through here.
+ *
+ * @throws {PydocsError} With the caller's message when the file is unreadable or
+ *   is not JSON.
+ */
+async function loadJson<T>(options: LoadJsonOptions<T>): Promise<T> {
+  let mtimeMs: number;
+  try {
+    mtimeMs = (await fs.stat(options.path)).mtimeMs;
+  } catch (cause) {
+    throw new PydocsError(options.unreadable, { cause });
+  }
+
+  const cached = options.cache.get(options.path);
+  if (cached !== undefined && cached.mtimeMs === mtimeMs) return cached.value;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(await fs.readFile(options.path, 'utf8'));
+  } catch (cause) {
+    throw new PydocsError(options.invalidJson, { cause });
+  }
+
+  const value = options.interpret(parsed);
+  options.cache.set(options.path, { mtimeMs, value });
+  return value;
+}
 
 /**
  * Parse a dump, reusing the parsed object while the file is unchanged.
@@ -50,33 +91,21 @@ export async function loadDump(dumpPath: string): Promise<GriffeDump> {
     throw new PydocsError('starlight-pydocs: no dump path was recorded for this package (extraction did not run)');
   }
 
-  let mtimeMs: number;
-  try {
-    mtimeMs = (await fs.stat(dumpPath)).mtimeMs;
-  } catch (cause) {
-    throw new PydocsError(`starlight-pydocs: cannot read the griffe dump at ${dumpPath}`, { cause });
-  }
-
-  const cached = dumpCache.get(dumpPath);
-  if (cached !== undefined && cached.mtimeMs === mtimeMs) return cached.dump;
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(await fs.readFile(dumpPath, 'utf8'));
-  } catch (cause) {
-    throw new PydocsError(`starlight-pydocs: the griffe dump at ${dumpPath} is not valid JSON`, { cause });
-  }
-
-  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-    throw new PydocsError(
-      `starlight-pydocs: the griffe dump at ${dumpPath} is not an object keyed by package name; ` +
-        'regenerate it with `griffe dump -f -d <style>`',
-    );
-  }
-
-  const dump = parsed as GriffeDump;
-  dumpCache.set(dumpPath, { mtimeMs, dump });
-  return dump;
+  return loadJson({
+    cache: dumpCache,
+    path: dumpPath,
+    unreadable: `starlight-pydocs: cannot read the griffe dump at ${dumpPath}`,
+    invalidJson: `starlight-pydocs: the griffe dump at ${dumpPath} is not valid JSON`,
+    interpret: (parsed) => {
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        throw new PydocsError(
+          `starlight-pydocs: the griffe dump at ${dumpPath} is not an object keyed by package name; ` +
+            'regenerate it with `griffe dump -f -d <style>`',
+        );
+      }
+      return parsed as GriffeDump;
+    },
+  });
 }
 
 /**
@@ -93,33 +122,20 @@ export async function loadRendered(renderedPath: string): Promise<RenderedDocstr
     );
   }
 
-  let mtimeMs: number;
-  try {
-    mtimeMs = (await fs.stat(renderedPath)).mtimeMs;
-  } catch (cause) {
-    throw new PydocsError(
+  return loadJson({
+    cache: renderedCache,
+    path: renderedPath,
+    unreadable:
       `starlight-pydocs: the pre-rendered docstrings at ${renderedPath} are missing; ` +
-        'docstring prose is rendered at astro:config:done, so this usually means the integration was not registered',
-      { cause },
-    );
-  }
-
-  const cached = renderedCache.get(renderedPath);
-  if (cached !== undefined && cached.mtimeMs === mtimeMs) return cached.rendered;
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(await fs.readFile(renderedPath, 'utf8'));
-  } catch (cause) {
-    throw new PydocsError(`starlight-pydocs: ${renderedPath} is not valid JSON`, { cause });
-  }
-
-  const rendered =
-    typeof parsed === 'object' && parsed !== null && 'objects' in parsed
-      ? (parsed as RenderedDocstrings)
-      : { objects: {} };
-  renderedCache.set(renderedPath, { mtimeMs, rendered });
-  return rendered;
+      'docstring prose is rendered at astro:config:done, so this usually means the integration was not registered',
+    invalidJson: `starlight-pydocs: ${renderedPath} is not valid JSON`,
+    // A sidecar written by an older release may not have the objects map; an
+    // empty one only costs unrendered prose.
+    interpret: (parsed) =>
+      typeof parsed === 'object' && parsed !== null && 'objects' in parsed
+        ? (parsed as RenderedDocstrings)
+        : { objects: {} },
+  });
 }
 
 /**
@@ -191,11 +207,12 @@ export async function getModel(context: PydocsContext, base: string): Promise<Pa
   const pkg = requirePackage(context, base);
 
   const options = modelOptionsFor(pkg);
-  // The base is part of the key as well as of the options: two entries may share
-  // a dump file (the same pinned dump documented at two bases) and must still
-  // get one model each. The version labels are not: they are derived from the
-  // package's configuration, so they cannot differ for one base within a process.
-  const key = JSON.stringify([pkg.base, pkg.dumpPath, pkg.versionsPath, options]);
+  // The dump path alone is not a key: two entries may share a dump file (the same
+  // pinned dump documented at two bases) and must still get one model each, which
+  // is why `options` (and with it the base) is part of it. The version labels are
+  // not: they are derived from the package's configuration, so they cannot differ
+  // for one base within a process.
+  const key = JSON.stringify([pkg.dumpPath, pkg.versionsPath, options]);
   const cached = modelCache.get(key);
   if (cached !== undefined) return cached;
 
@@ -220,17 +237,22 @@ export async function getInventoryLookup(context: PydocsContext): Promise<Invent
   const cached = inventoryCache.get(key);
   if (cached !== undefined) return cached;
 
-  const parsed: { base: string; entries: ReturnType<typeof parseInventory> }[] = [];
-  for (const inventory of context.inventories) {
-    try {
-      parsed.push({ base: inventory.base, entries: parseInventory(await fs.readFile(inventory.path)) });
-    } catch {
-      // A broken cached inventory must not break a page render; annotations
-      // simply stay unlinked. The build-time loader already warned.
-    }
-  }
+  // Read them together: they are independent files, and the first render of a
+  // page waits for all of them.
+  const read = await Promise.all(
+    context.inventories.map(async (inventory) => {
+      try {
+        return { base: inventory.base, entries: parseInventory(await fs.readFile(inventory.path)) };
+      } catch {
+        // A broken cached inventory must not break a page render; annotations
+        // simply stay unlinked. The build-time loader already warned.
+        return undefined;
+      }
+    }),
+  );
 
-  const lookup = createInventoryLookup(parsed);
+  // Configuration order decides which site wins a name, so keep it.
+  const lookup = createInventoryLookup(read.filter((entry) => entry !== undefined));
   inventoryCache.set(key, lookup);
   return lookup;
 }
