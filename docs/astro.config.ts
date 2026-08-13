@@ -48,6 +48,9 @@ export default defineConfig({
               base: 'api/numpkg',
               search: ['../fixtures/numpkg/src'],
               docstringStyle: 'numpy',
+              // Explicit, so the links do not depend on griffe's git detection
+              // (present in a checkout, absent in a git-archive build).
+              sourceLink: { host: 'github', repo: 'ewels/starlight-pydocs', ref: 'main', root: '..' },
             },
             {
               // The same package name again, at its own base: the 1.x release,

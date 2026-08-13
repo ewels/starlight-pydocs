@@ -9,6 +9,8 @@
 import type { PydocsContext, PydocsPackageContext } from '../lib/context.ts';
 import { packageForSlug } from '../lib/context.ts';
 import { getModel } from '../lib/data.ts';
+import type { RenderScope } from '../lib/render.ts';
+import { createRenderScope } from '../lib/render.ts';
 import { PydocsError } from '../lib/errors.ts';
 import type { PageModel } from '../lib/model.ts';
 import { stripLeadingAndTrailingSlashes } from '../lib/paths.ts';
@@ -65,6 +67,26 @@ export async function getPydocsPage(context: PydocsContext, props: PydocsRoutePr
  */
 export function isPackageRootPage(page: PageModel): boolean {
   return page.parent === undefined;
+}
+
+export interface PydocsPageData {
+  scope: RenderScope;
+  page: PageModel;
+  /** Render the symbol search box: package root pages, when the option is on. */
+  withSearch: boolean;
+}
+
+/**
+ * Everything a page route renders, resolved in one call. Both route
+ * entrypoints (Starlight and vanilla) share this preamble; only the shell
+ * around it differs.
+ */
+export async function resolvePydocsPage(context: PydocsContext, props: PydocsRouteProps): Promise<PydocsPageData> {
+  const [scope, page] = await Promise.all([
+    createRenderScope(context, props.pydocsBase),
+    getPydocsPage(context, props),
+  ]);
+  return { scope, page, withSearch: context.symbolSearch && isPackageRootPage(page) };
 }
 
 /**

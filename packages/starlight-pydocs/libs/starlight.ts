@@ -78,7 +78,17 @@ export interface PydocsNavigation {
   order: { label: string; href: string }[];
 }
 
-let navigationPromise: Promise<PydocsNavigation> | undefined;
+let navigationCache: { key: string; promise: Promise<PydocsNavigation> } | undefined;
+
+/**
+ * Cache key for the built navigation. Dump paths are content-keyed, so a dev
+ * re-extraction produces a new path and a stale tree cannot be served; module
+ * state survives Vite's invalidation of the context virtual module, which is
+ * why an unkeyed once-only cache went stale.
+ */
+function navigationKey(context: PydocsContext): string {
+  return JSON.stringify(context.packages.map((pkg) => [pkg.base, pkg.dumpPath]));
+}
 
 /**
  * Build the generated navigation once per process.
@@ -88,8 +98,9 @@ let navigationPromise: Promise<PydocsNavigation> | undefined;
  * when the tree is converted to Starlight entries.
  */
 export function getPydocsNavigation(context: PydocsContext): Promise<PydocsNavigation> {
-  navigationPromise ??= buildNavigation(context);
-  return navigationPromise;
+  const key = navigationKey(context);
+  if (navigationCache?.key !== key) navigationCache = { key, promise: buildNavigation(context) };
+  return navigationCache.promise;
 }
 
 async function buildNavigation(context: PydocsContext): Promise<PydocsNavigation> {
