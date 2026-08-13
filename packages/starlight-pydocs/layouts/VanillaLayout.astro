@@ -47,7 +47,7 @@ const resolve = createStringResolver(Astro.locals, labels);
             <p class="pyd-toc-title">{resolve('onPage')}</p>
             <ul>
               {headings.map((heading) => (
-                <li class:list={[`pyd-toc-depth-${String(heading.depth)}`]}>
+                <li class={`pyd-toc-depth-${String(heading.depth)}`}>
                   <a href={`#${heading.slug}`}>{heading.text}</a>
                 </li>
               ))}

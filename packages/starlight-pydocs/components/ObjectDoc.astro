@@ -19,7 +19,7 @@ import type { DocObject } from '../lib/model.ts';
 import { groupMembers } from '../lib/model.ts';
 import type { RenderScope } from '../lib/render.ts';
 import { hrefForPath, splitInherited } from '../lib/render.ts';
-import type { StringOverrides } from '../lib/strings.ts';
+import type { StringKey, StringOverrides } from '../lib/strings.ts';
 import { AttributeDoc, ClassDoc, FunctionDoc, Heading, SourceLink } from 'virtual:starlight-pydocs/components';
 import Badges from './Badges.astro';
 import Markdown from './Markdown.astro';
@@ -46,8 +46,21 @@ const inheritedGroups = inherited.map((bucket) => ({
   groups: groupMembers(bucket.members, memberParentKind),
 }));
 
-const reexportHref = doc.reexportedFrom === undefined ? undefined : hrefForPath(scope, doc.reexportedFrom);
-const inheritedHref = doc.inheritedFrom === undefined ? undefined : hrefForPath(scope, doc.inheritedFrom);
+/**
+ * Where the object came from, when that is not where it is documented. The three
+ * relations differ only in their label and in whether the path is one of ours:
+ * an alias target outside the documented packages has nothing to link to.
+ */
+const relations: { relation: string; labelKey: StringKey; from: string | undefined; linkable: boolean }[] = [
+  { relation: 'inherited', labelKey: 'inheritedFrom', from: doc.inheritedFrom, linkable: true },
+  { relation: 'reexported', labelKey: 'reexportedFrom', from: doc.reexportedFrom, linkable: true },
+  { relation: 'alias', labelKey: 'aliasOf', from: doc.externalTargetPath, linkable: false },
+];
+
+const provenance = relations.flatMap(({ relation, labelKey, from, linkable }) =>
+  from === undefined ? [] : [{ relation, labelKey, path: from, href: linkable ? hrefForPath(scope, from) : undefined }],
+);
+
 const deprecation = doc.deprecated;
 const deprecationHtml = deprecation === undefined ? '' : renderedDeprecation(scope.rendered, doc.canonicalPath);
 ---
@@ -60,39 +73,18 @@ const deprecationHtml = deprecation === undefined ? '' : renderedDeprecation(sco
 
   <div class="pyd-provenance">
     {
-      doc.inheritedFrom === undefined ? null : (
-        <span class="pyd-provenance-item" data-pydocs-provenance="inherited">
-          {resolve('inheritedFrom')}{' '}
-          {inheritedHref === undefined ? (
-            <code>{doc.inheritedFrom}</code>
+      provenance.map((item) => (
+        <span class="pyd-provenance-item" data-pydocs-provenance={item.relation}>
+          {resolve(item.labelKey)}{' '}
+          {item.href === undefined ? (
+            <code>{item.path}</code>
           ) : (
-            <a href={inheritedHref}>
-              <code>{doc.inheritedFrom}</code>
+            <a href={item.href}>
+              <code>{item.path}</code>
             </a>
           )}
         </span>
-      )
-    }
-    {
-      doc.reexportedFrom === undefined ? null : (
-        <span class="pyd-provenance-item" data-pydocs-provenance="reexported">
-          {resolve('reexportedFrom')}{' '}
-          {reexportHref === undefined ? (
-            <code>{doc.reexportedFrom}</code>
-          ) : (
-            <a href={reexportHref}>
-              <code>{doc.reexportedFrom}</code>
-            </a>
-          )}
-        </span>
-      )
-    }
-    {
-      doc.externalTargetPath === undefined ? null : (
-        <span class="pyd-provenance-item" data-pydocs-provenance="alias">
-          {resolve('aliasOf')} <code>{doc.externalTargetPath}</code>
-        </span>
-      )
+      ))
     }
     <SourceLink doc={doc} labels={labels} />
   </div>

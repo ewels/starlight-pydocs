@@ -100,6 +100,8 @@
     align-items: baseline;
   }
 
+  /* Two classes deep on purpose: the heading's name is a `<code>` element, and
+     Starlight's unlayered inline-code chrome has to be stripped back off it. */
   .pyd-heading .pyd-member-name {
     font-family: var(--pyd-mono);
     background: none;
@@ -186,6 +188,8 @@
     overflow-wrap: break-word;
   }
 
+  /* Same reason as the heading name: the signature's `<code>` inherits the block's
+     type, rather than the host's inline-code background, padding and border. */
   .pyd-signature code {
     font-family: inherit;
     font-size: inherit;
