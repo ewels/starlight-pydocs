@@ -174,22 +174,58 @@ export async function writeAtomic(target: string, data: string | Uint8Array): Pr
 }
 
 /**
- * Where the pre-rendered docstring HTML for one documented package lives.
+ * Where a sidecar for one documented package lives.
  *
  * Beside the dump when the dump is ours (the directory is content-keyed, so the
  * sidecar cannot outlive the dump it describes), and under the cache directory
  * when the dump is a pre-generated file the user owns and we must not write next
- * to. Either way the file name carries the package's base: the rendered prose
- * contains cross-reference hrefs, which are base-specific, so two entries
- * sharing one dump must not share one sidecar.
+ * to. Either way the name carries the package's base, because sidecar contents
+ * are base-specific: two entries sharing one dump must not share one sidecar.
  */
-export function renderedSidecarPath(cacheDir: string, base: string, dumpPath: string): string {
+function sidecarPath(cacheDir: string, base: string, dumpPath: string, kind: string): string {
   const namespaceRoot = path.join(cacheDir, CACHE_NAMESPACE);
   const key = sha256(`${base}\n${path.resolve(dumpPath)}`).slice(0, 12);
   if (path.resolve(dumpPath).startsWith(`${path.resolve(namespaceRoot)}${path.sep}`)) {
-    return path.join(path.dirname(dumpPath), `rendered-${key}.json`);
+    return path.join(path.dirname(dumpPath), `${kind}-${key}.json`);
   }
-  return path.join(namespaceRoot, 'rendered', `${slugifyBase(base)}-${key}`, 'rendered.json');
+  return path.join(namespaceRoot, kind, `${slugifyBase(base)}-${key}`, `${kind}.json`);
+}
+
+/** Pre-rendered docstring HTML for one documented package (PLAN.md decision 7). */
+export function renderedSidecarPath(cacheDir: string, base: string, dumpPath: string): string {
+  return sidecarPath(cacheDir, base, dumpPath, 'rendered');
+}
+
+/** "Added in" labels for one documented package (PLAN.md decision 12). */
+export function versionsSidecarPath(cacheDir: string, base: string, dumpPath: string): string {
+  return sidecarPath(cacheDir, base, dumpPath, 'versions');
+}
+
+/**
+ * Where the dump extracted at one commit lives.
+ *
+ * A commit is immutable, so this dump never needs revalidating: the key is the
+ * sha plus a hash of the extraction options, and an existing file is always
+ * current.
+ */
+export function versionDumpCacheLocation(
+  cacheDir: string,
+  packageName: string,
+  sha: string,
+  optionsHash: string,
+): DumpCacheLocation {
+  const directory = path.join(
+    cacheDir,
+    CACHE_NAMESPACE,
+    'versions',
+    `${packageName}-${sha.slice(0, 12)}-${optionsHash.slice(0, 12)}`,
+  );
+  return { directory, dumpPath: path.join(directory, 'dump.json'), hash: optionsHash };
+}
+
+/** Where the git worktree for one commit is checked out. */
+export function worktreeDirectory(cacheDir: string, sha: string): string {
+  return path.join(cacheDir, CACHE_NAMESPACE, 'worktrees', sha);
 }
 
 /** A temporary path griffe can write to inside a cache directory. */

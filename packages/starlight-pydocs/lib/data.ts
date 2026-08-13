@@ -21,6 +21,8 @@ import { createInventoryLookup, parseInventory } from './inventory.ts';
 import type { ModelOptions, PackageModel } from './model.ts';
 import { buildAnnotationResolver, buildModel } from './model.ts';
 import type { GriffeDump } from './types.ts';
+import type { VersionAnnotations } from './versions.ts';
+import { versionLabelsFrom } from './versions.ts';
 
 interface CachedDump {
   mtimeMs: number;
@@ -36,6 +38,7 @@ const dumpCache = new Map<string, CachedDump>();
 const modelCache = new Map<string, PackageModel>();
 const inventoryCache = new Map<string, InventoryLookup>();
 const renderedCache = new Map<string, CachedRendered>();
+const versionsCache = new Map<string, Map<string, string>>();
 
 /**
  * Parse a dump, reusing the parsed object while the file is unchanged.
@@ -155,6 +158,30 @@ export function modelOptionsFor(pkg: PydocsPackageContext): ModelOptions {
 }
 
 /**
+ * The "added in" labels for a package, or an empty map when it has no version
+ * refs configured.
+ *
+ * A missing or broken sidecar is not fatal: the badges disappear and the rest of
+ * the page is unaffected.
+ */
+export async function getVersionLabels(context: PydocsContext, base: string): Promise<Map<string, string>> {
+  const pkg = requirePackage(context, base);
+  if (pkg.versionsPath === '') return new Map();
+
+  const cached = versionsCache.get(pkg.versionsPath);
+  if (cached !== undefined) return cached;
+
+  let labels = new Map<string, string>();
+  try {
+    labels = versionLabelsFrom(JSON.parse(await fs.readFile(pkg.versionsPath, 'utf8')) as VersionAnnotations);
+  } catch {
+    // Written at setup; if it is not there, the setup did not run for this build.
+  }
+  versionsCache.set(pkg.versionsPath, labels);
+  return labels;
+}
+
+/**
  * Build (or reuse) the normalised model for a package.
  *
  * @param context - The virtual module context.
@@ -166,12 +193,14 @@ export async function getModel(context: PydocsContext, base: string): Promise<Pa
   const options = modelOptionsFor(pkg);
   // The base is part of the key as well as of the options: two entries may share
   // a dump file (the same pinned dump documented at two bases) and must still
-  // get one model each.
-  const key = JSON.stringify([pkg.base, pkg.dumpPath, options]);
+  // get one model each. The version labels are not: they are derived from the
+  // package's configuration, so they cannot differ for one base within a process.
+  const key = JSON.stringify([pkg.base, pkg.dumpPath, pkg.versionsPath, options]);
   const cached = modelCache.get(key);
   if (cached !== undefined) return cached;
 
-  const model = buildModel(await loadDump(pkg.dumpPath), options);
+  const [dump, addedIn] = await Promise.all([loadDump(pkg.dumpPath), getVersionLabels(context, base)]);
+  const model = buildModel(dump, addedIn.size === 0 ? options : { ...options, addedIn });
   modelCache.set(key, model);
   return model;
 }
@@ -240,10 +269,11 @@ export async function getCrossReferenceResolver(context: PydocsContext, base: st
   });
 }
 
-/** Drop every cached dump, model, inventory and rendered sidecar. */
+/** Drop every cached dump, model, inventory and sidecar. */
 export function clearCaches(): void {
   dumpCache.clear();
   modelCache.clear();
   inventoryCache.clear();
   renderedCache.clear();
+  versionsCache.clear();
 }

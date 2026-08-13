@@ -38,6 +38,7 @@ import type {
   GriffeParent,
 } from './types.ts';
 import { hasMembers } from './types.ts';
+import { addedInLabel } from './versions.ts';
 
 export type DocKind = 'module' | 'class' | 'function' | 'attribute' | 'alias';
 
@@ -97,6 +98,8 @@ export interface DocObject {
   /** First line of the docstring as plain text; empty when undocumented. */
   summary: string;
   deprecated: DocDeprecation | undefined;
+  /** Version label the object first appeared in, when version refs are configured. */
+  addedIn: string | undefined;
   /** Kind of the object this one is a member of; undefined for the package root. */
   parentKind: 'module' | 'class' | undefined;
   /** Filtered members in render order. */
@@ -180,6 +183,11 @@ export interface ModelOptions {
   members: NormalisedMembers;
   filters: NormalisedFilters;
   sourceLink: NormalisedSourceLink | undefined;
+  /**
+   * Object path → version label, from the version-annotation sidecar. Left unset
+   * when no `versions.refs` are configured.
+   */
+  addedIn?: ReadonlyMap<string, string> | undefined;
 }
 
 /** Build the normalised model for one package. */
@@ -356,6 +364,7 @@ class ModelBuilder {
       docstring: normaliseDocstring(target),
       summary: briefFrom(target),
       deprecated: deprecationFrom(target),
+      addedIn: addedInLabel(this.options.addedIn, docPath, target.path),
       parentKind: context.parentKind,
       members: [],
       groups: [],

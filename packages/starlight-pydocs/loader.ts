@@ -28,8 +28,10 @@ import { PydocsError } from './lib/errors.ts';
 import { loadDump } from './lib/data.ts';
 import type { PydocsLogger } from './lib/logger.ts';
 import { buildModel } from './lib/model.ts';
+import { computeVersionAnnotations } from './lib/ref-extract.ts';
 import { resolveExtraction } from './lib/runner.ts';
 import { signatureText } from './lib/signature.ts';
+import { versionLabelsFrom } from './lib/versions.ts';
 
 export interface PydocsLoaderOptions extends PydocsPackageInput {
   /** Extraction overrides, as on the plugin. */
@@ -64,6 +66,8 @@ export const pydocsEntrySchema = z.object({
   /** Heading anchor on that page; empty for a module. */
   anchor: z.string(),
   deprecated: z.boolean(),
+  /** Version the object appeared in, when the package configures `versions.refs`. */
+  addedIn: z.string().optional(),
 });
 
 export type PydocsEntry = z.infer<typeof pydocsEntrySchema>;
@@ -89,17 +93,17 @@ export function pydocsLoader(options: PydocsLoaderOptions): Loader {
       const pkg = normalised.packages[0];
       if (pkg === undefined) throw new PydocsError('starlight-pydocs: the loader needs a package to document');
 
-      const extraction = await resolveExtraction(pkg, normalised, {
-        cacheDir: normalised.cacheDir,
-        cwd: projectRoot,
-        logger: pydocsLogger,
-      });
+      const extractionContext = { cacheDir: normalised.cacheDir, cwd: projectRoot, logger: pydocsLogger };
+      const extraction = await resolveExtraction(pkg, normalised, extractionContext);
+      // No refs configured means no git work at all, so this is free by default.
+      const { annotations } = await computeVersionAnnotations(pkg, normalised, extractionContext);
       const model = buildModel(await loadDump(extraction.dumpPath), {
         packageName: pkg.name,
         base: pkg.base,
         members: pkg.members,
         filters: pkg.filters,
         sourceLink: pkg.sourceLink,
+        addedIn: versionLabelsFrom(annotations),
       });
 
       for (const warning of model.warnings) logger.warn(warning);
@@ -124,6 +128,7 @@ export function pydocsLoader(options: PydocsLoaderOptions): Loader {
           page: symbol.pageSlug,
           anchor: symbol.anchor,
           deprecated: object.deprecated !== undefined,
+          ...(object.addedIn === undefined ? {} : { addedIn: object.addedIn }),
         };
         const parsed = await context.parseData({ id: object.path, data });
         store.set({ id: object.path, data: parsed, digest: context.generateDigest(parsed) });

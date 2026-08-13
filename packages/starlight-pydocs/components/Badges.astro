@@ -15,7 +15,9 @@ const { doc, labels } = Astro.props;
 const resolve = createStringResolver(Astro.locals, labels);
 const badges = objectBadges(doc).map((badge) => ({
   variant: badge.variant,
-  text: badge.key === undefined ? (badge.text ?? '') : resolve(badge.key),
+  text: [badge.key === undefined ? (badge.text ?? '') : resolve(badge.key), badge.value]
+    .filter((part) => part !== undefined && part !== '')
+    .join(' '),
 }));
 ---
 

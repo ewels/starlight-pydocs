@@ -26,7 +26,7 @@ describe('normalizeConfig defaults', () => {
       sourceLink: undefined,
       label: 'demopkg',
       sidebar: { label: 'demopkg', collapsed: false },
-      versions: [],
+      versions: { refs: [] },
     });
     expect(pkg?.search).toEqual([root]);
     expect(config).toMatchObject({
@@ -222,6 +222,56 @@ describe('normalizeConfig errors', () => {
     expect(() =>
       normalizeConfig({ packages: [{ name: 'demopkg' }, { name: 'other', base: 'api/demopkg' }] }, root),
     ).toThrow(/packages\[1]\.base: 'api\/demopkg' overlaps packages\[0]\.base/);
+  });
+
+  test('normalises version refs and keeps their order', () => {
+    const config = normalizeConfig(
+      {
+        packages: [
+          {
+            name: 'demopkg',
+            versions: {
+              refs: [
+                { ref: 'v1.0.0', label: '1.0' },
+                { ref: 'v1.1.0', label: '1.1' },
+              ],
+            },
+          },
+        ],
+      },
+      root,
+    );
+    expect(config.packages[0]?.versions).toEqual({
+      refs: [
+        { ref: 'v1.0.0', label: '1.0' },
+        { ref: 'v1.1.0', label: '1.1' },
+      ],
+    });
+  });
+
+  test('rejects version refs on a package that uses a pre-generated dump', () => {
+    expect(() =>
+      normalizeConfig(
+        {
+          packages: [
+            { name: 'demopkg', source: { file: './api.json' }, versions: { refs: [{ ref: 'v1', label: '1' }] } },
+          ],
+        },
+        root,
+      ),
+    ).toThrow(/packages\[0]\.versions: needs source extraction, so it cannot be combined with a pre-generated/);
+  });
+
+  test('rejects an empty or malformed refs list', () => {
+    expect(() => normalizeConfig({ packages: [{ name: 'demopkg', versions: { refs: [] } }] }, root)).toThrow(
+      /packages\[0]\.versions\.refs: must be a non-empty array of \{ ref, label \}, oldest first/,
+    );
+    expect(() =>
+      normalizeConfig({ packages: [{ name: 'demopkg', versions: { refs: [{ ref: 'v1', label: '' }] } }] }, root),
+    ).toThrow(/packages\[0]\.versions\.refs\[0]\.label: must be a non-empty string/);
+    expect(() =>
+      normalizeConfig({ packages: [{ name: 'demopkg', versions: { refs: [{ label: '1' }] } as never }] }, root),
+    ).toThrow(/packages\[0]\.versions\.refs\[0]\.ref: must be a non-empty string/);
   });
 
   test('rejects an empty label', () => {
