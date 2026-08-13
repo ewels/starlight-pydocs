@@ -21,8 +21,10 @@ const context: PydocsContext = {
     {
       name: 'demopkg',
       base: 'api/demopkg',
+      label: 'demopkg',
       dumpPath: '',
       renderedPath: '',
+      versionsPath: '',
       docstringStyle: 'google',
       members: { include: [], exclude: [] },
       filters: { special: false, private: false, imported: false, inherited: true },
@@ -109,6 +111,19 @@ describe('objectBadges', () => {
     const deprecated = model.objectsByPath.get('demopkg.report.old_generate');
     expect(deprecated?.deprecated).toBeDefined();
     expect(objectBadges(deprecated!).some((badge) => badge.variant === 'deprecated')).toBe(true);
+  });
+
+  test('put the version an object appeared in next to the kind badge', async () => {
+    const model = await fixtureModel('demopkg', { addedIn: new Map([['demopkg.report.Report', '1.1']]) });
+    const report = model.objectsByPath.get('demopkg.report.Report');
+    expect(report?.addedIn).toBe('1.1');
+
+    const badges = objectBadges(report!);
+    expect(badges[0]?.variant).toBe('kind');
+    expect(badges[1]).toEqual({ variant: 'added', key: 'addedIn', text: undefined, value: '1.1' });
+
+    const other = model.objectsByPath.get('demopkg.report.generate_report');
+    expect(objectBadges(other!).some((badge) => badge.variant === 'added')).toBe(false);
   });
 });
 

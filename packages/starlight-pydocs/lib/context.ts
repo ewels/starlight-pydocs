@@ -37,6 +37,12 @@ export interface PydocsPackageContext {
    * at `astro:config:done` (PLAN.md decision 7).
    */
   renderedPath: string;
+  /**
+   * Absolute path to the "added in" labels for this package, written at setup
+   * from dumps of the configured version refs (PLAN.md decision 12). Empty when
+   * the package has no `versions.refs`.
+   */
+  versionsPath: string;
   /** Docstring flavour the dump was parsed with, for display and diagnostics. */
   docstringStyle: DocstringStyle;
   /** Member selection globs, needed to build the model. */
@@ -81,6 +87,8 @@ export interface CreateContextOptions {
   dumpPaths: Map<string, string>;
   /** Absolute sidecar path per package base, from `renderedSidecarPath`. */
   renderedPaths?: Map<string, string> | undefined;
+  /** Absolute version-annotation sidecar path per package base, where there is one. */
+  versionsPaths?: Map<string, string> | undefined;
   /** Astro's `base`, in any form; normalised to '' or '/prefix'. */
   siteBase: string | undefined;
   trailingSlash: 'always' | 'never' | 'ignore';
@@ -100,6 +108,7 @@ export function createContext(config: PydocsConfig, options: CreateContextOption
       label: pkg.label,
       dumpPath: options.dumpPaths.get(pkg.base) ?? '',
       renderedPath: options.renderedPaths?.get(pkg.base) ?? '',
+      versionsPath: options.versionsPaths?.get(pkg.base) ?? '',
       docstringStyle: pkg.docstringStyle,
       members: pkg.members,
       filters: pkg.filters,

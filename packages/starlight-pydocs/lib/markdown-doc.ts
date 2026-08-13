@@ -117,6 +117,7 @@ function objectBadges(doc: DocObject, options: MarkdownDocOptions): string[] {
   const badges: string[] = [];
   const kindKey = kindLabelKey(doc);
   if (kindKey !== undefined) badges.push(`*${label(kindKey, options)}*`);
+  if (doc.addedIn !== undefined) badges.push(`*${label('addedIn', options)} ${doc.addedIn}*`);
   for (const raw of doc.labels) {
     const key = labelKeyFor(raw);
     // The kind badge already says `property`; do not repeat the label.

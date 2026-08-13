@@ -38,6 +38,7 @@ export interface ModelOverrides {
   members?: Partial<NormalisedMembers>;
   filters?: Partial<NormalisedFilters>;
   sourceLink?: NormalisedSourceLink;
+  addedIn?: ReadonlyMap<string, string>;
 }
 
 export function modelOptions(pkgName: string, overrides: ModelOverrides = {}): ModelOptions {
@@ -47,6 +48,7 @@ export function modelOptions(pkgName: string, overrides: ModelOverrides = {}): M
     members: { ...noMembers, ...overrides.members },
     filters: { ...defaultFilters, ...overrides.filters },
     sourceLink: overrides.sourceLink,
+    addedIn: overrides.addedIn,
   };
 }
 

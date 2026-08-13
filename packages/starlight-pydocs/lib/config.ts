@@ -117,12 +117,22 @@ export interface PydocsSidebarInput {
   group?: { label: string } | undefined;
 }
 
-/** A documented version of a package (stretch feature, see ROADMAP item 9). */
-export interface PydocsVersionInput {
-  /** Git ref to extract the package from. */
+/** One past release of a package, as a git ref. */
+export interface PydocsVersionRefInput {
+  /** Git ref (tag, branch or commit) to extract the package from. */
   ref: string;
-  /** Label shown in badges, e.g. `1.0`. */
+  /** Version label shown in the badge, e.g. `1.0`. */
   label: string;
+}
+
+/** Where the "added in" badges come from. */
+export interface PydocsVersionsInput {
+  /**
+   * Refs to extract and compare against, **oldest first**. The package's current
+   * source is the newest version implicitly, so it is not listed. An object
+   * present in the oldest ref gets no badge: pre-history is noise.
+   */
+  refs: PydocsVersionRefInput[];
 }
 
 /** One documented Python package. */
@@ -166,8 +176,12 @@ export interface PydocsPackageInput {
   sourceLink?: PydocsSourceLinkInput | undefined;
   /** Sidebar group presentation. */
   sidebar?: PydocsSidebarInput | undefined;
-  /** Additional versions to document (stretch feature). */
-  versions?: PydocsVersionInput[] | undefined;
+  /**
+   * Badge each object with the version it appeared in, by extracting the package
+   * at past git refs and comparing. Needs a git checkout with history, so it
+   * cannot be combined with `source`.
+   */
+  versions?: PydocsVersionsInput | undefined;
 }
 
 /** Overrides for how griffe is invoked. */
@@ -299,7 +313,12 @@ export interface PydocsPackageConfig {
   filters: NormalisedFilters;
   sourceLink: NormalisedSourceLink | undefined;
   sidebar: PydocsSidebarConfig;
-  versions: PydocsVersionInput[];
+  versions: PydocsVersionsConfig;
+}
+
+export interface PydocsVersionsConfig {
+  /** Refs to compare against, oldest first. Empty when the option is unset. */
+  refs: PydocsVersionRefInput[];
 }
 
 export interface PydocsSidebarConfig {
@@ -489,19 +508,40 @@ function normaliseMembers(input: PydocsMembersInput | undefined, optionPath: str
   };
 }
 
-function normaliseVersions(input: PydocsVersionInput[] | undefined, optionPath: string): PydocsVersionInput[] {
-  if (input === undefined) return [];
-  if (!Array.isArray(input)) throw configError(optionPath, 'must be an array');
-  return input.map((entry, index) => {
-    const entryPath = `${optionPath}[${index}]`;
-    if (!isPlainObject(entry) || typeof entry.ref !== 'string' || entry.ref.trim() === '') {
-      throw configError(`${entryPath}.ref`, 'must be a non-empty string');
-    }
-    if (typeof entry.label !== 'string' || entry.label.trim() === '') {
-      throw configError(`${entryPath}.label`, 'must be a non-empty string');
-    }
-    return { ref: entry.ref, label: entry.label };
-  });
+function normaliseVersions(
+  input: PydocsVersionsInput | undefined,
+  optionPath: string,
+  source: NormalisedSource | undefined,
+): PydocsVersionsConfig {
+  if (input === undefined) return { refs: [] };
+  if (!isPlainObject(input)) throw configError(optionPath, "must be an object with a 'refs' array");
+  if (source !== undefined) {
+    // A pinned dump describes one release and carries no history to compare
+    // against; the refs have to be extracted from a checkout.
+    throw configError(
+      optionPath,
+      'needs source extraction, so it cannot be combined with a pre-generated ' +
+        "'source' dump; document that release as its own packages entry instead",
+    );
+  }
+
+  const refsInput = input.refs;
+  if (!Array.isArray(refsInput) || refsInput.length === 0) {
+    throw configError(`${optionPath}.refs`, 'must be a non-empty array of { ref, label }, oldest first');
+  }
+
+  return {
+    refs: refsInput.map((entry, index) => {
+      const entryPath = `${optionPath}.refs[${index}]`;
+      if (!isPlainObject(entry) || typeof entry.ref !== 'string' || entry.ref.trim() === '') {
+        throw configError(`${entryPath}.ref`, 'must be a non-empty string');
+      }
+      if (typeof entry.label !== 'string' || entry.label.trim() === '') {
+        throw configError(`${entryPath}.label`, 'must be a non-empty string');
+      }
+      return { ref: entry.ref, label: entry.label };
+    }),
+  };
 }
 
 function normaliseInventory(
@@ -609,6 +649,8 @@ function normalisePackage(input: PydocsPackageInput, optionPath: string, project
   const forceInspection = input.forceInspection ?? false;
   if (typeof forceInspection !== 'boolean') throw configError(`${optionPath}.forceInspection`, 'must be a boolean');
 
+  const source = normaliseSource(input.source, `${optionPath}.source`, projectRoot);
+
   return {
     name,
     base,
@@ -622,12 +664,12 @@ function normalisePackage(input: PydocsPackageInput, optionPath: string, project
         ? []
         : requireStringArray(input.extraRequirements, `${optionPath}.extraRequirements`),
     forceInspection,
-    source: normaliseSource(input.source, `${optionPath}.source`, projectRoot),
+    source,
     members: normaliseMembers(input.members, `${optionPath}.members`),
     filters: normaliseFilters(input.filters, `${optionPath}.filters`),
     sourceLink: normaliseSourceLink(input.sourceLink, `${optionPath}.sourceLink`, projectRoot),
     sidebar: { label: sidebarLabel, collapsed, group },
-    versions: normaliseVersions(input.versions, `${optionPath}.versions`),
+    versions: normaliseVersions(input.versions, `${optionPath}.versions`, source),
   };
 }
 

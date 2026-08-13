@@ -77,7 +77,7 @@ export function packageAssetHref(scope: RenderScope, filename: string): string {
 
 // -- Badges ----------------------------------------------------------------
 
-export type BadgeVariant = 'kind' | 'label' | 'deprecated';
+export type BadgeVariant = 'kind' | 'label' | 'deprecated' | 'added';
 
 export interface DocBadge {
   variant: BadgeVariant;
@@ -85,11 +85,14 @@ export interface DocBadge {
   key: StringKey | undefined;
   /** Verbatim text, for griffe labels we have no translation for. */
   text: string | undefined;
+  /** Appended after the label, for a badge that carries a value ("Added in 1.1"). */
+  value?: string | undefined;
 }
 
 /**
- * Badges for an object's heading: its kind, the griffe labels worth surfacing
- * (`classmethod`, `pydantic model`, …) and a deprecation marker.
+ * Badges for an object's heading: its kind, the version it appeared in, the
+ * griffe labels worth surfacing (`classmethod`, `pydantic model`, …) and a
+ * deprecation marker.
  *
  * The kind and label keys come from the Markdown renderer so both outputs name
  * things identically.
@@ -98,6 +101,12 @@ export function objectBadges(doc: DocObject): DocBadge[] {
   const badges: DocBadge[] = [];
   const kindKey = kindLabelKey(doc);
   if (kindKey !== undefined) badges.push({ variant: 'kind', key: kindKey, text: undefined });
+
+  // Next to the kind badge, because "when did this appear" is the second thing
+  // a reader wants from a heading.
+  if (doc.addedIn !== undefined) {
+    badges.push({ variant: 'added', key: 'addedIn', text: undefined, value: doc.addedIn });
+  }
 
   for (const raw of doc.labels) {
     const key = labelKeyFor(raw);

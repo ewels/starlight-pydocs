@@ -14,6 +14,7 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 
 import type { PydocsConfig, PydocsPackageConfig } from './config.ts';
+import type { DumpCacheLocation } from './cache.ts';
 import {
   computeExtractionKey,
   dumpCacheLocation,
@@ -46,6 +47,12 @@ export interface ExtractionContext {
 }
 
 export type ExtractionStrategy = 'command' | 'file' | 'url' | 'uvx' | 'python';
+
+/** A resolved way to run griffe: the executable and how to pass it arguments. */
+export interface GriffeLauncher {
+  strategy: 'command' | 'uvx' | 'python';
+  argv: (griffeArgs: string[]) => { file: string; args: string[] };
+}
 
 export interface ExtractionResult {
   /** Absolute path of the dump JSON. */
@@ -128,21 +135,11 @@ export async function resolveExtraction(
   context: ExtractionContext,
 ): Promise<ExtractionResult> {
   const logger = context.logger ?? silentLogger;
-  const execFileImpl = context.execFileImpl ?? defaultExecFile;
-  const probes: string[] = [];
 
-  // 1. An explicit command wins: the user knows their environment best.
-  if (config.runner.command !== undefined) {
-    const [file, ...rest] = config.runner.command;
-    if (file === undefined) throw new PydocsError('runner.command: must contain at least the executable');
-    return runGriffe(pkg, context, logger, execFileImpl, 'command', (griffeArgs) => ({
-      file,
-      args: [...rest, ...griffeArgs],
-    }));
-  }
-
-  // 2. A dump generated elsewhere, so the docs host needs no Python at all.
-  if (pkg.source?.kind === 'file') {
+  // A dump generated elsewhere, so the docs host needs no Python at all. An
+  // explicit `runner.command` still wins over it: the user knows their
+  // environment best, which is why the launcher is resolved first.
+  if (config.runner.command === undefined && pkg.source?.kind === 'file') {
     if (!(await fileExists(pkg.source.path))) {
       throw new PydocsError(
         `starlight-pydocs: the dump configured for '${pkg.name}' does not exist: ${pkg.source.path}`,
@@ -151,7 +148,7 @@ export async function resolveExtraction(
     return { dumpPath: pkg.source.path, strategy: 'file', fromCache: true };
   }
 
-  if (pkg.source?.kind === 'url') {
+  if (config.runner.command === undefined && pkg.source?.kind === 'url') {
     const result = await fetchToCache({
       url: pkg.source.url,
       directory: remoteCacheDirectory(context.cacheDir, pkg.source.url),
@@ -163,22 +160,54 @@ export async function resolveExtraction(
     return { dumpPath: result.path, strategy: 'url', fromCache: result.fromCache };
   }
 
-  // 3. uv, which needs nothing pre-installed.
+  const launcher = await resolveGriffeLauncher(pkg, config, context);
+  const keyed = launcher.argv(buildGriffeArgs(pkg));
+  const hash = await computeExtractionKey(pkg, [keyed.file, ...keyed.args], logger);
+
+  const result = await runGriffe({
+    pkg,
+    launcher,
+    location: dumpCacheLocation(context.cacheDir, pkg.name, hash),
+    describe: `'${pkg.name}'`,
+    context,
+  });
+  return { ...result, strategy: launcher.strategy };
+}
+
+/**
+ * Resolve how griffe will be run: an explicit command, `uvx`, or an interpreter
+ * that has griffe importable.
+ *
+ * @throws {PydocsError} Listing every probe and the three ways to fix it.
+ */
+export async function resolveGriffeLauncher(
+  pkg: PydocsPackageConfig,
+  config: PydocsConfig,
+  context: ExtractionContext,
+): Promise<GriffeLauncher> {
+  const execFileImpl = context.execFileImpl ?? defaultExecFile;
+  const probes: string[] = [];
+
+  if (config.runner.command !== undefined) {
+    const [file, ...rest] = config.runner.command;
+    if (file === undefined) throw new PydocsError('runner.command: must contain at least the executable');
+    return { strategy: 'command', argv: (griffeArgs) => ({ file, args: [...rest, ...griffeArgs] }) };
+  }
+
   const uv = await canRun(execFileImpl, context.cwd, 'uv', ['--version']);
   if (uv.ok) {
-    return runGriffe(pkg, context, logger, execFileImpl, 'uvx', (griffeArgs) => uvxArgv(pkg, griffeArgs));
+    return { strategy: 'uvx', argv: (griffeArgs) => uvxArgv(pkg, griffeArgs) };
   }
   probes.push(`uv --version (${uv.reason})`);
 
-  // 4. An interpreter that already has griffe importable.
   const interpreters = config.runner.python === undefined ? ['python3', 'python'] : [config.runner.python];
   for (const interpreter of interpreters) {
     const probe = await canRun(execFileImpl, context.cwd, interpreter, ['-c', 'import griffe']);
     if (probe.ok) {
-      return runGriffe(pkg, context, logger, execFileImpl, 'python', (griffeArgs) => ({
-        file: interpreter,
-        args: ['-m', 'griffe', ...griffeArgs],
-      }));
+      return {
+        strategy: 'python',
+        argv: (griffeArgs) => ({ file: interpreter, args: ['-m', 'griffe', ...griffeArgs] }),
+      };
     }
     probes.push(`${interpreter} -c "import griffe" (${probe.reason})`);
   }
@@ -195,30 +224,33 @@ export async function resolveExtraction(
   );
 }
 
-async function runGriffe(
-  pkg: PydocsPackageConfig,
-  context: ExtractionContext,
-  logger: PydocsLogger,
-  execFileImpl: ExecFileImpl,
-  strategy: ExtractionStrategy,
-  argv: (griffeArgs: string[]) => { file: string; args: string[] },
-): Promise<ExtractionResult> {
-  // The key covers the command that will run, minus the output path (which is
-  // derived from the key itself).
-  const keyed = argv(buildGriffeArgs(pkg));
-  const hash = await computeExtractionKey(pkg, [keyed.file, ...keyed.args], logger);
-  const location = dumpCacheLocation(context.cacheDir, pkg.name, hash);
+export interface RunGriffeOptions {
+  /** Package to extract. `search` decides which directories griffe reads. */
+  pkg: PydocsPackageConfig;
+  launcher: GriffeLauncher;
+  /** Where the dump goes; an existing dump there is reused as is. */
+  location: DumpCacheLocation;
+  /** What is being extracted, for log lines and error messages. */
+  describe: string;
+  context: ExtractionContext;
+}
+
+/** Run griffe into a cache location, unless the dump is already there. */
+export async function runGriffe(options: RunGriffeOptions): Promise<{ dumpPath: string; fromCache: boolean }> {
+  const { context, launcher, location, pkg } = options;
+  const logger = context.logger ?? silentLogger;
+  const execFileImpl = context.execFileImpl ?? defaultExecFile;
 
   if (await fileExists(location.dumpPath)) {
-    logger.debug(`reusing cached dump for '${pkg.name}': ${location.dumpPath}`);
-    return { dumpPath: location.dumpPath, strategy, fromCache: true };
+    logger.debug(`reusing cached dump for ${options.describe}: ${location.dumpPath}`);
+    return { dumpPath: location.dumpPath, fromCache: true };
   }
 
   await fs.mkdir(location.directory, { recursive: true });
   const temporary = temporaryDumpPath(location);
-  const command = argv(buildGriffeArgs(pkg, temporary));
+  const command = launcher.argv(buildGriffeArgs(pkg, temporary));
 
-  logger.debug(`extracting '${pkg.name}': ${[command.file, ...command.args].join(' ')}`);
+  logger.debug(`extracting ${options.describe}: ${[command.file, ...command.args].join(' ')}`);
   try {
     const { stderr } = await execFileImpl(command.file, command.args, { cwd: context.cwd });
     // Griffe logs progress and unresolved-name warnings to stderr; surface them
@@ -231,7 +263,7 @@ async function runGriffe(
     const error = cause as { stderr?: string; message?: string };
     throw new PydocsError(
       [
-        `starlight-pydocs: griffe failed while extracting '${pkg.name}'.`,
+        `starlight-pydocs: griffe failed while extracting ${options.describe}.`,
         `  command: ${[command.file, ...command.args].join(' ')}`,
         `  ${(error.stderr ?? error.message ?? 'no output').trim()}`,
       ].join('\n'),
@@ -241,14 +273,15 @@ async function runGriffe(
 
   if (!(await fileExists(temporary))) {
     throw new PydocsError(
-      `starlight-pydocs: griffe reported success but wrote no dump for '${pkg.name}' (expected ${temporary})`,
+      `starlight-pydocs: griffe reported success but wrote no dump for ${options.describe} (expected ${temporary})`,
     );
   }
   await fs.rename(temporary, location.dumpPath);
-  return { dumpPath: location.dumpPath, strategy, fromCache: false };
+  return { dumpPath: location.dumpPath, fromCache: false };
 }
 
-const defaultExecFile: ExecFileImpl = async (file, args, options) => {
+/** The real process runner, exported so sibling modules share one default. */
+export const defaultExecFile: ExecFileImpl = async (file, args, options) => {
   const { stdout, stderr } = await execFile(file, args, {
     cwd: options.cwd,
     // Dumps of large packages are megabytes; only stderr flows through here

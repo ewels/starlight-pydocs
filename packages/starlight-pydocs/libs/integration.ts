@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 
 import type { AstroIntegration, AstroIntegrationLogger } from 'astro';
 
-import { renderedSidecarPath } from '../lib/cache.ts';
+import { renderedSidecarPath, versionsSidecarPath, writeAtomic } from '../lib/cache.ts';
 import type { PydocsConfig, PydocsUserConfig } from '../lib/config.ts';
 import { normalizeConfig } from '../lib/config.ts';
 import type { PydocsContext, PydocsInventoryContext } from '../lib/context.ts';
@@ -24,6 +24,7 @@ import { createContext } from '../lib/context.ts';
 import { clearCaches, getCrossReferenceResolver } from '../lib/data.ts';
 import { loadInventories } from '../lib/inventory.ts';
 import type { PydocsLogger } from '../lib/logger.ts';
+import { computeVersionAnnotations } from '../lib/ref-extract.ts';
 import { resolveAllExtractions, watchPaths } from '../lib/runner.ts';
 import type { DocstringRenderer } from './docstring-renderer.ts';
 import { renderDocstringsForDump, resolveDocstringRenderer } from './docstring-renderer.ts';
@@ -95,6 +96,43 @@ function renderedPathsFor(config: PydocsConfig, dumpPaths: Map<string, string>):
   return paths;
 }
 
+/**
+ * Extract every configured version ref and write each package's "added in"
+ * labels beside its dump.
+ *
+ * Ref dumps are keyed by commit sha, so this is a git checkout plus a griffe run
+ * on the first build and nothing at all afterwards.
+ */
+async function versionPathsFor(
+  config: PydocsConfig,
+  dumpPaths: Map<string, string>,
+  logger: PydocsLogger,
+): Promise<Map<string, string>> {
+  const paths = new Map<string, string>();
+
+  for (const pkg of config.packages) {
+    if (pkg.versions.refs.length === 0) continue;
+    const dumpPath = dumpPaths.get(pkg.base);
+    if (dumpPath === undefined) continue;
+
+    const { annotations, refs } = await computeVersionAnnotations(pkg, config, {
+      cacheDir: config.cacheDir,
+      cwd: config.projectRoot,
+      logger,
+    });
+    const target = versionsSidecarPath(config.cacheDir, pkg.base, dumpPath);
+    await writeAtomic(target, `${JSON.stringify(annotations)}\n`);
+    paths.set(pkg.base, target);
+
+    logger.debug(
+      `'${pkg.base}': ${String(Object.keys(annotations.addedIn).length)} objects labelled from ` +
+        `${refs.map((ref) => `${ref.label} (${ref.sha.slice(0, 12)})`).join(', ')}`,
+    );
+  }
+
+  return paths;
+}
+
 /** Validate the options, extract every dump, load every inventory. */
 export async function preparePydocs(options: PydocsSetupOptions): Promise<PydocsSetup> {
   const logger = asPydocsLogger(options.logger);
@@ -104,6 +142,7 @@ export async function preparePydocs(options: PydocsSetupOptions): Promise<Pydocs
   const context = createContext(config, {
     dumpPaths,
     renderedPaths: renderedPathsFor(config, dumpPaths),
+    versionsPaths: await versionPathsFor(config, dumpPaths, logger),
     siteBase: options.base,
     trailingSlash: options.trailingSlash,
     starlight: options.starlight,
@@ -218,6 +257,9 @@ export function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOption
             setup.context = createContext(setup.config, {
               dumpPaths,
               renderedPaths: renderedPathsFor(setup.config, dumpPaths),
+              // Version refs are immutable commits: editing a `.py` file cannot
+              // change what an old release contained, so the labels are reused.
+              versionsPaths: await versionPathsFor(setup.config, dumpPaths, pydocsLogger),
               siteBase: options.base,
               trailingSlash: options.trailingSlash,
               starlight: options.starlight,

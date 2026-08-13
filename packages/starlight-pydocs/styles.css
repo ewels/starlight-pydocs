@@ -156,6 +156,13 @@
     color: var(--pyd-text-invert);
   }
 
+  /* Quieter than the kind badge: it is metadata, not identity. */
+  .pyd-badge--added {
+    background: var(--pyd-accent-low);
+    border-color: var(--pyd-accent);
+    color: var(--pyd-accent);
+  }
+
   .pyd-badge--deprecated {
     background: var(--pyd-caution-low);
     border-color: var(--pyd-caution);

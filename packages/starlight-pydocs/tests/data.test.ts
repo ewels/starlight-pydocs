@@ -124,6 +124,7 @@ describe('createContext', () => {
       'renderedPath',
       'sidebar',
       'sourceLink',
+      'versionsPath',
     ]);
   });
 
