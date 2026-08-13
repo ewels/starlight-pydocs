@@ -8,8 +8,9 @@ import {
   getDefaultPlaceholderLabel,
   getPydocsNavigation,
   getPydocsPagination,
-  replaceSidebarPlaceholder,
-  toSidebarGroup,
+  replaceSidebarPlaceholders,
+  sidebarGroupsFor,
+  sidebarHasPlaceholder,
 } from './libs/starlight.ts';
 
 /**
@@ -42,18 +43,13 @@ export const onRequest = defineRouteMiddleware(async (astroContext) => {
   if (!isPydocsPage && !hasPlaceholder) return;
 
   const navigation = await getPydocsNavigation(context);
-  const overviewLabel = resolveString('overview', undefined, getTranslate(astroContext.locals));
 
   if (hasPlaceholder) {
-    let sidebar = starlightRoute.sidebar;
-    for (const [placeholder, groups] of navigation.groupsByPlaceholder) {
-      sidebar = replaceSidebarPlaceholder(
-        sidebar,
-        placeholder,
-        groups.map((group) => toSidebarGroup(group, pathname, overviewLabel)),
-      );
-    }
-    starlightRoute.sidebar = sidebar;
+    const overviewLabel = resolveString('overview', undefined, getTranslate(astroContext.locals));
+    starlightRoute.sidebar = replaceSidebarPlaceholders(
+      starlightRoute.sidebar,
+      sidebarGroupsFor(navigation, pathname, overviewLabel),
+    );
   }
 
   if (isPydocsPage) {
@@ -61,11 +57,3 @@ export const onRequest = defineRouteMiddleware(async (astroContext) => {
     if (pagination !== undefined) starlightRoute.pagination = pagination;
   }
 });
-
-/** Cheap scan for a placeholder group anywhere in the sidebar. */
-function sidebarHasPlaceholder(sidebar: Parameters<typeof replaceSidebarPlaceholder>[0], labels: Set<string>): boolean {
-  return sidebar.some((entry) => {
-    if (entry.type !== 'group') return false;
-    return labels.has(entry.label) || sidebarHasPlaceholder(entry.entries, labels);
-  });
-}

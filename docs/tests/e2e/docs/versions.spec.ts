@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 
-import { sidebar, signature } from '../helpers.ts';
+import { sidebarGroup, signature } from '../helpers.ts';
 
 /**
  * `demopkg` is documented twice by one plugin instance: from the fixture source
@@ -41,11 +41,11 @@ test('each version links only within its own base', async ({ page }) => {
 test('each version gets its own sidebar group, under the section it was configured for', async ({ page }) => {
   await page.goto('1x/api/demopkg/');
 
-  const current = sidebar(page).locator('details:has(> summary:has-text("API reference"))');
+  const current = sidebarGroup(page, 'API reference');
   await expect(current.locator('a[href$="/api/demopkg/"]')).toHaveCount(1);
   await expect(current.locator('a[href$="/1x/api/demopkg/"]')).toHaveCount(0);
 
-  const legacy = sidebar(page).locator('details:has(> summary:has-text("v1.x"))');
+  const legacy = sidebarGroup(page, 'v1.x');
   await expect(legacy.locator('summary:has-text("demopkg 1.x")')).toHaveCount(1);
   await expect(legacy.locator('a[href$="/1x/api/demopkg/"]')).toHaveCount(1);
 
