@@ -8,7 +8,7 @@
  * brackets unless something rewrites it first.
  *
  * That something is `resolveCrossReferences`: a string-to-string pass run over
- * the raw Markdown before it reaches the host's processor (PLAN.md decision 7
+ * the raw Markdown before it reaches the host's processor (ARCHITECTURE.md decision 7
  * rules out registering a plugin in that pipeline). It only rewrites a reference
  * whose target resolves to a URL, so a docstring that means `[a][b]` literally
  * keeps its brackets, and it leaves fenced code blocks, inline code spans and

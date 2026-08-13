@@ -5,7 +5,7 @@
  *
  * - `virtual:starlight-pydocs/context`: the validated configuration plus the
  *   path of each dump. Deliberately small: dumps are megabytes and stay on
- *   disk (PLAN.md decision 4). It is generated on every `load`, so the dev
+ *   disk (ARCHITECTURE.md decision 4). It is generated on every `load`, so the dev
  *   watcher can invalidate it after a re-extraction and get fresh paths.
  * - `virtual:starlight-pydocs/components`: the overridable components,
  *   re-exported from either the user's entrypoint or ours.

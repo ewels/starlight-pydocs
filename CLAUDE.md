@@ -11,8 +11,8 @@ injected routes. It is the Starlight counterpart of mkdocstrings-python and foll
 its conventions where sensible (anchor scheme, member filtering, `::: name` becomes
 `<Autodoc name="…" />`).
 
-Read `PLAN.md` for architecture decisions and their reasoning, `ROADMAP.md` for the
-work sequence, `HANDOFF.md` for the running log of decisions and known rough edges.
+Read `ARCHITECTURE.md` for the architecture decisions, their reasoning and the griffe
+behaviour notes; `HANDOFF.md` holds the pre-release checklist.
 
 ## Repository layout
 
@@ -79,14 +79,14 @@ config and dump paths only, and `lib/data.ts` parses lazily server-side.
 
 **A package entry is identified by its `base`, never by its import name.** Bases are
 validated unique and non-overlapping, names are not: the same package may be
-documented at several bases, one release at each (PLAN.md decision 11). Dump and
+documented at several bases, one release at each (ARCHITECTURE.md decision 11). Dump and
 sidecar maps, the model cache, route props, endpoint matching and every context
 lookup are keyed by base; `name` is only the dump key and what a human types.
 `<Autodoc>`/`<SymbolSearch>` resolve their `package` prop as a base first, an import
 name second, and refuse an ambiguous name with the candidate bases listed.
 
 Pages are injected routes (`[...slug]` per package), not generated Markdown (see
-PLAN.md decision 1). Under Starlight the route renders
+ARCHITECTURE.md decision 1). Under Starlight the route renders
 `@astrojs/starlight/components/StarlightPage.astro` with `{ frontmatter, headings }`
 props (that is what feeds the ToC; Pagefind indexes the standard shell it renders).
 The sidebar is a placeholder group (`pydocsSidebarGroup`) swapped for generated links
@@ -129,14 +129,14 @@ engine and registers no remark/rehype/mdast/hast plugin anywhere. Because the li
 processor exists only in the config-time process, all docstring Markdown is
 pre-rendered at `astro:config:done` (after every integration has mutated
 `processor.options`) into a sidecar JSON beside the cached dump; components consume
-pre-rendered HTML via `set:html`. See PLAN.md decision 7. Do not build on the
+pre-rendered HTML via `set:html`. See ARCHITECTURE.md decision 7. Do not build on the
 deprecated top-level `markdown.remarkPlugins`/`rehypePlugins`/`remarkRehype`/`gfm`/
 `smartypants` options anywhere, including docs and fixtures.
 
 ### Version annotations
 
 `versions: { refs: [{ ref, label }] }` per package, oldest first, badges each object
-with the release it appeared in (PLAN.md decision 12). The split matters:
+with the release it appeared in (ARCHITECTURE.md decision 12). The split matters:
 `lib/versions.ts` is pure (collect object paths from a dump, first-seen diff over the
 snapshots, documented-then-canonical lookup) and `lib/ref-extract.ts` owns the git
 work (`git rev-parse --verify <ref>^{commit}`, `git worktree add --detach` into the

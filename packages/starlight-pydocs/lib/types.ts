@@ -7,7 +7,7 @@
  * break type-checking, and every field we do not strictly need is optional.
  *
  * Field names here were read off real dumps produced by griffe 2.1.0, not from
- * the documentation. Notable surprises are recorded in HANDOFF.md.
+ * the documentation. Notable surprises are recorded in ARCHITECTURE.md.
  */
 
 /** Object kinds griffe emits in `kind`. `'type alias'` really does contain a space. */
