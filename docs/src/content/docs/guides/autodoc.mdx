@@ -17,9 +17,25 @@ import { Autodoc } from 'starlight-pydocs/components';
 ```
 
 Names may be the path an object is documented at or the canonical path Griffe found the
-definition at. Pass `package` when several configured packages could own the name.
+definition at.
 
-<Autodoc name="demopkg.report.Report" />
+<Autodoc name="demopkg.report.Report" package="api/demopkg" />
+
+## Choosing the package
+
+The dotted name usually says which package an object belongs to, so `package` is optional.
+It becomes required when one package is documented at more than one base, because then the
+import name identifies two entries. Give it the base of the one you mean:
+
+```mdx
+<Autodoc name="demopkg.report.Report" package="api/demopkg" />
+<Autodoc name="demopkg.report.Report" package="1x/api/demopkg" />
+```
+
+This site documents `demopkg` twice (the current source and the archived 1.x dump), which is
+why the blocks on this page name their base. Without it the build stops with the two
+candidate bases listed. `package` also accepts a plain import name where that is
+unambiguous.
 
 ## Heading levels
 
@@ -31,12 +47,14 @@ document outline.
 <Autodoc name="demopkg.generate_report" headingLevel={3} />
 ```
 
-<Autodoc name="demopkg.generate_report" headingLevel={3} />
+<Autodoc name="demopkg.generate_report" package="api/demopkg" headingLevel={3} />
 
 ## Symbol search
 
 `<SymbolSearch />` searches the API surface by name, client-side, from the
 `symbols.json` index the plugin publishes. It is on the generated package pages
-already; this is the same component placed by hand.
+already; this is the same component placed by hand. It takes the same `package`
+prop, a base or an unambiguous import name, and defaults to the first configured
+entry.
 
-<SymbolSearch />
+<SymbolSearch package="api/demopkg" />

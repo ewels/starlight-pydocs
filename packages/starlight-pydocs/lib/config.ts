@@ -104,7 +104,7 @@ export type PydocsSourceLinkInput = PydocsSourceLinkTemplate | PydocsSourceLinkP
 
 /** Sidebar presentation for a package's generated group. */
 export interface PydocsSidebarInput {
-  /** Group label. Defaults to the package name. */
+  /** Group label. Defaults to the package's `label`, itself defaulting to `name`. */
   label?: string | undefined;
   /** Render the group collapsed. Default `false`. */
   collapsed?: boolean | undefined;
@@ -131,6 +131,12 @@ export interface PydocsPackageInput {
   name: string;
   /** URL base for the generated pages, relative to the site root. Default `api/<name>`. */
   base?: string | undefined;
+  /**
+   * Display name for this entry, used as the default sidebar group label.
+   * Defaults to `name`. Give it a value when one package is documented at
+   * several bases, so the sidebar can tell `demopkg 1.x` from `demopkg`.
+   */
+  label?: string | undefined;
   /**
    * Directories passed to `griffe --search`, relative to the project root.
    * Point them at the parent of the package directory (`../py/src` for
@@ -273,8 +279,14 @@ export interface NormalisedMembers {
 
 export interface PydocsPackageConfig {
   name: string;
-  /** Base without leading or trailing slashes. */
+  /**
+   * Base without leading or trailing slashes. This is the identity of a package
+   * entry everywhere downstream: bases are unique and non-overlapping, while the
+   * same `name` may be documented at several of them.
+   */
   base: string;
+  /** Display name, defaulting to `name`. */
+  label: string;
   /** Absolute search paths. */
   search: string[];
   docstringStyle: DocstringStyle;
@@ -557,6 +569,11 @@ function normalisePackage(input: PydocsPackageInput, optionPath: string, project
     throw configError(`${optionPath}.base`, 'must be a plain URL path without query, fragment or spaces');
   }
 
+  const label = input.label ?? name;
+  if (typeof label !== 'string' || label.trim() === '') {
+    throw configError(`${optionPath}.label`, 'must be a non-empty string');
+  }
+
   const style = input.docstringStyle ?? 'google';
   if (!DOCSTRING_STYLES.includes(style)) {
     throw configError(`${optionPath}.docstringStyle`, `must be one of ${DOCSTRING_STYLES.join(', ')}`);
@@ -573,7 +590,7 @@ function normalisePackage(input: PydocsPackageInput, optionPath: string, project
 
   const sidebarInput = input.sidebar ?? {};
   if (!isPlainObject(sidebarInput)) throw configError(`${optionPath}.sidebar`, 'must be an object');
-  const sidebarLabel = sidebarInput.label ?? name;
+  const sidebarLabel = sidebarInput.label ?? label;
   if (typeof sidebarLabel !== 'string' || sidebarLabel.trim() === '') {
     throw configError(`${optionPath}.sidebar.label`, 'must be a non-empty string');
   }
@@ -595,6 +612,7 @@ function normalisePackage(input: PydocsPackageInput, optionPath: string, project
   return {
     name,
     base,
+    label,
     search,
     docstringStyle: style,
     docstringOptions,
@@ -640,15 +658,10 @@ export function normalizeConfig(user: PydocsUserConfig, projectRoot: string): Py
 
   const packages = packagesInput.map((entry, index) => normalisePackage(entry, `packages[${index}]`, projectRoot));
 
-  const seenNames = new Map<string, number>();
+  // Bases, not names, identify an entry: one package may be documented several
+  // times (a version at a time) as long as each has its own place in the site.
   const seenBases = new Map<string, number>();
   packages.forEach((pkg, index) => {
-    const previousName = seenNames.get(pkg.name);
-    if (previousName !== undefined) {
-      throw configError(`packages[${index}].name`, `duplicates packages[${previousName}].name ('${pkg.name}')`);
-    }
-    seenNames.set(pkg.name, index);
-
     for (const [otherBase, otherIndex] of seenBases) {
       if (basesOverlap(pkg.base, otherBase)) {
         throw configError(

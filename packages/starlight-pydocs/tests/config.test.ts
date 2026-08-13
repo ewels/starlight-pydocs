@@ -24,6 +24,7 @@ describe('normalizeConfig defaults', () => {
       members: { include: [], exclude: [] },
       filters: { special: false, private: false, imported: false, inherited: true },
       sourceLink: undefined,
+      label: 'demopkg',
       sidebar: { label: 'demopkg', collapsed: false },
       versions: [],
     });
@@ -201,10 +202,32 @@ describe('normalizeConfig errors', () => {
     );
   });
 
-  test('rejects duplicate package names', () => {
+  test('accepts one package name at several bases', () => {
+    const config = normalizeConfig(
+      {
+        packages: [
+          { name: 'demopkg' },
+          { name: 'demopkg', base: '1x/api/demopkg', label: 'demopkg 1.x', source: { file: './dumps/1x.json' } },
+        ],
+      },
+      root,
+    );
+    expect(config.packages.map((pkg) => [pkg.name, pkg.base, pkg.label, pkg.sidebar.label])).toEqual([
+      ['demopkg', 'api/demopkg', 'demopkg', 'demopkg'],
+      ['demopkg', '1x/api/demopkg', 'demopkg 1.x', 'demopkg 1.x'],
+    ]);
+  });
+
+  test('rejects the same base twice, whatever the names', () => {
     expect(() =>
-      normalizeConfig({ packages: [{ name: 'demopkg' }, { name: 'demopkg', base: 'other' }] }, root),
-    ).toThrow(/packages\[1]\.name: duplicates packages\[0]\.name/);
+      normalizeConfig({ packages: [{ name: 'demopkg' }, { name: 'other', base: 'api/demopkg' }] }, root),
+    ).toThrow(/packages\[1]\.base: 'api\/demopkg' overlaps packages\[0]\.base/);
+  });
+
+  test('rejects an empty label', () => {
+    expect(() => normalizeConfig({ packages: [{ name: 'demopkg', label: '  ' }] }, root)).toThrow(
+      /packages\[0]\.label: must be a non-empty string/,
+    );
   });
 
   test('rejects identical bases', () => {

@@ -122,6 +122,31 @@ sequencing.
   routes rather than in `ModuleDoc` on purpose: an `<Autodoc name="mypkg" />` of a
   package root would otherwise grow a search box in the middle of a hand-written page,
   and no module page below the root needs its own.
+- **A package entry is identified by its `base`, not by its name.** The duplicate-name
+  rejection in `lib/config.ts` is gone (bases were already validated unique and
+  non-overlapping), and everything that used to be keyed by import name is keyed by base:
+  the `dumpPaths`/`renderedPaths` maps, `PydocsPackageContext` lookups
+  (`packageByBase`/`packagesByName` replace `packageByName`), the `lib/data.ts` model cache,
+  the route prop (`pydocsBase`, was `pydocsPackage`), `createRenderScope`, the endpoint
+  routes and the docstring sidecar path. The name still names the dump key and the model's
+  `packageName`, because that is what griffe emits. This is what makes one package
+  documentable at several bases (PLAN.md decision 11), and it removes a real collision:
+  `renderedSidecarPath` now includes the base, so two entries pinned to one dump file no
+  longer overwrite each other's rendered prose (the prose contains base-specific
+  cross-reference hrefs).
+- **`label` is the human-facing name of an entry**, defaulting to `name`. It labels the
+  sidebar group (`sidebar.label` still overrides), the `llms.txt` heading and the published
+  inventory's project name, so `demopkg 1.x` reads as itself rather than as a second
+  `demopkg`.
+- **An import name that several entries answer to is an error, not a guess.**
+  `matchPackageReference` / `matchPackageForDottedPath` in `lib/context.ts` return
+  `{kind: 'ambiguous', name, bases}`, and `packageForAutodoc` turns that into
+  "set the package prop to one of these bases: 'api/demopkg', '1x/api/demopkg'".
+  `<SymbolSearch>` renders nothing rather than searching an arbitrary version.
+- **Cross-reference resolution skips same-named entries.** `getCrossReferenceResolver`
+  orders the models as: the rendered entry, then every entry whose import name differs. Two
+  documented versions of one package would otherwise link into each other's pages, silently
+  mixing two APIs in one page's prose.
 - **The vanilla example pins `markdown: { processor: unified() }`.** PLAN.md decision
   7 promises both engines are exercised in CI; the docs site runs Astro's default
   (Sätteri), so the example imports `unified()` from `@astrojs/markdown-remark`. The
@@ -208,16 +233,14 @@ Verified against generated dumps, not documentation. `lib/types.ts` follows thes
   fine (griffe's own commit-pinned `source_link` is used when no template is
   configured). Setting `sourceLink.root` fixes both; the docs site does, the vanilla
   example deliberately does not, so the griffe fallback keeps its coverage.
-- **PLAN.md decision 11 (multi-instance versioned docs) cannot be delivered as
-  written**, and the docs now describe per-version builds instead. Verified by
-  registering the vanilla integration twice: both instances resolve the same
-  `virtual:starlight-pydocs/context` id, so the second one's packages are invisible at
-  render time, both inject `[...pydocsSlug]`, and the build dies with `no configured
-package serves /api/v1/numpkg/llms.txt` after warning about the route conflict. A
-  single instance also rejects the same package name twice, which is what a
-  `mypkg`-at-two-bases setup needs. Supporting it means namespacing the virtual
-  modules and the route pattern per instance — worth doing if versioned API pages in
-  one build are wanted, but it is a feature. PLAN.md decision 11 records the same.
+- **Multi-instance registration still does not work, and now does not need to.** Two
+  plugin instances share one `virtual:starlight-pydocs/context` id and both inject
+  `[...pydocsSlug]`, so the second instance's packages are invisible at render time (a
+  build against `examples/vanilla` died with `no configured package serves
+/api/v1/numpkg/llms.txt`). Rather than namespacing the virtual modules and the route
+  pattern per instance, one instance now covers the versioned-docs use case: one entry per
+  version, keyed by base. If multi-instance is ever wanted for another reason, the
+  namespacing is the work, and nothing in the base re-key makes it harder.
 
 ## Stuck points and workarounds
 

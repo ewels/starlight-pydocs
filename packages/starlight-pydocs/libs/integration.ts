@@ -64,6 +64,7 @@ function asPydocsLogger(logger: AstroIntegrationLogger): PydocsLogger {
   };
 }
 
+/** Dump path per package base. */
 async function extract(config: PydocsConfig, logger: PydocsLogger): Promise<Map<string, string>> {
   const results = await resolveAllExtractions(config, {
     cacheDir: config.cacheDir,
@@ -71,9 +72,9 @@ async function extract(config: PydocsConfig, logger: PydocsLogger): Promise<Map<
     logger,
   });
   const paths = new Map<string, string>();
-  for (const [name, result] of results) {
-    paths.set(name, result.dumpPath);
-    logger.debug(`'${name}': ${result.strategy}${result.fromCache ? ' (cached)' : ''} → ${result.dumpPath}`);
+  for (const [base, result] of results) {
+    paths.set(base, result.dumpPath);
+    logger.debug(`'${base}': ${result.strategy}${result.fromCache ? ' (cached)' : ''} → ${result.dumpPath}`);
   }
   return paths;
 }
@@ -85,11 +86,11 @@ async function inventories(config: PydocsConfig, logger: PydocsLogger): Promise<
     .map((inventory) => ({ base: inventory.base, path: inventory.path ?? '' }));
 }
 
-/** Sidecar path per package, derived from where each dump ended up. */
+/** Sidecar path per package base, derived from where each dump ended up. */
 function renderedPathsFor(config: PydocsConfig, dumpPaths: Map<string, string>): Map<string, string> {
   const paths = new Map<string, string>();
-  for (const [name, dumpPath] of dumpPaths) {
-    paths.set(name, renderedSidecarPath(config.cacheDir, name, dumpPath));
+  for (const [base, dumpPath] of dumpPaths) {
+    paths.set(base, renderedSidecarPath(config.cacheDir, base, dumpPath));
   }
   return paths;
 }
@@ -110,7 +111,7 @@ export async function preparePydocs(options: PydocsSetupOptions): Promise<Pydocs
   });
 
   for (const pkg of config.packages) {
-    logger.debug(`'${pkg.name}' documented at /${pkg.base}`);
+    logger.debug(`'${pkg.label}' (${pkg.name}) documented at /${pkg.base}`);
   }
 
   return { config, context };
@@ -141,10 +142,10 @@ export function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOption
         dumpPath: pkg.dumpPath,
         renderedPath: pkg.renderedPath,
         renderer,
-        crossReferences: await getCrossReferenceResolver(setup.context, pkg.name),
+        crossReferences: await getCrossReferenceResolver(setup.context, pkg.base),
         logger: pydocsLogger,
       });
-      logger.debug(`rendered ${String(count)} docstring strings of '${pkg.name}' with ${renderer.name}`);
+      logger.debug(`rendered ${String(count)} docstring strings of '/${pkg.base}' with ${renderer.name}`);
     }
   };
 

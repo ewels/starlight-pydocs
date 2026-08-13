@@ -21,8 +21,8 @@ source links is not a problem. Only the top-level options — inventories, the e
 component overrides, the cache directory — are shared.
 
 This documentation site is built this way: `demopkg` (google style, extracted with a griffe
-extension), `numpkg` (numpy style) and `sphpkg` (sphinx style, from a pre-generated dump) all come
-from one plugin instance.
+extension), `numpkg` (numpy style), `sphpkg` (sphinx style, from a pre-generated dump) and a second
+`demopkg` entry pinned to an archived dump all come from one plugin instance.
 
 ## Bases must not overlap
 
@@ -34,8 +34,11 @@ inside the other's page tree:
 packages[1].base: 'api/mypkg' overlaps packages[0].base ('api'); give each package a distinct base
 ```
 
-Package names must be unique too, since the name identifies the package in the dump, in the model
-cache and in `<Autodoc>` name resolution.
+The base, not the name, identifies an entry: the same import name may appear several times as long
+as each entry has its own base, which is how
+[several versions of one package](/starlight-pydocs/guides/versioned-docs/) are documented in one
+build. Where a name is documented once, it still resolves on its own in `<Autodoc>` and
+`<SymbolSearch>`; where it is documented twice, those props take the base instead.
 
 ## Sidebar placement
 
@@ -137,7 +140,8 @@ configured package resolves to its page, and so does a
 [docstring cross-reference](/starlight-pydocs/guides/cross-references/): resolution tries the
 package being rendered first, then the others in configuration order, then the inventories. So
 `[Report][mycore.Report]` in a `myplugins` docstring links into the core package's pages with no
-inventory involved.
+inventory involved. Entries sharing an import name are skipped, so one documented version of a
+package never links into another's pages.
 
 ## Endpoints per package
 
@@ -149,6 +153,6 @@ Each package serves its own files under its own base:
 /api/mypkg/llms.txt          /api/legacy/llms.txt
 ```
 
-There is no combined index. Symbol search searches one package at a time (`<SymbolSearch
-package="legacy" />` chooses which), and a project publishing several inventories points consumers
-at each one.
+There is no combined index. Symbol search searches one entry at a time (`<SymbolSearch
+package="api/legacy" />` chooses which, by base or by an unambiguous import name), and a project
+publishing several inventories points consumers at each one.

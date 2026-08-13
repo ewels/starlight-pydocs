@@ -10,7 +10,8 @@
  * tested outside Astro, where the virtual module does not exist.
  */
 
-import type { PydocsContext, PydocsPackageContext } from '../lib/context.ts';
+import type { PackageMatch, PydocsContext, PydocsPackageContext } from '../lib/context.ts';
+import { matchPackageForDottedPath, matchPackageReference } from '../lib/context.ts';
 import { PydocsError } from '../lib/errors.ts';
 
 export async function loadPydocsContext(component: string): Promise<PydocsContext> {
@@ -27,13 +28,43 @@ export async function loadPydocsContext(component: string): Promise<PydocsContex
 }
 
 /**
- * The package a dotted path belongs to.
+ * The package an `<Autodoc name>` documents, given its optional `package` prop.
  *
- * Longest name first, so `demopkg.sub` wins over `demopkg` when both are
- * configured.
+ * With one entry per import name a bare name is enough. When the same package is
+ * documented at several bases (one per version) the name no longer identifies
+ * anything, so the `package` prop must name the base, and the error says so.
+ *
+ * @throws {PydocsError} When nothing matches, or when a name is ambiguous.
  */
-export function packageForDottedPath(context: PydocsContext, dottedPath: string): PydocsPackageContext | undefined {
-  return [...context.packages]
-    .sort((left, right) => right.name.length - left.name.length)
-    .find((pkg) => dottedPath === pkg.name || dottedPath.startsWith(`${pkg.name}.`));
+export function packageForAutodoc(
+  context: PydocsContext,
+  name: string,
+  reference: string | undefined,
+): PydocsPackageContext {
+  const match: PackageMatch =
+    reference === undefined ? matchPackageForDottedPath(context, name) : matchPackageReference(context, reference);
+
+  if (match.kind === 'match') return match.pkg;
+
+  if (match.kind === 'ambiguous') {
+    throw new PydocsError(
+      `starlight-pydocs: <Autodoc name="${name}"> is ambiguous: '${match.name}' is documented at ` +
+        `${String(match.bases.length)} bases. Set the package prop to one of these bases: ` +
+        `${match.bases.map((base) => `'${base}'`).join(', ')}.`,
+    );
+  }
+
+  if (reference !== undefined) {
+    throw new PydocsError(
+      `starlight-pydocs: <Autodoc name="${name}" package="${reference}"> names no configured package; ` +
+        `package must be a package base (${context.packages.map((pkg) => `'${pkg.base}'`).join(', ')}) ` +
+        'or an unambiguous import name.',
+    );
+  }
+
+  throw new PydocsError(
+    `starlight-pydocs: <Autodoc name="${name}"> does not start with a configured package name ` +
+      `(configured: ${[...new Set(context.packages.map((pkg) => pkg.name))].join(', ')}); ` +
+      'pass the package prop to disambiguate.',
+  );
 }

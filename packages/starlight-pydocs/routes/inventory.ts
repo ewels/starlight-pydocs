@@ -21,7 +21,7 @@ export const GET: APIRoute = async ({ url }) => {
     throw new PydocsError(`starlight-pydocs: no configured package serves ${url.pathname}`);
   }
 
-  const model = await getModel(context, pkg.name);
+  const model = await getModel(context, pkg.base);
 
   const entries: InventoryEntry[] = model.symbols.map((entry) => {
     const object = model.objectsByPath.get(entry.path);
@@ -39,7 +39,7 @@ export const GET: APIRoute = async ({ url }) => {
     };
   });
 
-  return new Response(buildInventory(pkg.name, '', entries), {
+  return new Response(buildInventory(pkg.label, '', entries), {
     headers: { 'content-type': 'application/octet-stream' },
   });
 };

@@ -42,6 +42,17 @@ export function assetHref(siteBase: string, base: string, filename: string): str
   return `${siteBase}/${stripLeadingAndTrailingSlashes(base)}/${filename}`.replace(/\/{2,}/g, '/');
 }
 
+/**
+ * A package base as one safe segment, for cache directory names and DOM ids
+ * (`1x/api/pkg` → `1x-api-pkg`).
+ */
+export function slugifyBase(base: string): string {
+  const slug = stripLeadingAndTrailingSlashes(base)
+    .replace(/[^A-Za-z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return slug === '' ? 'pydocs' : slug;
+}
+
 /** Dotted path of the module a member belongs to, or undefined for a package root. */
 export function parentPath(dottedPath: string): string | undefined {
   const index = dottedPath.lastIndexOf('.');

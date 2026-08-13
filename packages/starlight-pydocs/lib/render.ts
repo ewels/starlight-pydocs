@@ -9,11 +9,9 @@
  */
 
 import type { PydocsContext, PydocsPackageContext } from './context.ts';
-import { packageByName } from './context.ts';
 import type { RenderedDocstrings } from './docstrings.ts';
-import { PydocsError } from './errors.ts';
 import type { AnnotationResolver, AnnotationTarget } from './expr.ts';
-import { getAnnotationResolver, getModel, getRenderedDocstrings } from './data.ts';
+import { getAnnotationResolver, getModel, getRenderedDocstrings, requirePackage } from './data.ts';
 import { kindLabelKey, labelKeyFor } from './markdown-doc.ts';
 import type { DocObject, PackageModel } from './model.ts';
 import { documentedPathFor } from './model.ts';
@@ -36,20 +34,18 @@ export interface RenderScope {
   rendered: RenderedDocstrings;
 }
 
-/** Build the scope for one package, reusing the per-process caches. */
-export async function createRenderScope(context: PydocsContext, packageName: string): Promise<RenderScope> {
-  const pkg = packageByName(context, packageName);
-  if (pkg === undefined) {
-    throw new PydocsError(
-      `starlight-pydocs: '${packageName}' is not a configured package (configured: ${context.packages
-        .map((entry) => entry.name)
-        .join(', ')})`,
-    );
-  }
+/**
+ * Build the scope for one documented package, reusing the per-process caches.
+ *
+ * @param base - Base of the package entry being rendered. Bases identify
+ *   entries; the same import name may be documented at several of them.
+ */
+export async function createRenderScope(context: PydocsContext, base: string): Promise<RenderScope> {
+  const pkg = requirePackage(context, base);
   const [model, resolver, rendered] = await Promise.all([
-    getModel(context, packageName),
-    getAnnotationResolver(context, packageName),
-    getRenderedDocstrings(context, packageName),
+    getModel(context, base),
+    getAnnotationResolver(context, base),
+    getRenderedDocstrings(context, base),
   ]);
   return { context, pkg, model, resolver, rendered };
 }

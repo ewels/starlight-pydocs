@@ -6,11 +6,19 @@ import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 
 import { normalizeConfig } from '../lib/config.ts';
 import type { PydocsContext } from '../lib/context.ts';
-import { createContext, packageByName, packageForSlug } from '../lib/context.ts';
+import {
+  createContext,
+  matchPackageForDottedPath,
+  matchPackageReference,
+  packageByBase,
+  packageForSlug,
+  packagesByName,
+} from '../lib/context.ts';
 import {
   clearCaches,
   getAllModels,
   getAnnotationResolver,
+  getCrossReferenceResolver,
   getInventoryLookup,
   getModel,
   loadDump,
@@ -56,11 +64,38 @@ async function contextFor(options: { inventory?: boolean } = {}): Promise<Pydocs
 
   const config = normalizeConfig({ packages: [{ name: 'demopkg', base: 'api/demopkg' }] }, workspace);
   return createContext(config, {
-    dumpPaths: new Map([['demopkg', dump]]),
+    dumpPaths: new Map([['api/demopkg', dump]]),
     siteBase: '/starlight-pydocs',
     trailingSlash: 'always',
     starlight: true,
     inventories,
+  });
+}
+
+/** The same package documented twice: the current source and a pinned 1.x dump. */
+async function twoVersionContext(): Promise<PydocsContext> {
+  const current = path.join(workspace, 'demopkg.json');
+  const pinned = path.join(workspace, 'demopkg-1x.json');
+  await fs.copyFile(fixturePath('demopkg', 'dump.json'), current);
+  await fs.copyFile(fixturePath('demopkg', 'dump.json'), pinned);
+
+  const config = normalizeConfig(
+    {
+      packages: [
+        { name: 'demopkg' },
+        { name: 'demopkg', base: '1x/api/demopkg', label: 'demopkg 1.x', source: { file: pinned } },
+      ],
+    },
+    workspace,
+  );
+  return createContext(config, {
+    dumpPaths: new Map([
+      ['api/demopkg', current],
+      ['1x/api/demopkg', pinned],
+    ]),
+    siteBase: '',
+    trailingSlash: 'always',
+    starlight: true,
   });
 }
 
@@ -83,6 +118,7 @@ describe('createContext', () => {
       'docstringStyle',
       'dumpPath',
       'filters',
+      'label',
       'members',
       'name',
       'renderedPath',
@@ -115,8 +151,86 @@ describe('createContext', () => {
     expect(packageForSlug(context, '/api/demopkg/report/')?.name).toBe('demopkg');
     expect(packageForSlug(context, 'api/demopkgx')).toBeUndefined();
     expect(packageForSlug(context, 'guides/intro')).toBeUndefined();
-    expect(packageByName(context, 'demopkg')?.base).toBe('api/demopkg');
-    expect(packageByName(context, 'other')).toBeUndefined();
+    expect(packageByBase(context, 'api/demopkg')?.name).toBe('demopkg');
+    expect(packageByBase(context, '/api/demopkg/')?.name).toBe('demopkg');
+    expect(packageByBase(context, 'api/other')).toBeUndefined();
+  });
+
+  test('records the dump and sidecar of each entry by base', async () => {
+    const context = await twoVersionContext();
+    expect(context.packages.map((pkg) => [pkg.base, pkg.label, path.basename(pkg.dumpPath)])).toEqual([
+      ['api/demopkg', 'demopkg', 'demopkg.json'],
+      ['1x/api/demopkg', 'demopkg 1.x', 'demopkg-1x.json'],
+    ]);
+  });
+});
+
+describe('package lookups', () => {
+  test('an import name resolves to its only entry', async () => {
+    const context = await contextFor();
+    expect(matchPackageReference(context, 'demopkg')).toEqual({ kind: 'match', pkg: context.packages[0] });
+    expect(matchPackageForDottedPath(context, 'demopkg.report.Report')).toEqual({
+      kind: 'match',
+      pkg: context.packages[0],
+    });
+    expect(matchPackageReference(context, 'nosuch')).toEqual({ kind: 'none' });
+    expect(matchPackageForDottedPath(context, 'nosuch.Thing')).toEqual({ kind: 'none' });
+  });
+
+  test('a name documented at several bases is ambiguous, a base is not', async () => {
+    const context = await twoVersionContext();
+    expect(packagesByName(context, 'demopkg').map((pkg) => pkg.base)).toEqual(['api/demopkg', '1x/api/demopkg']);
+
+    const ambiguous = { kind: 'ambiguous', name: 'demopkg', bases: ['api/demopkg', '1x/api/demopkg'] };
+    expect(matchPackageReference(context, 'demopkg')).toEqual(ambiguous);
+    expect(matchPackageForDottedPath(context, 'demopkg.report.Report')).toEqual(ambiguous);
+
+    expect(matchPackageReference(context, '1x/api/demopkg')).toEqual({ kind: 'match', pkg: context.packages[1] });
+  });
+});
+
+describe('cross-reference resolution across entries', () => {
+  test('an entry resolves against itself, never against another version of itself', async () => {
+    const context = await twoVersionContext();
+
+    const current = await getCrossReferenceResolver(context, 'api/demopkg');
+    const pinned = await getCrossReferenceResolver(context, '1x/api/demopkg');
+
+    expect(current('demopkg.report.Report')).toBe('/api/demopkg/report/#demopkg.report.Report');
+    expect(pinned('demopkg.report.Report')).toBe('/1x/api/demopkg/report/#demopkg.report.Report');
+  });
+
+  test('a differently named package is still resolved, in configuration order', async () => {
+    const context = await twoVersionContext();
+    const numpkg = path.join(workspace, 'numpkg.json');
+    await fs.copyFile(fixturePath('numpkg', 'dump.json'), numpkg);
+
+    const config = normalizeConfig(
+      {
+        packages: [
+          { name: 'demopkg' },
+          { name: 'demopkg', base: '1x/api/demopkg', source: { file: path.join(workspace, 'demopkg-1x.json') } },
+          { name: 'numpkg', source: { file: numpkg } },
+        ],
+      },
+      workspace,
+    );
+    const withNumpkg = createContext(config, {
+      dumpPaths: new Map([...context.packages.map((pkg): [string, string] => [pkg.base, pkg.dumpPath])]).set(
+        'api/numpkg',
+        numpkg,
+      ),
+      siteBase: '',
+      trailingSlash: 'always',
+      starlight: true,
+    });
+
+    const fromNumpkg = await getCrossReferenceResolver(withNumpkg, 'api/numpkg');
+    expect(fromNumpkg('demopkg.report.Report')).toBe('/api/demopkg/report/#demopkg.report.Report');
+
+    const fromPinned = await getCrossReferenceResolver(withNumpkg, '1x/api/demopkg');
+    expect(fromPinned('numpkg.Grid')).toBe('/api/numpkg/#numpkg.Grid');
+    expect(fromPinned('demopkg.report.Report')).toBe('/1x/api/demopkg/report/#demopkg.report.Report');
   });
 });
 
@@ -166,32 +280,47 @@ describe('loadDump', () => {
 describe('getModel', () => {
   test('builds the model once per package and option set', async () => {
     const context = await contextFor();
-    const first = await getModel(context, 'demopkg');
-    expect(await getModel(context, 'demopkg')).toBe(first);
+    const first = await getModel(context, 'api/demopkg');
+    expect(await getModel(context, 'api/demopkg')).toBe(first);
     expect(first.pages.map((page) => page.slug)).toContain('api/demopkg/report');
   });
 
   test('rebuilds when the options differ', async () => {
     const context = await contextFor();
-    const first = await getModel(context, 'demopkg');
+    const first = await getModel(context, 'api/demopkg');
     const other: PydocsContext = {
       ...context,
       packages: context.packages.map((pkg) => ({ ...pkg, filters: { ...pkg.filters, inherited: false } })),
     };
-    expect(await getModel(other, 'demopkg')).not.toBe(first);
+    expect(await getModel(other, 'api/demopkg')).not.toBe(first);
   });
 
-  test('names the configured packages when asked for an unknown one', async () => {
+  test('names the configured bases when asked for an unknown one', async () => {
     const context = await contextFor();
-    await expect(getModel(context, 'other')).rejects.toThrow(
-      /'other' is not a configured package \(configured: demopkg\)/,
+    await expect(getModel(context, 'demopkg')).rejects.toThrow(
+      /no package is documented at 'demopkg' \(configured: api\/demopkg\)/,
     );
+  });
+
+  test('one package at two bases gets one model per base, each with its own pages', async () => {
+    const context = await twoVersionContext();
+    const current = await getModel(context, 'api/demopkg');
+    const pinned = await getModel(context, '1x/api/demopkg');
+
+    expect(current).not.toBe(pinned);
+    expect(current.pages.map((page) => page.slug)).toContain('api/demopkg/report');
+    expect(pinned.pages.map((page) => page.slug)).toContain('1x/api/demopkg/report');
+    // Every page of an entry lives under that entry's base, so no link can cross
+    // from one documented version into the other.
+    expect(pinned.pages.every((page) => page.slug.startsWith('1x/api/demopkg'))).toBe(true);
+    expect(pinned.symbols.every((symbol) => symbol.pageSlug.startsWith('1x/api/demopkg'))).toBe(true);
   });
 
   test('getAllModels covers every configured package', async () => {
     const context = await contextFor();
     const models = await getAllModels(context);
-    expect([...models.keys()]).toEqual(['demopkg']);
+    expect([...models.keys()]).toEqual(['api/demopkg']);
+    expect([...(await getAllModels(await twoVersionContext())).keys()]).toEqual(['api/demopkg', '1x/api/demopkg']);
   });
 
   test('modelOptionsFor mirrors the package context', async () => {
@@ -214,7 +343,7 @@ describe('inventories at render time', () => {
     const lookup = await getInventoryLookup(context);
     expect(lookup.lookup('pathlib.Path')?.href).toBe('https://docs.python.org/3/library/pathlib.html#pathlib.Path');
 
-    const resolver = await getAnnotationResolver(context, 'demopkg');
+    const resolver = await getAnnotationResolver(context, 'api/demopkg');
     expect(resolver.resolve('pathlib.Path', 'demopkg.report.Report.generate')).toEqual({
       kind: 'external',
       href: 'https://docs.python.org/3/library/pathlib.html#pathlib.Path',

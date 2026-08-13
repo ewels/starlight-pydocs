@@ -101,7 +101,7 @@ async function buildNavigation(context: PydocsContext): Promise<PydocsNavigation
   const order: { label: string; href: string }[] = [];
 
   for (const pkg of context.packages) {
-    const model = await getModel(context, pkg.name);
+    const model = await getModel(context, pkg.base);
     const collapsed = pkg.sidebar.collapsed;
     const href = (slug: string): string => buildHref(context.siteBase, slug, context.trailingSlash);
 

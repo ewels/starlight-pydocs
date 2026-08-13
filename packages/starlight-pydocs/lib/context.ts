@@ -22,8 +22,14 @@ import { stripLeadingAndTrailingSlashes } from './paths.ts';
 export interface PydocsPackageContext {
   /** Python import name of the documented package. */
   name: string;
-  /** URL base for the generated pages, without leading or trailing slashes (e.g. `api/demopkg`). */
+  /**
+   * URL base for the generated pages, without leading or trailing slashes (e.g.
+   * `api/demopkg`). Unique per entry, so it — not `name` — identifies a package
+   * everywhere at render time.
+   */
   base: string;
+  /** Display name for this entry, defaulting to `name`. */
+  label: string;
   /** Absolute path to the griffe dump JSON for this package. */
   dumpPath: string;
   /**
@@ -71,9 +77,9 @@ export interface PydocsContext {
 }
 
 export interface CreateContextOptions {
-  /** Absolute dump path per package name, from the runner. */
+  /** Absolute dump path per package base, from the runner. */
   dumpPaths: Map<string, string>;
-  /** Absolute sidecar path per package name, from `renderedSidecarPath`. */
+  /** Absolute sidecar path per package base, from `renderedSidecarPath`. */
   renderedPaths?: Map<string, string> | undefined;
   /** Astro's `base`, in any form; normalised to '' or '/prefix'. */
   siteBase: string | undefined;
@@ -91,8 +97,9 @@ export function createContext(config: PydocsConfig, options: CreateContextOption
     packages: config.packages.map((pkg) => ({
       name: pkg.name,
       base: pkg.base,
-      dumpPath: options.dumpPaths.get(pkg.name) ?? '',
-      renderedPath: options.renderedPaths?.get(pkg.name) ?? '',
+      label: pkg.label,
+      dumpPath: options.dumpPaths.get(pkg.base) ?? '',
+      renderedPath: options.renderedPaths?.get(pkg.base) ?? '',
       docstringStyle: pkg.docstringStyle,
       members: pkg.members,
       filters: pkg.filters,
@@ -116,7 +123,63 @@ export function packageForSlug(context: PydocsContext, slug: string): PydocsPack
   return context.packages.find((pkg) => normalised === pkg.base || normalised.startsWith(`${pkg.base}/`));
 }
 
-/** Look up a package by import name. */
-export function packageByName(context: PydocsContext, name: string): PydocsPackageContext | undefined {
-  return context.packages.find((pkg) => pkg.name === name);
+/** Look up a package by its base, the identity render-time code is keyed on. */
+export function packageByBase(context: PydocsContext, base: string): PydocsPackageContext | undefined {
+  const normalised = stripLeadingAndTrailingSlashes(base);
+  return context.packages.find((pkg) => pkg.base === normalised);
+}
+
+/** Every configured entry documenting the package with this import name. */
+export function packagesByName(context: PydocsContext, name: string): PydocsPackageContext[] {
+  return context.packages.filter((pkg) => pkg.name === name);
+}
+
+/**
+ * The outcome of resolving something a human wrote — a `package` prop, a dotted
+ * object path — onto one configured entry.
+ *
+ * `ambiguous` exists because an import name is not an identity: the same package
+ * documented at two bases (one version at each) answers to one name, and only
+ * the base says which entry is meant.
+ */
+export type PackageMatch =
+  | { kind: 'match'; pkg: PydocsPackageContext }
+  | { kind: 'ambiguous'; name: string; bases: string[] }
+  | { kind: 'none' };
+
+function matchOne(candidates: PydocsPackageContext[], name: string): PackageMatch {
+  const [first] = candidates;
+  if (first === undefined) return { kind: 'none' };
+  if (candidates.length > 1) {
+    return { kind: 'ambiguous', name, bases: candidates.map((pkg) => pkg.base) };
+  }
+  return { kind: 'match', pkg: first };
+}
+
+/**
+ * Resolve a package reference as written by a user: a base first, then an import
+ * name.
+ *
+ * Bases win because they are unambiguous, and a base can never be mistaken for
+ * an import name (it contains a slash unless the site puts a package at a
+ * single-segment base, in which case that base is still the more specific
+ * answer).
+ */
+export function matchPackageReference(context: PydocsContext, reference: string): PackageMatch {
+  const byBase = packageByBase(context, reference);
+  if (byBase !== undefined) return { kind: 'match', pkg: byBase };
+  return matchOne(packagesByName(context, reference), reference);
+}
+
+/**
+ * The package a dotted object path belongs to.
+ *
+ * Longest name first, so `demopkg.sub` wins over `demopkg` when both are
+ * configured; entries sharing that name are ambiguous.
+ */
+export function matchPackageForDottedPath(context: PydocsContext, dottedPath: string): PackageMatch {
+  const names = [...new Set(context.packages.map((pkg) => pkg.name))].sort((left, right) => right.length - left.length);
+  const name = names.find((candidate) => dottedPath === candidate || dottedPath.startsWith(`${candidate}.`));
+  if (name === undefined) return { kind: 'none' };
+  return matchOne(packagesByName(context, name), name);
 }

@@ -6,23 +6,29 @@
  * which is what people actually type. The index is fetched on first focus, not
  * on load, so a page that nobody searches costs nothing.
  */
+import { matchPackageReference } from '../lib/context.ts';
 import { createStringResolver } from '../lib/i18n.ts';
-import { assetHref } from '../lib/paths.ts';
+import { assetHref, slugifyBase } from '../lib/paths.ts';
 import type { StringKey, StringOverrides } from '../lib/strings.ts';
 import { loadPydocsContext } from './context.ts';
 
 interface Props {
-  /** Which configured package to search. Defaults to the first one. */
+  /**
+   * Which configured entry to search: a package base, or an import name when
+   * only one entry documents that package. Defaults to the first entry.
+   */
   package?: string | undefined;
   class?: string | undefined;
   labels?: StringOverrides | undefined;
 }
 
-const { package: packageName, class: className, labels } = Astro.props;
+const { package: packageReference, class: className, labels } = Astro.props;
 
 const context = await loadPydocsContext('SymbolSearch');
-const pkg =
-  packageName === undefined ? context.packages[0] : context.packages.find((entry) => entry.name === packageName);
+const match = packageReference === undefined ? undefined : matchPackageReference(context, packageReference);
+// An ambiguous or unknown reference searches nothing rather than guessing which
+// version of a package the author meant.
+const pkg = match === undefined ? context.packages[0] : match.kind === 'match' ? match.pkg : undefined;
 
 const resolve = createStringResolver(Astro.locals, labels);
 
@@ -37,8 +43,11 @@ const KIND_LABEL_KEYS: Record<string, StringKey> = {
 const kindLabels = Object.fromEntries(Object.entries(KIND_LABEL_KEYS).map(([kind, key]) => [kind, resolve(key)]));
 
 const symbolsUrl = pkg === undefined ? undefined : assetHref(context.siteBase, pkg.base, 'symbols.json');
-const inputId = `pyd-search-input-${pkg?.name ?? 'pydocs'}`;
-const listId = `pyd-search-list-${pkg?.name ?? 'pydocs'}`;
+// Ids come from the base, not the name: two boxes on one page searching two
+// documented versions of the same package would otherwise share their ids.
+const idSuffix = pkg === undefined ? 'pydocs' : slugifyBase(pkg.base);
+const inputId = `pyd-search-input-${idSuffix}`;
+const listId = `pyd-search-list-${idSuffix}`;
 ---
 
 {

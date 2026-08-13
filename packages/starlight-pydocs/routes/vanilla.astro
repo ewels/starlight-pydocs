@@ -23,15 +23,12 @@ export async function getStaticPaths() {
 type Props = PydocsRouteProps;
 
 const props = Astro.props;
-const [scope, page] = await Promise.all([
-  createRenderScope(context, props.pydocsPackage),
-  getPydocsPage(context, props),
-]);
+const [scope, page] = await Promise.all([createRenderScope(context, props.pydocsBase), getPydocsPage(context, props)]);
 
 const withSearch = context.symbolSearch && isPackageRootPage(page);
 ---
 
 <Layout title={page.title} headings={page.headings} description={page.object.summary}>
-  {withSearch ? <SymbolSearch package={props.pydocsPackage} /> : null}
+  {withSearch ? <SymbolSearch package={props.pydocsBase} /> : null}
   <ModuleDoc doc={page.object} scope={scope} />
 </Layout>

@@ -1,7 +1,7 @@
 /**
  * Static paths and page lookup, shared by the Starlight and vanilla routes.
  *
- * Props stay JSON-light — a package name and a slug — because Astro serialises
+ * Props stay JSON-light — a package base and a slug — because Astro serialises
  * them per route. The route component re-derives the model from the
  * per-process cache, which is free after the first page.
  */
@@ -14,8 +14,11 @@ import type { PageModel } from '../lib/model.ts';
 import { stripLeadingAndTrailingSlashes } from '../lib/paths.ts';
 
 export interface PydocsRouteProps {
-  /** Import name of the package this page documents. */
-  pydocsPackage: string;
+  /**
+   * Base of the package entry this page documents. The base, not the import
+   * name: one package may be documented at several bases.
+   */
+  pydocsBase: string;
   /** Page slug, without leading or trailing slashes. */
   pydocsSlug: string;
 }
@@ -29,11 +32,11 @@ export interface PydocsRoute {
 export async function getPydocsStaticPaths(context: PydocsContext): Promise<PydocsRoute[]> {
   const routes: PydocsRoute[] = [];
   for (const pkg of context.packages) {
-    const model = await getModel(context, pkg.name);
+    const model = await getModel(context, pkg.base);
     for (const page of model.pages) {
       routes.push({
         params: { pydocsSlug: page.slug },
-        props: { pydocsPackage: pkg.name, pydocsSlug: page.slug },
+        props: { pydocsBase: pkg.base, pydocsSlug: page.slug },
       });
     }
   }
@@ -42,11 +45,11 @@ export async function getPydocsStaticPaths(context: PydocsContext): Promise<Pydo
 
 /** The page a route's props point at. */
 export async function getPydocsPage(context: PydocsContext, props: PydocsRouteProps): Promise<PageModel> {
-  const model = await getModel(context, props.pydocsPackage);
+  const model = await getModel(context, props.pydocsBase);
   const page = model.pagesBySlug.get(props.pydocsSlug);
   if (page === undefined) {
     throw new PydocsError(
-      `starlight-pydocs: no generated page for '${props.pydocsSlug}' in '${props.pydocsPackage}'; ` +
+      `starlight-pydocs: no generated page for '${props.pydocsSlug}' in '/${props.pydocsBase}'; ` +
         'this usually means a stale build cache, so try removing node_modules/.astro.',
     );
   }
