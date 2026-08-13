@@ -104,6 +104,17 @@ Keys are namespaced exactly as in a Starlight table, and returning the key uncha
 translation", which falls back to English. Without such a middleware, a vanilla site's generated
 pages use the English defaults.
 
+`locals.t` is your own addition to `App.Locals`, so declare it once for the type-checker:
+
+```ts
+// src/env.d.ts
+declare namespace App {
+  interface Locals {
+    t: (key: string) => string;
+  }
+}
+```
+
 ## The keys
 
 Resolution order for every label is: the `labels` prop, then the host's translation for
