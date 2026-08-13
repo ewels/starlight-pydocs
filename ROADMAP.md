@@ -4,7 +4,7 @@ Ordered by technical risk: each item retires the biggest open question left, so 
 failure forces a re-plan as early as possible. Every item lands green (typecheck,
 lint, tests) before the next starts. Status is tracked here as items complete.
 
-## 1. Workspace scaffold — done when `pnpm install`, `pnpm typecheck`, `pnpm lint` pass
+## 1. Workspace scaffold: done when `pnpm install`, `pnpm typecheck`, `pnpm lint` pass
 
 Root configs mirrored from starlight-quiz (workspace, tsconfig strictest, prettier,
 eslint, prek, CI workflows), empty-but-wired `packages/starlight-pydocs`, `docs` and
@@ -12,7 +12,7 @@ eslint, prek, CI workflows), empty-but-wired `packages/starlight-pydocs`, `docs`
 the toolchain inside this sandbox (registry access, Playwright's preinstalled
 Chromium, uv).
 
-## 2. Spike: route injection under Starlight — the load-bearing assumption
+## 2. Spike: route injection under Starlight (the load-bearing assumption)
 
 A minimal plugin injecting `[...slug]`, rendering `StarlightPage` with a hardcoded
 `headings` prop, plus sidebar placeholder substitution through route middleware.
@@ -49,7 +49,7 @@ vanilla route entrypoints, `styles.css` (`@layer starlight-pydocs`, `--pydocs-*`
 tokens over `--sl-*` with vanilla fallbacks), component-override virtual module.
 Risk retired: the pages exist and look right in both hosts.
 
-## 6. Docs site + vanilla example + e2e — the integration proof
+## 6. Docs site + vanilla example + e2e: the integration proof
 
 The dogfooding Starlight site documents `demopkg` (a fixture package exercising all
 three docstring styles, inheritance, overloads, varargs/kw-only/pos-only defaults,

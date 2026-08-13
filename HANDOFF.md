@@ -15,7 +15,7 @@ sequencing.
   (PLAN.md decision 7, third iteration). History, for anyone reading old commits:
   the plan first pinned `@astrojs/markdown-remark`; the owner then asked for
   `@astrojs/markdown-satteri` (briefly implemented, including the dependency swap);
-  the owner then narrowed the requirement — the package must be processor-agnostic
+  the owner then narrowed the requirement: the package must be processor-agnostic
   because Astro 7 defaults to Sätteri while unified-locked sites (mermaid,
   starlight-links-validator) cannot leave remark. The satteri dependency and the
   processor-specific `lib/markdown.ts` were unwound in favour of
@@ -150,8 +150,8 @@ sequencing.
   orders the models as: the rendered entry, then every entry whose import name differs. Two
   documented versions of one package would otherwise link into each other's pages, silently
   mixing two APIs in one page's prose.
-- **Version annotations are two modules on purpose.** `lib/versions.ts` is pure — path
-  collection, the oldest-first first-seen diff, the documented-then-canonical lookup — so the
+- **Version annotations are two modules on purpose.** `lib/versions.ts` is pure (path
+  collection, the oldest-first first-seen diff, the documented-then-canonical lookup), so the
   rules are unit tested over hand-written dumps with no git and no griffe. `lib/ref-extract.ts`
   owns everything that touches the world: `git rev-parse --verify <ref>^{commit}`,
   `git worktree add --detach`, the rebased search paths, the per-commit dump cache. The
@@ -161,7 +161,7 @@ sequencing.
 - **A ref's dump is cached by commit sha and never revalidated.** `versions/<name>-<sha12>-
 <options12>/dump.json`. The options half of the key is machine independent (repository-relative
   search paths), and the sha half cannot change meaning, so after the first build there is no
-  git work at all — the worktree is not even created when the dump is already there.
+  git work at all: the worktree is not even created when the dump is already there.
 - **The "added in" labels travel as a sidecar, not through the virtual module.** Same
   reasoning as the docstring sidecar: `virtual:starlight-pydocs/context` carries paths, and
   the map (one entry per object newer than the oldest ref) is read from disk server-side. It is
@@ -186,10 +186,10 @@ sequencing.
   (curl exit 000), so inventory tests use checked-in fixtures and a local HTTP
   server; nothing in the test suite fetches external doc sites.
 - `griffe-pydantic` works fully statically (`uvx --with griffe-pydantic --from griffe
-griffe dump -e griffe_pydantic …`) — the fixture model gets the `pydantic-model`
+griffe dump -e griffe_pydantic …`): the fixture model gets the `pydantic-model`
   label without pydantic importable. Verified 2026-08-12 with griffe resolved by uv.
 - Playwright must use the pre-installed Chromium at `/opt/pw-browsers/chromium`
-  (config handles the fallback), and `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` is set —
+  (config handles the fallback), and `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` is set, so
   don't run `playwright install` here.
 - **`astro preview` daemonises itself when it detects an agentic environment**
   (`am-i-vibing` sees `CLAUDECODE`), so Playwright's `webServer` saw the command exit
@@ -198,7 +198,7 @@ griffe dump -e griffe_pydantic …`) — the fixture model gets the `pydantic-mo
   foreground, which is why both `webServer` entries pass it in `env`. Counter-intuitive
   name, correct behaviour (astro's `dist/cli/preview/index.js`), and a no-op wherever
   no agent is detected, CI included. Related: `pnpm --filter … preview -- --port N`
-  does **not** work — astro reads the extra `--` as a subcommand and exits with
+  does **not** work: astro reads the extra `--` as a subcommand and exits with
   "Unknown command"; pass `--port N` with no `--`.
 - The checked-in dumps were produced by **griffe 2.1.0** (what uv resolved on
   2026-08-12) with `python3` 3.11.15 available as the fallback interpreter.
@@ -242,7 +242,7 @@ Verified against generated dumps, not documentation. `lib/types.ts` follows thes
 - Parameter kinds are spelled `positional-only`, `positional or keyword`,
   `variadic positional`, `keyword-only`, `variadic keyword` (note the spaces).
 - Object kinds are `module`, `class`, `function`, `attribute`, `alias` and
-  `type alias` — the last one with a space in it.
+  `type alias`, the last one with a space in it.
 
 ## Things to double-check before release (human review requested)
 
@@ -288,7 +288,7 @@ Verified against generated dumps, not documentation. `lib/types.ts` follows thes
 - eslint's `astro/no-prerender-export-outside-pages` rejects
   `export const prerender = true` in injected-route `.astro` files (they live in the
   package, not `src/pages`). The `prerender: true` flag on `injectRoute` is
-  sufficient — verified the built output prerenders — so the export is omitted.
+  sufficient (verified the built output prerenders), so the export is omitted.
 - Prettier reformats Markdown, which broke the golden snapshots the moment `pnpm format`
   ran: the file no longer matched the renderer byte for byte. `tests/snapshots/**` is now
   in `.prettierignore`, next to the checked-in dumps.
@@ -298,7 +298,7 @@ Verified against generated dumps, not documentation. `lib/types.ts` follows thes
 'github-light' is not included in this bundle`. Astro tree-shakes Shiki's bundled
   theme and language tables out of the server bundle (`bundledThemes` becomes `[]`), so
   only themes the host's own config asked for exist at render time. Pre-rendering at
-  `astro:config:done` sidesteps this entirely — that code runs in the config process,
+  `astro:config:done` sidesteps this entirely: that code runs in the config process,
   where the untrimmed Shiki bundle is available.
 - **Under Starlight, docstring code fences come out as expressive-code**, not
   `.astro-code`: Starlight registers expressive-code on the processor, and we render
@@ -344,8 +344,8 @@ Verified against generated dumps, not documentation. `lib/types.ts` follows thes
 ## Progress log
 
 - 2026-08-12: planning docs committed; workspace scaffolded (mirrors starlight-quiz;
-  `pnpm install`, `lint`, `typecheck`, docs build all green in-sandbox); spike passed
-  — injected route + StarlightPage `headings` prop feeds the ToC with dotted-path
+  `pnpm install`, `lint`, `typecheck`, docs build all green in-sandbox); spike passed:
+  injected route + StarlightPage `headings` prop feeds the ToC with dotted-path
   anchors intact, Pagefind indexes the pages, middleware sidebar swap works
   (details in PLAN.md decision 1).
 - 2026-08-12: ROADMAP items 3 and 4 landed. Python fixtures (`demopkg`, `numpkg`,
@@ -355,7 +355,7 @@ Verified against generated dumps, not documentation. `lib/types.ts` follows thes
   `context`). 253 Vitest tests, including a golden Markdown snapshot of the demopkg
   report page and a uv-guarded live extraction test. Format, lint, typecheck and tests
   all green. Nothing renders yet: components and routes are ROADMAP item 5.
-- 2026-08-13: ROADMAP item 5 and item 7's endpoints and loader landed — the pages
+- 2026-08-13: ROADMAP item 5 and item 7's endpoints and loader landed, so the pages
   exist. Docstring prose renders through the host's processor into a sidecar
   (`lib/docstrings.ts`, `libs/docstring-renderer.ts`), the component set renders
   modules, classes, functions, attributes, signatures with linked annotations, every
@@ -374,7 +374,7 @@ str, scores: dict[str, float] | None = None)` signature, six distinct internal
   `data-pagefind-body`. `examples/vanilla` and the Playwright suite are next
   (ROADMAP item 6); nothing here has been exercised without Starlight yet beyond
   type-checking.
-- 2026-08-13: ROADMAP item 6 landed — both fixture sites and the end-to-end suite.
+- 2026-08-13: ROADMAP item 6 landed: both fixture sites and the end-to-end suite.
   The docs site grew to three packages (`demopkg`, `numpkg`, `sphpkg`) plus the local
   inventory fixture and four content pages (introduction, getting started, vanilla
   Astro, autodoc; `autodoc-demo.mdx` is gone, the slug is `/guides/autodoc/`).
@@ -420,6 +420,6 @@ str, scores: dict[str, float] | None = None)` signature, six distinct internal
   built pages. The badge rendering was checked in a real build by pointing the docs
   fixture at a throwaway branch with one function removed: `demopkg.report.generate_report`
   came out badged `Added in 0.2` on both its definition page and its re-export, and the
-  pinned 1.x entry stayed unbadged. That configuration was not committed — the fixture
+  pinned 1.x entry stayed unbadged. That configuration was not committed: the fixture
   packages have no meaningful release history, so the pipeline's regression coverage is
   the guarded live test against a throwaway repository instead.
