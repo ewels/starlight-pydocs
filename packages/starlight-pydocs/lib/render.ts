@@ -12,7 +12,7 @@ import type { PydocsContext, PydocsPackageContext } from './context.ts';
 import type { RenderedDocstrings } from './docstrings.ts';
 import type { AnnotationResolver, AnnotationTarget } from './expr.ts';
 import { getAnnotationResolver, getModel, getRenderedDocstrings, requirePackage } from './data.ts';
-import { kindLabelKey, labelKeyFor } from './markdown-doc.ts';
+import { kindLabelKey, labelBadges } from './markdown-doc.ts';
 import type { DocObject, PackageModel } from './model.ts';
 import { documentedPathFor } from './model.ts';
 import { assetHref, buildHref, objectHref } from './paths.ts';
@@ -108,10 +108,7 @@ export function objectBadges(doc: DocObject): DocBadge[] {
     badges.push({ variant: 'added', key: 'addedIn', text: undefined, value: doc.addedIn });
   }
 
-  for (const raw of doc.labels) {
-    const key = labelKeyFor(raw);
-    // The kind badge already says `property`; do not repeat it.
-    if (key !== undefined && key === kindKey) continue;
+  for (const { key, raw } of labelBadges(doc)) {
     badges.push({ variant: 'label', key, text: key === undefined ? raw : undefined });
   }
 

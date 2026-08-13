@@ -6,7 +6,7 @@
  * what the `symbols.json` endpoint serves.
  */
 
-import { objectHref } from './paths';
+import { objectHref, shortName } from './paths';
 
 /** One entry of the `symbols.json` payload. */
 export interface SearchEntry {
@@ -28,12 +28,6 @@ export interface SearchMatch {
   name: string;
 }
 
-/** Last segment of a dotted path. */
-export function shortSymbolName(path: string): string {
-  const index = path.lastIndexOf('.');
-  return index === -1 ? path : path.slice(index + 1);
-}
-
 /**
  * Score one entry against a lowercased query.
  *
@@ -43,7 +37,7 @@ export function shortSymbolName(path: string): string {
  */
 function scoreEntry(entry: SearchEntry, query: string): number {
   const path = entry.path.toLowerCase();
-  const name = shortSymbolName(path);
+  const name = shortName(path);
 
   if (name === query) return 100;
   if (name.startsWith(query)) return 80;
@@ -73,7 +67,7 @@ export function matchSymbols(entries: SearchEntry[], query: string, options: Mat
   for (const entry of entries) {
     const score = scoreEntry(entry, needle);
     if (score === 0) continue;
-    matches.push({ entry, score, name: shortSymbolName(entry.path) });
+    matches.push({ entry, score, name: shortName(entry.path) });
   }
 
   matches.sort((left, right) => {
@@ -92,13 +86,14 @@ export interface SearchGroup {
 
 /** Bucket matches by kind, keeping the best-scoring kind first. */
 export function groupMatchesByKind(matches: SearchMatch[]): SearchGroup[] {
-  const groups: SearchGroup[] = [];
+  // A Map keeps first-seen order, which is best-score order for sorted matches.
+  const groups = new Map<string, SearchMatch[]>();
   for (const match of matches) {
-    const existing = groups.find((group) => group.kind === match.entry.kind);
-    if (existing === undefined) groups.push({ kind: match.entry.kind, matches: [match] });
-    else existing.matches.push(match);
+    const bucket = groups.get(match.entry.kind);
+    if (bucket === undefined) groups.set(match.entry.kind, [match]);
+    else bucket.push(match);
   }
-  return groups;
+  return [...groups].map(([kind, kindMatches]) => ({ kind, matches: kindMatches }));
 }
 
 export interface SearchLinkOptions {

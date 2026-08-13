@@ -19,7 +19,7 @@
 
 import { translationKey } from './lib/i18n.ts';
 import type { StringKey } from './lib/strings.ts';
-import { STRINGS, stringKeys } from './lib/strings.ts';
+import { STRINGS } from './lib/strings.ts';
 
 type LocaleTable = Partial<Record<StringKey, string>>;
 
@@ -32,7 +32,7 @@ function namespaced(table: LocaleTable): Record<string, string> {
   return Object.fromEntries(entries);
 }
 
-const english = namespaced(Object.fromEntries(stringKeys().map((key) => [key, STRINGS[key]])));
+const english = namespaced(STRINGS);
 
 const de: LocaleTable = {
   attributes: 'Attribute',
