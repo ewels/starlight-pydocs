@@ -47,15 +47,11 @@ export function replaceSidebarPlaceholder(
   return sidebar.flatMap((entry) => walk(entry));
 }
 
-export function makeSidebarGroup(
-  label: string,
-  entries: (SidebarGroup | SidebarLink)[],
-  collapsed: boolean,
-): SidebarGroup {
+function makeSidebarGroup(label: string, entries: (SidebarGroup | SidebarLink)[], collapsed: boolean): SidebarGroup {
   return { type: 'group', label, entries, collapsed, badge: undefined };
 }
 
-export function makeSidebarLink(label: string, href: string, isCurrent: boolean): SidebarLink {
+function makeSidebarLink(label: string, href: string, isCurrent: boolean): SidebarLink {
   return { type: 'link', label, href, isCurrent, badge: undefined, attrs: {} };
 }
 
@@ -104,22 +100,21 @@ async function buildNavigation(context: PydocsContext): Promise<PydocsNavigation
     const model = await getModel(context, pkg.base);
     const collapsed = pkg.sidebar.collapsed;
     const href = (slug: string): string => buildHref(context.siteBase, slug, context.trailingSlash);
+    const pagesByModule = new Map(model.pages.map((page) => [page.modulePath, page]));
 
-    // The root page first, then the module tree; both mirror the page plan.
+    // The package's own page is the group itself, its submodules the children;
+    // both mirror the page plan.
     const nodeFor = (modulePath: string): NavNode => {
-      const page = model.pages.find((candidate) => candidate.modulePath === modulePath);
-      const slug = page?.slug ?? pkg.base;
-      const node: NavNode = {
+      const page = pagesByModule.get(modulePath);
+      return {
         label: modulePath === model.root.path ? pkg.sidebar.label : (page?.object.name ?? modulePath),
-        href: href(slug),
+        href: href(page?.slug ?? pkg.base),
         children: (page?.children ?? []).map((child) => nodeFor(child)),
         collapsed,
       };
-      return node;
     };
 
-    const root = nodeFor(model.root.path);
-    const group: NavNode = { label: pkg.sidebar.label, href: root.href, children: root.children, collapsed };
+    const group = nodeFor(model.root.path);
     const placeholder = pkg.sidebar.group ?? getDefaultPlaceholderLabel();
     const existing = groupsByPlaceholder.get(placeholder);
     if (existing === undefined) groupsByPlaceholder.set(placeholder, [group]);
@@ -169,5 +164,3 @@ export function getPydocsPagination(
 
   return { prev: link(navigation.order[index - 1]), next: link(navigation.order[index + 1]) };
 }
-
-export { type PydocsContext };

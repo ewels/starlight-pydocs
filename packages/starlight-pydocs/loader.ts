@@ -26,7 +26,6 @@ import type { PydocsPackageInput, PydocsRunnerInput } from './lib/config.ts';
 import { normalizeConfig } from './lib/config.ts';
 import { PydocsError } from './lib/errors.ts';
 import { loadDump } from './lib/data.ts';
-import type { PydocsLogger } from './lib/logger.ts';
 import { buildModel } from './lib/model.ts';
 import { computeVersionAnnotations } from './lib/ref-extract.ts';
 import { resolveExtraction } from './lib/runner.ts';
@@ -77,13 +76,9 @@ export function pydocsLoader(options: PydocsLoaderOptions): Loader {
     name: 'starlight-pydocs',
     schema: pydocsEntrySchema,
     async load(context: LoaderContext) {
+      // Astro's loader logger already satisfies the `PydocsLogger` seam.
       const { config, logger, store } = context;
       const projectRoot = options.projectRoot ?? fileURLToPath(config.root);
-      const pydocsLogger: PydocsLogger = {
-        info: (message) => logger.info(message),
-        warn: (message) => logger.warn(message),
-        debug: (message) => logger.debug(message),
-      };
 
       const { runner, cacheDir, projectRoot: _root, ...packageInput } = options;
       const normalised = normalizeConfig(
@@ -93,7 +88,7 @@ export function pydocsLoader(options: PydocsLoaderOptions): Loader {
       const pkg = normalised.packages[0];
       if (pkg === undefined) throw new PydocsError('starlight-pydocs: the loader needs a package to document');
 
-      const extractionContext = { cacheDir: normalised.cacheDir, cwd: projectRoot, logger: pydocsLogger };
+      const extractionContext = { cacheDir: normalised.cacheDir, cwd: projectRoot, logger };
       const extraction = await resolveExtraction(pkg, normalised, extractionContext);
       // No refs configured means no git work at all, so this is free by default.
       const { annotations } = await computeVersionAnnotations(pkg, normalised, extractionContext);

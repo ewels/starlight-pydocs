@@ -20,7 +20,7 @@ import type { AstroIntegration } from 'astro';
 
 import type { PydocsUserConfig } from './lib/config.ts';
 import type { PydocsSetupOptions } from './libs/integration.ts';
-import { pydocsIntegration, preparePydocs } from './libs/integration.ts';
+import { preparePydocsIntegration } from './libs/integration.ts';
 
 export interface PydocsAstroOptions extends PydocsUserConfig {
   /**
@@ -55,7 +55,7 @@ export default function pydocs(options: PydocsAstroOptions): AstroIntegration {
           layout: options.layout,
         };
 
-        shared = pydocsIntegration(await preparePydocs(setupOptions), setupOptions);
+        ({ integration: shared } = await preparePydocsIntegration(setupOptions));
         await shared.hooks['astro:config:setup']?.(params);
       },
 

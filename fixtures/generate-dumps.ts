@@ -13,15 +13,12 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import process from 'node:process';
-import { fileURLToPath } from 'node:url';
 
 import type { PydocsUserConfig } from '../packages/starlight-pydocs/lib/config.ts';
 import { normalizeConfig } from '../packages/starlight-pydocs/lib/config.ts';
 import type { PydocsLogger } from '../packages/starlight-pydocs/lib/logger.ts';
 import { resolveExtraction } from '../packages/starlight-pydocs/lib/runner.ts';
-
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+import { repoRoot, runScript } from './shared.ts';
 
 interface Fixture {
   name: string;
@@ -90,7 +87,4 @@ async function main(): Promise<void> {
   }
 }
 
-await main().catch((error: unknown) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 1;
-});
+await runScript(main);

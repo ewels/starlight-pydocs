@@ -72,26 +72,25 @@ export function vitePluginStarlightPydocs(options: VitePluginOptions): VitePlugi
       ? packageFile('../layouts/VanillaLayout.astro')
       : resolveUserSpecifier(options.vanillaLayout, options.projectRoot);
 
-  const staticModules: Record<string, string> = {
-    [PYDOCS_COMPONENTS_MODULE]: componentExports,
-    [PYDOCS_VANILLA_LAYOUT_MODULE]: `export { default } from ${JSON.stringify(layout)};`,
-  };
-
-  const ids = [PYDOCS_CONTEXT_MODULE, ...Object.keys(staticModules)];
-  const moduleResolutionMap = Object.fromEntries(ids.map((id) => [resolveVirtualModuleId(id), id]));
+  // One source per module, evaluated on every `load`. Functions rather than
+  // strings because the context module is regenerated after a dev-server
+  // re-extraction, when the dump paths have changed.
+  const sources = new Map<string, () => string>([
+    [PYDOCS_CONTEXT_MODULE, () => `export default ${JSON.stringify(options.getContext())}`],
+    [PYDOCS_COMPONENTS_MODULE, () => componentExports],
+    [PYDOCS_VANILLA_LAYOUT_MODULE, () => `export { default } from ${JSON.stringify(layout)};`],
+  ]);
+  const sourcesByResolvedId = new Map<string, () => string>(
+    [...sources].map(([id, source]) => [resolveVirtualModuleId(id), source]),
+  );
 
   return {
     name: 'vite-plugin-starlight-pydocs',
     load(id) {
-      const moduleId = moduleResolutionMap[id];
-      if (moduleId === undefined) return undefined;
-      if (moduleId === PYDOCS_CONTEXT_MODULE) {
-        return `export default ${JSON.stringify(options.getContext())}`;
-      }
-      return staticModules[moduleId];
+      return sourcesByResolvedId.get(id)?.();
     },
     resolveId(id) {
-      return ids.includes(id) ? resolveVirtualModuleId(id) : undefined;
+      return sources.has(id) ? resolveVirtualModuleId(id) : undefined;
     },
   };
 }

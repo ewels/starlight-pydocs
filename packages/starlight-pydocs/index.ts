@@ -12,7 +12,7 @@ import { randomBytes } from 'node:crypto';
 import type { StarlightPlugin } from '@astrojs/starlight/types';
 
 import type { PydocsUserConfig } from './lib/config.ts';
-import { pydocsIntegration, preparePydocs } from './libs/integration.ts';
+import { preparePydocsIntegration } from './libs/integration.ts';
 import type { SidebarUserGroup } from './libs/starlight.ts';
 import { getDefaultPlaceholderLabel, getSidebarGroupsPlaceholder } from './libs/starlight.ts';
 import { Translations } from './translations.ts';
@@ -58,20 +58,19 @@ export default function starlightPydocs(options: PydocsUserConfig): StarlightPlu
         // `sync` and `preview` neither build pages nor need extraction.
         if (command !== 'build' && command !== 'dev') return;
 
-        const setupOptions = {
+        const { config: pydocsConfig, integration } = await preparePydocsIntegration({
           options,
           root: astroConfig.root,
           base: astroConfig.base,
           trailingSlash: astroConfig.trailingSlash,
           starlight: true,
           logger,
-        };
-        const setup = await preparePydocs(setupOptions);
+        });
 
         addRouteMiddleware({ entrypoint: 'starlight-pydocs/middleware', order: 'post' });
-        addIntegration(pydocsIntegration(setup, setupOptions));
+        addIntegration(integration);
 
-        if (setup.config.injectStyles) {
+        if (pydocsConfig.injectStyles) {
           updateConfig({ customCss: [...(config.customCss ?? []), 'starlight-pydocs/styles'] });
         }
       },

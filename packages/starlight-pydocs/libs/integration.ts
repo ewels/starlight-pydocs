@@ -41,6 +41,7 @@ export interface PydocsSetupOptions {
   trailingSlash: 'always' | 'never' | 'ignore';
   /** True when the host is Starlight. */
   starlight: boolean;
+  /** Astro's logger, which already satisfies the {@link PydocsLogger} seam. */
   logger: AstroIntegrationLogger;
   /** Component specifier for the vanilla layout. Ignored under Starlight. */
   layout?: string | undefined;
@@ -52,17 +53,9 @@ export interface PydocsSetupOptions {
  * The virtual module reads through this, so a dev-server re-extraction can
  * publish new dump paths by replacing `context`.
  */
-export interface PydocsSetup {
+interface PydocsSetup {
   config: PydocsConfig;
   context: PydocsContext;
-}
-
-function asPydocsLogger(logger: AstroIntegrationLogger): PydocsLogger {
-  return {
-    info: (message) => logger.info(message),
-    warn: (message) => logger.warn(message),
-    debug: (message) => logger.debug(message),
-  };
 }
 
 /** Dump path per package base. */
@@ -134,8 +127,8 @@ async function versionPathsFor(
 }
 
 /** Validate the options, extract every dump, load every inventory. */
-export async function preparePydocs(options: PydocsSetupOptions): Promise<PydocsSetup> {
-  const logger = asPydocsLogger(options.logger);
+async function preparePydocs(options: PydocsSetupOptions): Promise<PydocsSetup> {
+  const { logger } = options;
   const config = normalizeConfig(options.options, fileURLToPath(options.root));
 
   const dumpPaths = await extract(config, logger);
@@ -156,17 +149,48 @@ export async function preparePydocs(options: PydocsSetupOptions): Promise<Pydocs
   return { config, context };
 }
 
-/** The route entrypoints, by host. */
-export const PAGE_ROUTE_ENTRYPOINTS = {
+/** The page route entrypoints, by host. */
+const PAGE_ROUTE_ENTRYPOINTS = {
   starlight: 'starlight-pydocs/routes/starlight',
   vanilla: 'starlight-pydocs/routes/vanilla',
 } as const;
 
 /**
+ * The files served next to a package's pages, each with the setting that turns it
+ * on. One table rather than three near-identical `injectRoute` blocks.
+ */
+function packageEndpoints(config: PydocsConfig): { filename: string; entrypoint: string }[] {
+  return [
+    { enabled: config.symbolSearch, filename: 'symbols.json', entrypoint: 'starlight-pydocs/routes/symbols' },
+    { enabled: config.publishInventory, filename: 'objects.inv', entrypoint: 'starlight-pydocs/routes/inventory' },
+    { enabled: config.llmsTxt, filename: 'llms.txt', entrypoint: 'starlight-pydocs/routes/llms' },
+  ].filter((endpoint) => endpoint.enabled);
+}
+
+/** What a host needs back: the integration to add, and the settings it must act on itself. */
+export interface PreparedPydocs {
+  /** The validated configuration, for host-specific decisions like `injectStyles`. */
+  config: PydocsConfig;
+  /** The integration to hand to Astro. */
+  integration: AstroIntegration;
+}
+
+/**
+ * Do the whole shared setup: validate, extract, and build the integration.
+ *
+ * One call rather than two, because both halves have to see the same options and
+ * the same setup; neither host has any business holding them apart.
+ */
+export async function preparePydocsIntegration(options: PydocsSetupOptions): Promise<PreparedPydocs> {
+  const setup = await preparePydocs(options);
+  return { config: setup.config, integration: pydocsIntegration(setup, options) };
+}
+
+/**
  * Build the Astro integration that injects the routes, registers the virtual
  * modules and keeps dev in sync with the Python sources.
  */
-export function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): AstroIntegration {
+function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): AstroIntegration {
   const entrypoint = options.starlight ? PAGE_ROUTE_ENTRYPOINTS.starlight : PAGE_ROUTE_ENTRYPOINTS.vanilla;
 
   // Created at `astro:config:done` and kept for the dev watcher: the host's
@@ -175,14 +199,13 @@ export function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOption
 
   const renderDocstrings = async (logger: AstroIntegrationLogger): Promise<void> => {
     if (renderer === undefined) return;
-    const pydocsLogger = asPydocsLogger(logger);
     for (const pkg of setup.context.packages) {
       const { count } = await renderDocstringsForDump({
         dumpPath: pkg.dumpPath,
         renderedPath: pkg.renderedPath,
         renderer,
         crossReferences: await getCrossReferenceResolver(setup.context, pkg.base),
-        logger: pydocsLogger,
+        logger,
       });
       logger.debug(`rendered ${String(count)} docstring strings of '/${pkg.base}' with ${renderer.name}`);
     }
@@ -196,25 +219,12 @@ export function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOption
         // slugs it owns through `getStaticPaths`.
         injectRoute({ entrypoint, pattern: '[...pydocsSlug]', prerender: true });
 
+        const endpoints = packageEndpoints(setup.config);
         for (const pkg of setup.config.packages) {
-          if (setup.config.symbolSearch) {
+          for (const endpoint of endpoints) {
             injectRoute({
-              entrypoint: 'starlight-pydocs/routes/symbols',
-              pattern: `${pkg.base}/symbols.json`,
-              prerender: true,
-            });
-          }
-          if (setup.config.publishInventory) {
-            injectRoute({
-              entrypoint: 'starlight-pydocs/routes/inventory',
-              pattern: `${pkg.base}/objects.inv`,
-              prerender: true,
-            });
-          }
-          if (setup.config.llmsTxt) {
-            injectRoute({
-              entrypoint: 'starlight-pydocs/routes/llms',
-              pattern: `${pkg.base}/llms.txt`,
+              entrypoint: endpoint.entrypoint,
+              pattern: `${pkg.base}/${endpoint.filename}`,
               prerender: true,
             });
           }
@@ -243,7 +253,6 @@ export function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOption
       },
 
       'astro:server:setup': ({ server, logger }) => {
-        const pydocsLogger = asPydocsLogger(logger);
         const directories = watchPaths(setup.config);
         if (directories.length === 0) return;
         for (const directory of directories) server.watcher.add(directory);
@@ -253,13 +262,13 @@ export function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOption
           if (!/\.pyi?$/.test(file) || running) return;
           running = true;
           try {
-            const dumpPaths = await extract(setup.config, pydocsLogger);
+            const dumpPaths = await extract(setup.config, logger);
             setup.context = createContext(setup.config, {
               dumpPaths,
               renderedPaths: renderedPathsFor(setup.config, dumpPaths),
               // Version refs are immutable commits: editing a `.py` file cannot
               // change what an old release contained, so the labels are reused.
-              versionsPaths: await versionPathsFor(setup.config, dumpPaths, pydocsLogger),
+              versionsPaths: await versionPathsFor(setup.config, dumpPaths, logger),
               siteBase: options.base,
               trailingSlash: options.trailingSlash,
               starlight: options.starlight,

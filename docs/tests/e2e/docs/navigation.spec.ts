@@ -1,10 +1,6 @@
-import type { Locator, Page } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 
-/** Starlight renders the site navigation once, as `nav[aria-label="Main"]`. */
-function sidebar(page: Page): Locator {
-  return page.locator('nav[aria-label="Main"]');
-}
+import { sidebar } from '../helpers.ts';
 
 test('the sidebar places each package under the section it was configured for', async ({ page }) => {
   await page.goto('api/demopkg/');

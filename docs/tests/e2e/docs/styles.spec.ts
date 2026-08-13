@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { member, section } from '../helpers.ts';
+
 /**
  * Docstring flavours, end to end.
  *
@@ -12,44 +14,32 @@ import { expect, test } from '@playwright/test';
 test('numpy-style docstrings parse into sections', async ({ page }) => {
   await page.goto('api/numpkg/');
 
-  const parameters = page
-    .locator('.pyd-member[data-pydocs-path="numpkg.resample"] .pyd-section[data-pydocs-section="parameters"]')
-    .first();
-  const rows = parameters.locator('.pyd-params tbody tr');
+  const resample = member(page, 'numpkg.resample');
+  const rows = section(resample, 'parameters').first().locator('.pyd-params tbody tr');
   await expect(rows).toHaveCount(2);
   await expect(rows.nth(0)).toContainText('grid');
   await expect(rows.nth(1)).toContainText('factor');
   await expect(rows.nth(1)).toContainText('Multiplier applied to both dimensions');
 
-  const grid = page.locator('.pyd-member[data-pydocs-path="numpkg.Grid"]');
-  await expect(grid.locator('.pyd-section[data-pydocs-section="parameters"]').first()).toContainText('Number of rows');
-  await expect(grid.locator('.pyd-section[data-pydocs-section="attributes"]').first()).toContainText(
-    'Number of columns',
-  );
+  const grid = member(page, 'numpkg.Grid');
+  await expect(section(grid, 'parameters').first()).toContainText('Number of rows');
+  await expect(section(grid, 'attributes').first()).toContainText('Number of columns');
 
-  await expect(
-    page.locator('.pyd-member[data-pydocs-path="numpkg.resample"] .pyd-section[data-pydocs-section="raises"]'),
-  ).toContainText('ValueError');
+  await expect(section(resample, 'raises')).toContainText('ValueError');
 });
 
 test('sphinx-style docstrings parse into sections, from a pre-generated dump', async ({ page }) => {
   await page.goto('api/sphpkg/');
 
-  const parameters = page
-    .locator('.pyd-member[data-pydocs-path="sphpkg.submit"] .pyd-section[data-pydocs-section="parameters"]')
-    .first();
-  const rows = parameters.locator('.pyd-params tbody tr');
+  const submit = member(page, 'sphpkg.submit');
+  const rows = section(submit, 'parameters').first().locator('.pyd-params tbody tr');
   await expect(rows).toHaveCount(2);
   await expect(rows.nth(0)).toContainText('job');
   await expect(rows.nth(1)).toContainText('validate without queueing');
 
-  await expect(
-    page.locator('.pyd-member[data-pydocs-path="sphpkg.Job"] .pyd-section[data-pydocs-section="parameters"]').first(),
-  ).toContainText('Queue priority');
+  await expect(section(member(page, 'sphpkg.Job'), 'parameters').first()).toContainText('Queue priority');
 
-  await expect(
-    page.locator('.pyd-member[data-pydocs-path="sphpkg.submit"] .pyd-section[data-pydocs-section="returns"]'),
-  ).toContainText('identifier assigned to the job');
+  await expect(section(submit, 'returns')).toContainText('identifier assigned to the job');
 
   // Nothing configured a source link for this package and the dump was made
   // portable, so there is nothing to link to.
@@ -59,9 +49,7 @@ test('sphinx-style docstrings parse into sections, from a pre-generated dump', a
 test('google-style docstrings render examples as highlighted code', async ({ page }) => {
   await page.goto('api/demopkg/');
 
-  const examples = page
-    .locator('.pyd-module[data-pydocs-path="demopkg"] .pyd-section[data-pydocs-section="examples"]')
-    .first();
+  const examples = section(page.locator('.pyd-module[data-pydocs-path="demopkg"]'), 'examples').first();
   await expect(examples).toContainText('Build a report and write it to disk');
   // Starlight registers expressive-code on the processor the docstrings render
   // through, so a doctest block comes out as an expressive-code figure with the
