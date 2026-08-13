@@ -1,0 +1,135 @@
+---
+title: Theming
+description: The --pyd-* custom properties, the cascade layer, dark mode without Starlight, and code highlighting.
+---
+
+The stylesheet is `starlight-pydocs/styles`. Under Starlight the plugin appends it to `customCss`
+for you (`injectStyles: false` opts out); in a plain Astro project you import it yourself.
+
+Every colour goes through a custom property, and every rule sits in a low-priority cascade layer,
+so there are two ways to change how the pages look: retint the tokens, or override a rule.
+
+## Tokens
+
+Set any of these on `:root` (or on a narrower selector) to retint the pages. The values shown are
+the defaults: Starlight's token first, then a static fallback for sites without Starlight.
+
+| Token                  | Default                                        | Used for                                       |
+| ---------------------- | ---------------------------------------------- | ---------------------------------------------- |
+| `--pyd-text`           | `var(--sl-color-text, #24292f)`                | Body text in signatures and tables              |
+| `--pyd-text-muted`     | `var(--sl-color-gray-3, #57606a)`              | Badges, provenance, section titles, source links |
+| `--pyd-text-invert`    | `var(--sl-color-black, #ffffff)`               | Text on an accent background (the kind badge)    |
+| `--pyd-bg`             | `var(--sl-color-bg, #ffffff)`                  | Page background in the built-in layout          |
+| `--pyd-surface`        | `var(--sl-color-gray-6, #f6f8fa)`              | Signature blocks, badges, search results         |
+| `--pyd-surface-strong` | `var(--sl-color-gray-5, #eaeef2)`              | Table headers and hovered rows                   |
+| `--pyd-border`         | `var(--sl-color-hairline-light, #d8dee4)`      | Member rules, table borders, input borders       |
+| `--pyd-accent`         | `var(--sl-color-text-accent, #2563eb)`         | Linked types, anchors, the kind badge            |
+| `--pyd-accent-low`     | `var(--sl-color-accent-low, #dbeafe)`          | Accent backgrounds                               |
+| `--pyd-note`           | `var(--sl-color-blue, #3b82f6)`                | Note asides                                      |
+| `--pyd-note-low`       | `var(--sl-color-blue-low, #dbeafe)`            | Note aside background                            |
+| `--pyd-tip`            | `var(--sl-color-purple, #8b5cf6)`              | Tip asides                                       |
+| `--pyd-tip-low`        | `var(--sl-color-purple-low, #ede9fe)`          | Tip aside background                             |
+| `--pyd-caution`        | `var(--sl-color-orange, #ea580c)`              | Caution asides and deprecation badges            |
+| `--pyd-caution-low`    | `var(--sl-color-orange-low, #ffedd5)`          | Caution aside background                         |
+| `--pyd-danger`         | `var(--sl-color-red, #dc2626)`                 | Danger asides                                    |
+| `--pyd-danger-low`     | `var(--sl-color-red-low, #fee2e2)`             | Danger aside background                          |
+| `--pyd-radius`         | `0.375rem`                                     | Corner radius on signatures and inputs           |
+| `--pyd-mono`           | `var(--sl-font-mono, …)`                       | Every monospaced string                          |
+
+Because the defaults reference Starlight's tokens, a Starlight site that changes its accent colour
+changes the API pages with it, and nothing here needs touching. Retint one thing at a time when you
+do want to differ:
+
+```css
+/* src/styles/custom.css */
+:root {
+  --pyd-accent: #b45309;
+  --pyd-radius: 0;
+}
+```
+
+:::caution[Starlight's colour tokens are contrast tokens]
+`--sl-color-white` is _dark_ in light mode: the names describe contrast, not literal colours. That
+is why text on an accent background here is `--pyd-text-invert` (Starlight's `--sl-color-black`),
+following the same pattern as Starlight's own LinkButton. Substituting a literal white breaks light
+mode.
+:::
+
+## Overriding rules
+
+Everything in the stylesheet is wrapped in `@layer starlight-pydocs`, which is declared before your
+own CSS. Unlayered rules beat layered ones whatever their specificity, so a plain selector in your
+own stylesheet wins with no specificity fight and no `!important`:
+
+```css
+/* Your CSS, unlayered, beats anything in the layer. */
+.pyd-signature {
+  background: transparent;
+  border-left: 3px solid var(--pyd-accent);
+}
+```
+
+The class hooks are stable and prefixed `pyd-`. The ones worth knowing:
+
+| Class                                       | What it wraps                                          |
+| ------------------------------------------- | ------------------------------------------------------ |
+| `.pyd-module`                               | A whole module page's body                              |
+| `.pyd-member`                               | One documented object, including its members            |
+| `.pyd-heading`, `.pyd-anchor`               | An object's heading and its permalink                   |
+| `.pyd-badges`, `.pyd-badge`                 | Kind, label and deprecation badges                      |
+| `.pyd-signature`                            | A signature block (`--overload`, `--attribute` variants) |
+| `.pyd-type`                                 | A name inside a signature or annotation (linked or not) |
+| `.pyd-provenance`, `.pyd-source-link`       | The line under a heading                                |
+| `.pyd-section`, `.pyd-section-title`        | One docstring section and its heading                   |
+| `.pyd-params`, `.pyd-summary-table`         | Parameter tables and member summaries                   |
+| `.pyd-aside`                                | An admonition (`--tip`, `--caution`, `--danger`)        |
+| `.pyd-inherited`                            | The `<details>` block of members from a base class      |
+| `.pyd-search…`                              | The symbol search element and its results               |
+| `.pyd-page`, `.pyd-toc`                     | The built-in vanilla layout and its table of contents   |
+
+Data attributes carry the model's own vocabulary, which makes them the right hook for anything
+selective: `[data-pydocs-kind="class"]`, `[data-pydocs-path="mypkg.Report"]`,
+`[data-pydocs-group="methods"]`, `[data-pydocs-section="parameters"]`,
+`[data-pydocs-badge="deprecated"]`, `[data-pydocs-aside="note"]`.
+
+If a rule needs to win _inside_ Starlight's own `.sl-markdown-content` — where Starlight's
+unlayered rules also apply — give it enough specificity to do so, exactly as the stylesheet itself
+does in the few places it must.
+
+## Dark mode
+
+Under Starlight there is nothing to do: the tokens follow `--sl-*`, which Starlight flips.
+
+Without Starlight, the stylesheet defines a dark palette twice, so both ways of choosing a theme
+work: under `@media (prefers-color-scheme: dark)` guarded by `:root:not([data-theme='light'])`, and
+under `:root[data-theme='dark']`. Set `data-theme="dark"` or `data-theme="light"` on `<html>` from
+your own theme toggle and the API pages follow; leave it unset and they follow the operating system.
+
+## Code highlighting
+
+Code inside docstrings — fenced blocks, doctest transcripts — is highlighted by the site's own
+pipeline, because docstring prose renders through the processor your project configured. There is
+no separate Shiki configuration here, and nothing to keep in sync.
+
+Under Starlight that means Expressive Code, so a docstring's code block gets the same frame, copy
+button and themes as a code block in a hand-written page. In a plain Astro project it is Shiki's
+`.astro-code` output, configured by `markdown.shikiConfig`:
+
+```js
+// astro.config.mjs
+export default defineConfig({
+  markdown: {
+    shikiConfig: {
+      themes: { light: 'github-light', dark: 'github-dark' },
+      defaultColor: false,
+    },
+  },
+});
+```
+
+`defaultColor: false` emits both themes as custom properties, which is what makes a single
+stylesheet work in light and dark. This site uses exactly that configuration.
+
+Signatures are not Shiki output: they are built from the model so that every type can be a link,
+and they are styled with `.pyd-signature` and `.pyd-type` rather than syntax-highlighted. The
+trade is deliberate — a linked `dict[str, Report]` is worth more on an API page than token colours.

@@ -1,0 +1,143 @@
+---
+title: Cross-references
+description: How type annotations and docstring references resolve into links, and how to interoperate with Sphinx and mkdocstrings.
+---
+
+Two different things get linked: the names inside type annotations, and the references you write
+in docstring prose. Both resolve to the same places — a page on this site, or another project's
+documentation through a Sphinx inventory.
+
+## Linked annotations
+
+Griffe serialises annotations as expression trees, and every name in one is a bare source name:
+`Report`, not `mypkg.report.Report`. Resolving it is this plugin's job, and it happens in a fixed
+order:
+
+1. **The scope chain of the object the annotation belongs to.** For a method of
+   `mypkg.report.Report`, that means `mypkg.report.Report`, then `mypkg.report`, then `mypkg`,
+   following aliases. A name a module imported resolves to what it was imported from.
+2. **A fully qualified path**, when the annotation spells one out (`mypkg.report.Report`).
+3. **The builtins table**, a curated list of the types, constants and exceptions that actually
+   appear in annotations (`str`, `dict`, `ValueError`, …). Linked only when an inventory can say
+   where they are documented.
+4. **The configured Sphinx inventories**, in configuration order, restricted to the `py` domain.
+
+If nothing resolves, the name renders as plain text. Compound annotations are walked piece by
+piece, so `dict[str, float] | None` links `dict`, `str` and `float` independently, and
+`Mapping[str, Report]` links out to the standard library and back into your own pages in the same
+line.
+
+A name the scope chain resolves to something undocumented stays unlinked rather than falling
+through to an inventory: in that scope the name means the thing the scope says it means, and
+linking it elsewhere would be a lie.
+
+## References in docstring prose
+
+mkdocstrings' reference syntax works in prose, so docstrings written for mkdocstrings keep their
+links:
+
+```python
+def generate_report(source, /, name: str, *, fmt: str = "md") -> Report:
+    """Build a report from a source object.
+
+    Returns a [Report][mypkg.report.Report] whose
+    [generate][mypkg.report.Report.generate] method writes a
+    [pathlib.Path][pathlib.Path].
+    """
+```
+
+Both forms are supported: `[title][dotted.path]`, and the shorthand `[dotted.path][]` where the
+target doubles as the text. Targets resolve against this package's symbol index first, then the
+other configured packages', then the inventories, and the resulting href is the same one an
+annotation to that object would produce.
+
+References are rewritten before the Markdown is rendered, and only when the target resolves.
+Everything else is left exactly as written:
+
+- An unresolvable target keeps its brackets, so a typo is visible rather than silently dropped.
+- Fenced code blocks and inline code spans are never touched, so you can document the syntax
+  itself.
+- A target that has a real Markdown reference definition (`[target]: https://…`) in the same
+  docstring is left to Markdown, which knows what to do with it.
+- An escaped bracket (`\[title][target]`) is left alone.
+
+Both a documented path and the canonical path Griffe found the definition at resolve. If an object
+is documented at several paths — a re-export and its definition — the shortest one wins, so
+`[Report][mypkg.Report]` and `[Report][mypkg.report.Report]` both land somewhere sensible.
+
+:::note[The `llms.txt` rendition keeps the raw syntax]
+Docstring prose is passed through verbatim into
+[`llms.txt`](/starlight-pydocs/guides/llms-txt/), so references appear there as
+`[title][dotted.path]`. That output is for machines, which do better with the dotted path than with
+a resolved URL.
+:::
+
+## Anchors
+
+Every documented object's heading id is its dotted path:
+
+```html
+<h2 id="mypkg.report.Report">…</h2>
+<h3 id="mypkg.report.Report.generate">…</h3>
+```
+
+That is mkdocstrings' anchor scheme, not a slugified heading, which is why URLs from an existing
+mkdocstrings site keep working and why inventories interoperate in both directions without a
+mapping layer. Module pages have no anchor of their own: a module _is_ a page.
+
+## Consuming inventories
+
+`inventories` takes a list of entries, each a URL or a local file, plus the base URL its relative
+URIs resolve against:
+
+```js
+starlightPydocs({
+  packages: [{ name: 'mypkg', search: ['../src'] }],
+  inventories: [
+    'python',
+    { url: 'https://pandas.pydata.org/docs/objects.inv' },
+    { url: 'https://example.com/docs/objects.inv', base: 'https://example.com/docs/' },
+    { file: './vendor/internal.inv', base: 'https://docs.internal.example/' },
+  ],
+});
+```
+
+- `'python'` is the one built-in preset: CPython's `objects.inv` with
+  `https://docs.python.org/3/` as its base.
+- `base` defaults to the inventory URL with its last segment removed, which is right for the
+  conventional `…/objects.inv` layout. A local `file` has no URL to derive from, so `base` is
+  required there.
+- Earlier entries win when two inventories describe the same name.
+- Only the `py` domain is consulted. A `std:label` named `str` would otherwise send a Python
+  annotation to a page about something else entirely.
+- Downloads are cached with `ETag` revalidation, and `cache: 'force' | 'revalidate' | 'bypass'`
+  controls that per entry. An inventory that cannot be loaded is a warning, not a build failure:
+  annotations simply stay unlinked.
+
+## Publishing your inventory
+
+Each package serves its own `objects.inv` at `<base>/objects.inv` unless you set
+`publishInventory: false`. It is a Sphinx v2 inventory built from the symbol index, with the roles
+mkdocstrings uses (`py:module`, `py:class`, `py:function`, `py:method`, `py:attribute`), so other
+projects can point at it:
+
+```yaml
+# mkdocs.yml, in a project that wants to link into your API reference
+plugins:
+  - mkdocstrings:
+      handlers:
+        python:
+          inventories:
+            - url: https://example.com/api/mypkg/objects.inv
+```
+
+```python
+# conf.py, for a Sphinx project
+intersphinx_mapping = {
+    "mypkg": ("https://example.com/api/mypkg", None),
+}
+```
+
+Because the anchors are dotted paths, a link from either tool lands on the exact heading, and a
+link from this site into an mkdocstrings site does the same in reverse. That symmetry is the whole
+reason for the anchor scheme.

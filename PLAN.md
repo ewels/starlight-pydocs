@@ -306,6 +306,20 @@ starlight-openapi's `createOpenAPISidebarGroup`), so versioned sidebars slot eac
 group under the right version. Documented with a full recipe and covered by an e2e
 fixture running two instances of the same package at different bases.
 
+**Status (verified 2026-08-13): multi-instance is not supported, and the recipe is
+per-version builds instead.** Only `createPydocsSidebarGroup()` shipped, and one
+plugin instance rejects two entries with the same package name. Registering the
+plugin twice fails: both instances resolve the same
+`virtual:starlight-pydocs/context` module id (the first one wins, so the second
+instance's packages do not exist at render time) and both inject the same
+`[...pydocsSlug]` catch-all, which Astro reports as a route conflict — a build
+against `examples/vanilla` ends in `no configured package serves
+/api/v1/numpkg/llms.txt`. Making it work needs a per-instance virtual module
+namespace and a per-instance route pattern, which is a feature, not a fix.
+`docs/src/content/docs/guides/versioned-docs.mdx` documents what does work: pin a
+version's dump, build the site once per version and deploy each under its own base,
+with starlight-versions handling the prose.
+
 ### 12. Stretch: version annotations by diffing dumps across refs
 
 `griffe check` has no machine-readable output, so annotations come from data we

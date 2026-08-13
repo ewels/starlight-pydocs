@@ -1,0 +1,128 @@
+---
+title: Versioned docs
+description: Keep API reference pages for more than one release, with starlight-versions or one build per version.
+---
+
+Generated pages are injected routes, not files in `src/content/docs`, which is what makes their
+anchors, linked types and search metadata possible
+([why](/starlight-pydocs/guides/migration/#page-layout)). It also means
+[starlight-versions](https://starlight-versions.vercel.app/) does not snapshot them: it copies the
+content collection into a per-version directory, and there is no file to copy for a route.
+
+So versioning the API reference is a build-level job, and pre-generated dumps are what make it
+straightforward: a dump is a complete, frozen description of one release's API, and a site that
+reads one needs no Python and no checkout of that release.
+
+## Pin the dump to the release you document
+
+Whatever else you do, pin the dump. Then the API pages describe a released version rather than
+whatever `main` looked like when the site was built:
+
+```js
+// astro.config.mjs
+starlightPydocs({
+  packages: [
+    {
+      name: 'mypkg',
+      // Published by the release workflow of the Python project.
+      source: { url: 'https://github.com/you/mypkg/releases/download/v2.1.0/api.json' },
+      sourceLink: { host: 'github', repo: 'you/mypkg', ref: 'v2.1.0' },
+    },
+  ],
+});
+```
+
+`sourceLink.ref` matching the dump's tag keeps the source links honest: line numbers move between
+releases, and a link to `main` would eventually point at the wrong lines. See
+[Pre-generated dumps](/starlight-pydocs/guides/pregenerated-dumps/) for how to produce and publish
+`api.json`.
+
+## One build per version
+
+The recipe that gives every version its own API pages is one site build per version, each pinning
+its own dump and deployed under its own path prefix. The plugin configuration differs by two values,
+so read them from the environment:
+
+```js
+// astro.config.mjs
+const version = process.env.DOCS_VERSION ?? 'v2.1.0';
+const isLatest = process.env.DOCS_LATEST === 'true';
+
+export default defineConfig({
+  site: 'https://docs.example.com',
+  base: isLatest ? '/' : `/${version}`,
+  integrations: [
+    starlight({
+      title: `mypkg ${version}`,
+      plugins: [
+        starlightPydocs({
+          packages: [
+            {
+              name: 'mypkg',
+              source: { url: `https://github.com/you/mypkg/releases/download/${version}/api.json` },
+              sourceLink: { host: 'github', repo: 'you/mypkg', ref: version },
+            },
+          ],
+        }),
+      ],
+      sidebar: [{ label: 'API reference', items: [pydocsSidebarGroup] }],
+    }),
+  ],
+});
+```
+
+Build each version in turn and assemble the output:
+
+```sh
+DOCS_VERSION=v2.1.0 DOCS_LATEST=true pnpm build && mv dist public-site
+DOCS_VERSION=v1.4.3 pnpm build && mv dist public-site/v1.4.3
+```
+
+Every href the plugin emits goes through Astro's `base`, so `/v1.4.3/api/mypkg/report/#mypkg.report.Report`
+works with no further configuration, and each version's `objects.inv`, `symbols.json` and `llms.txt`
+sit beside that version's pages. A version switcher is then a matter of linking between prefixes,
+which is what starlight-versions' own switcher does for prose.
+
+## Using starlight-versions alongside
+
+starlight-versions is still the right tool for the prose. Let it version the guides, and keep the
+API reference at one canonical URL per build:
+
+```js
+starlight({
+  plugins: [
+    starlightVersions({ versions: [{ slug: '1.x' }] }),
+    starlightPydocs({
+      packages: [{ name: 'mypkg', source: { url: 'https://…/v2.1.0/api.json' } }],
+    }),
+  ],
+  sidebar: [
+    { label: 'Guides', autogenerate: { directory: 'guides' } },
+    { label: 'API reference', items: [pydocsSidebarGroup] },
+  ],
+});
+```
+
+The `1.x` prose pages get their own copies; the API pages do not, so add a link from the versioned
+prose to the archived API pages of that release (built as above, or the release's own published
+`llms.txt`) rather than leaving readers on the current reference.
+
+## Two packages, two names
+
+When a major version renames the import name — `mypkg` and `mypkg2`, a common Python pattern — both
+are simply two packages in one build, with no version machinery at all:
+
+```js
+packages: [
+  { name: 'mypkg2', search: ['../src'] },
+  { name: 'mypkg', base: 'api/v1/mypkg', source: { file: './dumps/mypkg-1.4.3.json' } },
+];
+```
+
+:::caution[One package name per build]
+Package names must be unique inside a plugin instance, so the same import name cannot be documented
+at two bases in one build — `mypkg` at `api/mypkg` and `api/v1/mypkg` is rejected during
+validation. Registering the plugin twice does not work around it either: both instances would share
+one virtual context module and inject the same catch-all route, and the build fails with a route
+conflict. Per-version API pages therefore come from per-version builds, as above.
+:::

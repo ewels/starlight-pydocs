@@ -1,0 +1,176 @@
+---
+title: Configuration
+description: Every option the starlight-pydocs plugin and the Astro integration accept, with its type and default.
+---
+
+The Starlight plugin (`starlight-pydocs`) and the Astro integration (`starlight-pydocs/astro`)
+take the same options, with one extra on the integration: `layout`. Everything is validated when
+the config loads, and a bad value names itself, for example
+`packages[1].base: must not be empty or the site root`.
+
+## Top-level options
+
+| Option             | Type                                | Default              | What it does                                                   |
+| ------------------ | ----------------------------------- | -------------------- | -------------------------------------------------------------- |
+| `packages`         | `PackageInput[]`                    | required             | The packages to document. At least one.                        |
+| `runner`           | `{ command?, python? }`             | `{}`                 | Overrides for how griffe is invoked.                           |
+| `inventories`      | `(InventoryInput \| 'python')[]`    | `[]`                 | Sphinx inventories used to link type annotations outwards.      |
+| `publishInventory` | `boolean`                           | `true`               | Serve `objects.inv` for each package.                          |
+| `symbolSearch`     | `boolean`                           | `true`               | Serve `symbols.json` and render the search box.                |
+| `llmsTxt`          | `boolean`                           | `true`               | Serve `llms.txt` for each package.                             |
+| `components`       | `Record<name, string>`              | `{}`                 | Component overrides. See [Component overrides](/starlight-pydocs/guides/component-overrides/). |
+| `injectStyles`     | `boolean`                           | `true`               | Append the package stylesheet to Starlight's `customCss`.       |
+| `cacheDir`         | `string`                            | `node_modules/.astro` | Directory for cached dumps, inventories and rendered prose.    |
+| `layout`           | `string`                            | built-in layout      | Integration only: the component that wraps generated pages.     |
+
+`injectStyles` has nothing to append to in a plain Astro project, so the integration ignores it;
+import `starlight-pydocs/styles` from your own layout instead (see
+[Vanilla Astro](/starlight-pydocs/guides/vanilla-astro/)).
+
+Turning `symbolSearch` off removes both the `symbols.json` endpoint and every rendered search box,
+including a hand-placed `<SymbolSearch />`, which renders nothing rather than a box that cannot
+search.
+
+## Per-package options
+
+Each entry of `packages` describes one Python package.
+
+| Option              | Type                                   | Default        | What it does                                                          |
+| ------------------- | -------------------------------------- | -------------- | --------------------------------------------------------------------- |
+| `name`              | `string`                               | required       | Python import name, e.g. `mypkg`. Must be a valid dotted import name.  |
+| `base`              | `string`                               | `api/<name>`   | URL base for the generated pages, relative to the site root.           |
+| `search`            | `string[]`                             | project root   | Directories passed to `griffe --search`, relative to the project root. |
+| `docstringStyle`    | `'google' \| 'numpy' \| 'sphinx' \| 'auto'` | `'google'` | Docstring flavour, passed to `griffe -d`.                          |
+| `docstringOptions`  | `Record<string, unknown>`               | `{}`           | Parser options, serialised into `griffe -D`.                           |
+| `extensions`        | `(string \| { name, options })[]`      | `[]`           | Griffe extensions, passed to `griffe -e`.                              |
+| `extraRequirements` | `string[]`                             | `[]`           | Python requirements the extensions need (`uvx --with`).                |
+| `forceInspection`   | `boolean`                              | `false`        | Pass `griffe -x`, allowing griffe to import the package.               |
+| `source`            | `{ file } \| { url, cache? }`          | none           | Use a pre-generated dump instead of running griffe.                    |
+| `members`           | `{ include?, exclude? }`               | `{}`           | Glob patterns on dotted paths, applied after `filters`.                |
+| `filters`           | `{ special?, private?, imported?, inherited? }` | see below | Coarse member switches.                                       |
+| `sourceLink`        | `{ template, ref?, root? }` or `{ host, repo, ref?, root? }` | none | Link objects to their source lines.        |
+| `sidebar`           | `{ label?, collapsed?, group? }`       | `{}`           | Sidebar presentation, Starlight only.                                  |
+| `versions`          | `{ ref, label }[]`                     | `[]`           | Reserved for version annotations; not rendered yet.                    |
+
+`search` points at the _parent_ of the package directory: `../src` for `../src/mypkg`. Leave it
+unset only when the package sits in the Astro project root.
+
+`base` may not be empty, may not be the site root, and may not overlap another package's base;
+`api/mypkg` and `api` together are rejected, because one would swallow the other's pages. Package
+names must be unique within one plugin instance.
+
+### Member selection
+
+`filters` defaults to `{ special: false, private: false, imported: false, inherited: true }`, and
+runs before `members`:
+
+- `special` documents dunder members such as `__init__` in their own right (its parameters are
+  merged into the class signature either way).
+- `private` documents underscore-prefixed members.
+- `imported` documents members that are imports rather than definitions. Submodules are exempt:
+  they are navigation, so they get pages whether or not they are exported.
+- `inherited` merges the public members of resolvable base classes into a class, badged with the
+  class they came from.
+
+A module that declares `__all__` overrides all of this for its own members, exactly as
+mkdocstrings does: the list _is_ the documented surface. `members.include` and `members.exclude`
+then apply on top, matching dotted paths with a small glob dialect where `*` matches inside one
+segment and `**` matches across segments:
+
+```js
+packages: [
+  {
+    name: 'mypkg',
+    search: ['../src'],
+    filters: { private: true },
+    members: { exclude: ['mypkg.internal.**', 'mypkg.*.legacy_*'] },
+  },
+];
+```
+
+`include`, when non-empty, is an allow-list: only matching objects are documented, plus the
+containers on the way to them.
+
+## Runner resolution order
+
+Extraction picks the first strategy that applies, per package:
+
+1. `runner.command` — a full argv array. The dump arguments and `-o <file>` are appended, so pass
+   only the executable and its own arguments, for example
+   `['micromamba', 'run', '-n', 'docs', 'griffe']`.
+2. `source: { file }` — a dump already on disk. Nothing runs.
+3. `source: { url }` — a dump downloaded and cached.
+4. `uvx --from griffe griffe`, when `uv --version` succeeds. `extraRequirements` become
+   `--with` arguments.
+5. `<interpreter> -m griffe`, for the first of `python3`, `python` (or `runner.python`) that can
+   `import griffe`.
+
+When nothing works, the error lists every probe and its reason, along with the three ways to fix
+it: install `uv`, install griffe into the interpreter that runs the build, or point at a
+pre-generated dump.
+
+Whatever strategy runs, griffe is always invoked as `griffe dump -f -d <style>` with `-s` per
+search path. Both flags matter: without `-f` there are no file paths or visibility flags, and
+without `-d` docstrings arrive as unparsed text.
+
+## Cache behaviour
+
+Dumps are written to `<cacheDir>/starlight-pydocs/<name>-<hash>/dump.json`. The hash covers
+everything that can change the output: the resolved argv, the docstring style and options, the
+extensions, and the path, size and mtime of every `.py` and `.pyi` file under the search paths
+(skipping `__pycache__`, `node_modules`, dot-directories and virtualenvs). Change any of them and
+the key changes, so a stale dump is never reused and there is nothing to invalidate by hand.
+Rebuilds that change nothing skip extraction entirely.
+
+Dumps are never sent to the browser and never inlined into a virtual module — they are megabytes,
+and the only pydocs JSON a browser fetches is the small `symbols.json` index. The virtual module
+carries the validated configuration and the dump paths; the JSON is read from disk, server-side,
+once per process.
+
+Remote artefacts — `source: { url }` and `inventories[].url` — are cached beside the dumps with
+their `ETag` and `Last-Modified`, and the `cache` option controls how they are revalidated:
+
+| `cache`        | Behaviour                                                            |
+| -------------- | -------------------------------------------------------------------- |
+| `'revalidate'` | Default. Sends `If-None-Match` / `If-Modified-Since`; `304` reuses the cached copy. |
+| `'force'`      | Uses any cached copy without contacting the server.                   |
+| `'bypass'`     | Always downloads.                                                     |
+
+If the network fails or the server answers with an error and a cached copy exists, the copy is
+used and a warning is logged: a docs build should not fail because a CDN blinked.
+
+`cacheDir` defaults to `node_modules/.astro`, which is where Astro keeps its own cache. Point it
+somewhere persistent if your CI caches a different directory. Pre-rendered docstring HTML lives
+beside the dump it belongs to, or under `<cacheDir>/starlight-pydocs/rendered/` when the dump is a
+file you own and we must not write next to.
+
+In `astro dev`, the search paths are watched: saving a `.py` file re-extracts, re-renders the
+prose and triggers a reload. Packages configured with `source` are not watched, because nothing
+would be re-extracted.
+
+## A fully loaded example
+
+```js
+starlightPydocs({
+  packages: [
+    {
+      name: 'mypkg',
+      base: 'api/mypkg',
+      search: ['../src'],
+      docstringStyle: 'google',
+      docstringOptions: { warn_unknown_params: false },
+      extensions: ['griffe_pydantic'],
+      extraRequirements: ['griffe-pydantic'],
+      filters: { inherited: true, special: false },
+      members: { exclude: ['mypkg._*', 'mypkg.**.legacy'] },
+      sourceLink: { host: 'github', repo: 'you/mypkg', ref: 'main', root: '..' },
+      sidebar: { label: 'mypkg API', collapsed: true },
+    },
+  ],
+  inventories: ['python', { url: 'https://pandas.pydata.org/docs/objects.inv' }],
+  symbolSearch: true,
+  llmsTxt: true,
+  publishInventory: true,
+  cacheDir: '.cache',
+});
+```

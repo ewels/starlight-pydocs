@@ -1,0 +1,125 @@
+---
+title: Docstring styles
+description: How google, numpy, sphinx and auto docstrings are parsed, and which sections render.
+---
+
+Docstrings are parsed by Griffe, not by this plugin, so the four flavours Griffe supports are the
+four you can choose from. Set the one your package uses per package:
+
+```js
+packages: [
+  { name: 'mypkg', search: ['../src'], docstringStyle: 'numpy' },
+  { name: 'legacy', search: ['../legacy'], docstringStyle: 'sphinx' },
+];
+```
+
+| Style      | Section syntax                                                | Notes                                                             |
+| ---------- | ------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `google`   | `Args:`, `Returns:`, `Raises:` and friends, indented blocks     | The default, and what the fixture package `demopkg` uses.          |
+| `numpy`    | Underlined section titles, `name : type` parameter lines        | Needs the underlines; a missing one turns the section into prose.  |
+| `sphinx`   | `:param name:`, `:returns:`, `:raises Error:` field lists       | Types come from `:type name:` fields or annotations.               |
+| `auto`     | Griffe guesses per docstring                                   | Useful for a package whose docstrings are not consistent.          |
+
+Extra parser options go through `docstringOptions`, which is serialised into griffe's `-D` flag:
+
+```js
+packages: [
+  {
+    name: 'mypkg',
+    search: ['../src'],
+    docstringStyle: 'google',
+    docstringOptions: { warn_unknown_params: false, returns_named_value: false },
+  },
+];
+```
+
+The option names are Griffe's own, and they differ per parser — see
+[Griffe's docstring parser options](https://mkdocstrings.github.io/griffe/reference/docstrings/).
+Options are part of the cache key, so changing one re-extracts.
+
+## Sections that render
+
+Whatever the style, Griffe produces the same structured sections, and each renders as its own
+block in docstring order:
+
+| Section                                       | Rendered as                                                              |
+| --------------------------------------------- | ------------------------------------------------------------------------ |
+| Prose                                         | Markdown, through the site's own processor                                |
+| Parameters, other parameters, type parameters | A table of name, type, default and description, with linked types         |
+| Attributes                                    | The same table without the default column                                 |
+| Returns, yields, receives                     | A list of typed values with their descriptions                            |
+| Raises, warns                                 | A list of exception types, each linked where it resolves                  |
+| Examples                                      | Prose and doctest blocks, in the order they were written                  |
+| Admonitions (`Note:`, `Warning:`, `Tip:` …)   | An aside, in one of four flavours matching Starlight's own                 |
+| Deprecations                                  | A badge on the heading and a caution aside carrying the explanation        |
+| Functions, classes, modules, type aliases     | A list of cross-referenced names, as numpy-style `See Also` blocks produce |
+
+Sections of a kind we do not model are ignored rather than guessed at, so a future Griffe release
+can add one without breaking a page.
+
+Parameter tables list the parameters the docstring documents; a parameter you leave out of the
+docstring still appears in the signature above. Types come from the annotation when the docstring
+gives none, which is what makes google-style `name: description` lines enough on an annotated
+function, and they are linked exactly as the types in the signature are; see
+[Cross-references](/starlight-pydocs/guides/cross-references/).
+
+## Admonition flavours
+
+Griffe records an admonition's annotation (`note`, `warning`, `danger`, `seealso`, `hint`, …), and
+each maps onto one of four asides styled to match Starlight's: note, tip, caution and danger. An
+annotation we do not recognise renders as a note, keeping its own title. `Deprecated:` blocks are
+the exception: the google parser routes them through the admonition machinery, and they are turned
+into the deprecation notice instead of an aside, so the badge and the explanation stay together.
+
+## Doctests and examples
+
+An `Examples:` section arrives as a sequence of prose and transcript pieces. Prose renders as
+Markdown. A `>>>` transcript arrives unfenced, so it is fenced as `python` before rendering, which
+means it is highlighted by whatever highlighter the site already uses — Expressive Code under
+Starlight, plain Shiki in a bare Astro project.
+
+`python` rather than mkdocstrings' `pycon`: no Python-console grammar ships in the Shiki bundles
+these processors use, and `python` highlights a transcript correctly. A block that is already
+fenced in the docstring is left exactly as written, so you can pick your own language:
+
+````python
+def summarise(rows):
+    """Summarise a table.
+
+    Examples:
+        The plain transcript form, fenced as `python` for you:
+
+        >>> summarise([{"n": 1}])
+        'n=1'
+
+        Or fence it yourself, in any language:
+
+        ```console
+        $ python -m mypkg summarise rows.json
+        n=1
+        ```
+    """
+````
+
+The `llms.txt` rendition of the same content fences transcripts as `pycon` instead, because that
+output is read by machines rather than highlighted by Shiki.
+
+## Prose rendering
+
+Docstring Markdown goes through the markdown processor **your site has configured**, not one this
+package brings along. Whatever your site does to its own Markdown — the theme, the plugins
+Starlight registers, a mermaid plugin you added, GFM tables, smart quotes — happens to docstring
+prose too, so an API page reads like the rest of the site.
+
+Two consequences worth knowing:
+
+- Rendering happens once per build, at `astro:config:done`, after every integration has finished
+  configuring the pipeline. The HTML lands in a sidecar file beside the cached dump, so no markdown
+  engine runs while pages render.
+- A docstring that cannot be rendered costs that one string. The build logs a warning, the object
+  keeps its signature, parameters and links, and the page still exists.
+
+Sätteri (the Astro 7 default) and the unified pipeline from `@astrojs/markdown-remark` are both
+supported, because neither is a dependency here: the plugin calls whatever
+`markdown.processor` resolves to. This documentation site runs the default; the
+`examples/vanilla` site in the repository pins `unified()`, so both are exercised in CI.

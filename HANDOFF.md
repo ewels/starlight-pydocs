@@ -208,6 +208,16 @@ Verified against generated dumps, not documentation. `lib/types.ts` follows thes
   fine (griffe's own commit-pinned `source_link` is used when no template is
   configured). Setting `sourceLink.root` fixes both; the docs site does, the vanilla
   example deliberately does not, so the griffe fallback keeps its coverage.
+- **PLAN.md decision 11 (multi-instance versioned docs) cannot be delivered as
+  written**, and the docs now describe per-version builds instead. Verified by
+  registering the vanilla integration twice: both instances resolve the same
+  `virtual:starlight-pydocs/context` id, so the second one's packages are invisible at
+  render time, both inject `[...pydocsSlug]`, and the build dies with `no configured
+package serves /api/v1/numpkg/llms.txt` after warning about the route conflict. A
+  single instance also rejects the same package name twice, which is what a
+  `mypkg`-at-two-bases setup needs. Supporting it means namespacing the virtual
+  modules and the route pattern per instance — worth doing if versioned API pages in
+  one build are wanted, but it is a feature. PLAN.md decision 11 records the same.
 
 ## Stuck points and workarounds
 
@@ -313,3 +323,22 @@ str, scores: dict[str, float] | None = None)` signature, six distinct internal
   integration, and the untyped `styles` export. Unit tests stayed at 321. Two gaps are
   recorded rather than papered over: symbol search is not auto-placed on generated
   pages, and mkdocstrings cross-references inside docstring prose are not resolved.
+- 2026-08-13: ROADMAP item 8 landed, plus the two gaps above. `lib/crossrefs.ts`
+  rewrites `[title][target]` and `[target][]` references into Markdown links during the
+  sidecar render pass, resolving against the rendered package's symbol index, the other
+  packages' and then the inventories; the routes place `<SymbolSearch>` on package root
+  pages. `translations.ts` grew twelve locales (de, es, fr, it, ja, ko, nl, no, pt-BR,
+  ru, sv, zh) with `tests/translations.test.ts` guarding them. The repository has a
+  README, a CHANGELOG whose **Unreleased** section describes the initial feature set,
+  and `docs/scripts/sync-changelog.mjs` generating the (gitignored) `/changelog/` page
+  before dev, build and typecheck. Thirteen new documentation pages cover
+  configuration, docstring styles, cross-references, source links, search, theming,
+  component overrides, i18n, multiple packages, versioned docs, pre-generated dumps,
+  llms.txt, migrating from mkdocstrings and contributing, and `vanilla-astro.mdx` grew
+  from a stub into the full integration guide. 351 unit tests, 36 e2e tests, 27 built
+  pages with no broken internal link and no link missing the `/starlight-pydocs`
+  prefix. Three claims were checked against the code rather than the plan and written
+  as the code behaves: symbol search ranks by exact/prefix/substring rather than the
+  CamelCase matching the plan describes, vanilla generated pages take labels from
+  `Astro.locals.t` (the route passes no `labels` prop), and multi-instance versioning
+  does not work (see "Things to double-check").
