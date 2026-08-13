@@ -24,7 +24,7 @@ import type { CrossReferenceResolver } from '../lib/crossrefs.ts';
 import { resolveCrossReferences } from '../lib/crossrefs.ts';
 import { loadDump } from '../lib/data.ts';
 import { assembleRenderedDocstrings, collectDocstringMarkdown } from '../lib/docstrings.ts';
-import { PydocsError } from '../lib/errors.ts';
+import { errorMessage, PydocsError } from '../lib/errors.ts';
 import type { PydocsLogger } from '../lib/logger.ts';
 import { silentLogger } from '../lib/logger.ts';
 
@@ -142,9 +142,7 @@ export async function renderDocstringsForDump(options: RenderDocstringsOptions):
           } catch (cause) {
             // One unrenderable docstring must not fail a build; the prose is
             // dropped and the object still documents its structure.
-            logger.warn(
-              `could not render a docstring of ${item.objectPath}: ${cause instanceof Error ? cause.message : String(cause)}`,
-            );
+            logger.warn(`could not render a docstring of ${item.objectPath}: ${errorMessage(cause)}`);
             return '';
           }
         }),

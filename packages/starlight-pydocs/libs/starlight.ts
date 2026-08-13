@@ -32,19 +32,29 @@ export function getSidebarGroupsPlaceholder(label: symbol = defaultSidebarGroupL
   };
 }
 
-/** Replace placeholder groups (matched by label) with the generated groups. */
-export function replaceSidebarPlaceholder(
+/**
+ * Replace every placeholder group (matched by label) with its generated groups.
+ *
+ * One walk for all placeholders rather than one walk each: this runs for every
+ * page of the site and every walk rebuilds the whole tree.
+ */
+export function replaceSidebarPlaceholders(
   sidebar: SidebarEntries,
-  placeholderLabel: string,
-  groups: SidebarGroup[],
+  groupsByPlaceholder: Map<string, SidebarGroup[]>,
 ): SidebarEntries {
   function walk(entry: SidebarEntry): SidebarEntry | SidebarEntry[] {
     if (entry.type !== 'group') return entry;
-    if (entry.label === placeholderLabel) return groups;
-    return { ...entry, entries: entry.entries.flatMap((item) => walk(item)) };
+    return groupsByPlaceholder.get(entry.label) ?? { ...entry, entries: entry.entries.flatMap((item) => walk(item)) };
   }
 
   return sidebar.flatMap((entry) => walk(entry));
+}
+
+/** Cheap scan for a placeholder group anywhere in the sidebar. */
+export function sidebarHasPlaceholder(sidebar: SidebarEntries, labels: Set<string>): boolean {
+  return sidebar.some(
+    (entry) => entry.type === 'group' && (labels.has(entry.label) || sidebarHasPlaceholder(entry.entries, labels)),
+  );
 }
 
 function makeSidebarGroup(label: string, entries: (SidebarGroup | SidebarLink)[], collapsed: boolean): SidebarGroup {
@@ -141,8 +151,27 @@ async function buildNavigation(context: PydocsContext): Promise<PydocsNavigation
   return { groupsByPlaceholder, order };
 }
 
+/**
+ * Every placeholder's generated groups as Starlight entries, for one page.
+ *
+ * `isCurrent` is the only per-request part of the tree, which is why the walk
+ * happens here and not in the cached navigation.
+ */
+export function sidebarGroupsFor(
+  navigation: PydocsNavigation,
+  pathname: string,
+  overviewLabel: string,
+): Map<string, SidebarGroup[]> {
+  return new Map(
+    [...navigation.groupsByPlaceholder].map(([placeholder, groups]) => [
+      placeholder,
+      groups.map((group) => toSidebarGroup(group, pathname, overviewLabel)),
+    ]),
+  );
+}
+
 /** Convert one generated group to Starlight entries, marking the current page. */
-export function toSidebarGroup(node: NavNode, pathname: string, overviewLabel: string): SidebarGroup {
+function toSidebarGroup(node: NavNode, pathname: string, overviewLabel: string): SidebarGroup {
   const entries: (SidebarGroup | SidebarLink)[] = [
     makeSidebarLink(overviewLabel, node.href, isCurrentHref(node.href, pathname)),
   ];
@@ -158,7 +187,7 @@ export function toSidebarGroup(node: NavNode, pathname: string, overviewLabel: s
   return makeSidebarGroup(node.label, entries, node.collapsed);
 }
 
-export function isCurrentHref(href: string, pathname: string): boolean {
+function isCurrentHref(href: string, pathname: string): boolean {
   return stripLeadingAndTrailingSlashes(href) === stripLeadingAndTrailingSlashes(pathname);
 }
 

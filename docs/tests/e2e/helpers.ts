@@ -20,6 +20,16 @@ export function sidebar(page: Page): Locator {
   return page.locator('nav[aria-label="Main"]');
 }
 
+/**
+ * One sidebar group, addressed by the label on its own summary.
+ *
+ * Starlight renders a group as `<details><summary>label</summary>…`; the `>`
+ * matters, or a parent group matches on its child's label too.
+ */
+export function sidebarGroup(page: Page, label: string): Locator {
+  return sidebar(page).locator(`details:has(> summary:has-text("${label}"))`);
+}
+
 /** The block documenting one object, addressed by its dotted path. */
 export function member(scope: Scope, dottedPath: string): Locator {
   return scope.locator(`.pyd-member[data-pydocs-path="${dottedPath}"]`);

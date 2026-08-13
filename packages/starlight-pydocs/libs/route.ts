@@ -45,19 +45,6 @@ export async function getPydocsStaticPaths(context: PydocsContext): Promise<Pydo
   return routes;
 }
 
-/** The page a route's props point at. */
-export async function getPydocsPage(context: PydocsContext, props: PydocsRouteProps): Promise<PageModel> {
-  const model = await getModel(context, props.pydocsBase);
-  const page = model.pagesBySlug.get(props.pydocsSlug);
-  if (page === undefined) {
-    throw new PydocsError(
-      `starlight-pydocs: no generated page for '${props.pydocsSlug}' in '/${props.pydocsBase}'; ` +
-        'this usually means a stale build cache, so try removing node_modules/.astro.',
-    );
-  }
-  return page;
-}
-
 /**
  * True for the page that documents a package's root module.
  *
@@ -65,7 +52,7 @@ export async function getPydocsPage(context: PydocsContext, props: PydocsRoutePr
  * 8): the entry point to a package is where somebody looks for a name, and one
  * box per package keeps it out of the way of every module page.
  */
-export function isPackageRootPage(page: PageModel): boolean {
+function isPackageRootPage(page: PageModel): boolean {
   return page.parent === undefined;
 }
 
@@ -82,10 +69,15 @@ export interface PydocsPageData {
  * around it differs.
  */
 export async function resolvePydocsPage(context: PydocsContext, props: PydocsRouteProps): Promise<PydocsPageData> {
-  const [scope, page] = await Promise.all([
-    createRenderScope(context, props.pydocsBase),
-    getPydocsPage(context, props),
-  ]);
+  // The scope already carries the model, so the page is a lookup, not a load.
+  const scope = await createRenderScope(context, props.pydocsBase);
+  const page = scope.model.pagesBySlug.get(props.pydocsSlug);
+  if (page === undefined) {
+    throw new PydocsError(
+      `starlight-pydocs: no generated page for '${props.pydocsSlug}' in '/${props.pydocsBase}'; ` +
+        'this usually means a stale build cache, so try removing node_modules/.astro.',
+    );
+  }
   return { scope, page, withSearch: context.symbolSearch && isPackageRootPage(page) };
 }
 

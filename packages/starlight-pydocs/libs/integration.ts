@@ -77,9 +77,11 @@ async function extract(config: PydocsConfig, logger: PydocsLogger): Promise<Map<
 
 async function inventories(config: PydocsConfig, logger: PydocsLogger): Promise<PydocsInventoryContext[]> {
   const loaded = await loadInventories(config.inventories, { cacheDir: config.cacheDir, logger });
-  return loaded
-    .filter((inventory) => inventory.path !== undefined)
-    .map((inventory) => ({ base: inventory.base, path: inventory.path ?? '' }));
+  // An inventory that failed to load has no path; `flatMap` drops it and narrows
+  // the rest, where a filter would leave `path` still optional.
+  return loaded.flatMap((inventory) =>
+    inventory.path === undefined ? [] : [{ base: inventory.base, path: inventory.path }],
+  );
 }
 
 /** Sidecar path per package base, derived from where each dump ended up. */
@@ -263,12 +265,13 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
 
       'astro:server:setup': ({ server, logger }) => {
         const directories = watchPaths(setup.config);
+        if (directories.length === 0) return;
+        for (const directory of directories) server.watcher.add(directory);
+
         // The dev server watches the whole project; only Python files inside
         // the configured search roots concern us. Without this filter any
         // `.py` change anywhere re-extracted and force-reloaded the site.
         const roots = directories.map((directory) => path.resolve(directory) + path.sep);
-        if (directories.length === 0) return;
-        for (const directory of directories) server.watcher.add(directory);
 
         let running = false;
         const reextract = async (file: string): Promise<void> => {

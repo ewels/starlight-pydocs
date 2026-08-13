@@ -12,8 +12,7 @@ const VANILLA_URL = `http://localhost:${String(VANILLA_PORT)}/`;
 // Use the pre-installed Chromium when present (e.g. this dev environment); fall
 // back to Playwright's managed download elsewhere (e.g. CI after `playwright install`).
 const PREINSTALLED_CHROMIUM = '/opt/pw-browsers/chromium';
-const executablePath = existsSync(PREINSTALLED_CHROMIUM) ? PREINSTALLED_CHROMIUM : undefined;
-const launchOptions = executablePath === undefined ? {} : { executablePath };
+const launchOptions = existsSync(PREINSTALLED_CHROMIUM) ? { executablePath: PREINSTALLED_CHROMIUM } : {};
 const chromium = { ...devices['Desktop Chrome'], launchOptions };
 
 /**

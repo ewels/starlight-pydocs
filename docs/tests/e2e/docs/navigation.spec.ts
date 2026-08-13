@@ -1,17 +1,17 @@
 import { expect, test } from '@playwright/test';
 
-import { sidebar } from '../helpers.ts';
+import { sidebar, sidebarGroup } from '../helpers.ts';
 
 test('the sidebar places each package under the section it was configured for', async ({ page }) => {
   await page.goto('api/demopkg/');
 
-  const apiReference = sidebar(page).locator('details:has(> summary:has-text("API reference"))');
+  const apiReference = sidebarGroup(page, 'API reference');
   await expect(apiReference.locator('a[href$="/api/demopkg/"]')).toHaveCount(1);
   await expect(apiReference.locator('a[href$="/api/numpkg/"]')).toHaveCount(1);
   // sphpkg has a placeholder of its own, so it must not land in the shared group.
   await expect(apiReference.locator('a[href$="/api/sphpkg/"]')).toHaveCount(0);
 
-  const sphinxDemo = sidebar(page).locator('details:has(> summary:has-text("Sphinx demo"))');
+  const sphinxDemo = sidebarGroup(page, 'Sphinx demo');
   await expect(sphinxDemo.locator('a[href$="/api/sphpkg/"]')).toHaveCount(1);
   await expect(sphinxDemo.locator('a[href$="/api/demopkg/"]')).toHaveCount(0);
 });
@@ -19,7 +19,7 @@ test('the sidebar places each package under the section it was configured for', 
 test('the module tree lists every module page and its links navigate', async ({ page }) => {
   await page.goto('api/demopkg/');
 
-  const demopkg = sidebar(page).locator('details:has(> summary:has-text("demopkg"))').first();
+  const demopkg = sidebarGroup(page, 'demopkg').first();
   await expect(demopkg.locator('a')).toHaveCount(5);
 
   await demopkg.getByRole('link', { name: 'report' }).click();
