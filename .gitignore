@@ -51,3 +51,4 @@ pnpm-debug.log*
 packages/starlight-pydocs/README.md
 packages/starlight-pydocs/CHANGELOG.md
 packages/starlight-pydocs/LICENSE
+.claude/
