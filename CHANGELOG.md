@@ -6,6 +6,11 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 
 First release, still in development.
 
+### Fixes (pre-release)
+
+- Symbol search now gives each result a unique option id, so `aria-activedescendant` follows the highlighted option instead of always naming the first one.
+- `objects.inv` parsing finds the end of the header on the raw bytes rather than decoded text, so an inventory whose project name contains multi-byte characters decompresses correctly.
+
 ### Features
 
 - Python API reference pages generated from a [Griffe](https://mkdocstrings.github.io/griffe/) dump (`griffe dump -f -d <style>`) and rendered by Astro components on injected routes, one page per module, with a sidebar tree, prev/next pagination and a table of contents whose anchors are dotted object paths (`mypkg.Report.generate`), matching mkdocstrings so Sphinx inventories interoperate without a mapping layer.
@@ -14,7 +19,7 @@ First release, still in development.
 - Every docstring section griffe parses, in google, numpy, sphinx or auto style: parameters, other and type parameters, returns, yields, receives, raises, warns, attributes, examples (doctest transcripts fenced and highlighted), notes, references, admonitions and deprecations. Prose renders through the host project's own markdown processor, so it matches the rest of the site and the package depends on no markdown engine.
 - mkdocstrings-style cross-references in docstring prose: `[title][dotted.path]` and `[dotted.path][]` become links to this site's pages or, through an inventory, to another project's documentation. Unresolvable targets, code spans and fenced code are left as written.
 - Member selection matching mkdocstrings: `__all__` is the public surface when a module declares one, otherwise griffe's visibility flags, refined by `members` include/exclude globs on dotted paths and `filters` for special, private, imported and inherited members. Inherited members are merged from resolvable base classes over a C3 linearisation and badged with their origin.
-- Symbol search: a `symbols.json` index per package, a client-side custom element with substring, CamelCase and dot-segment matching, placed automatically on each generated package page and available as `<SymbolSearch />` anywhere.
+- Symbol search: a `symbols.json` index per package and a client-side custom element ranking exact name, name prefix, path prefix and substring matches, placed automatically on each generated package page and available as `<SymbolSearch />` anywhere.
 - `objects.inv` published per package with mkdocstrings-compatible roles, and consumed from `inventories: [{ url | file, base }]` or the `'python'` preset, in both directions.
 - `llms.txt` per package: the whole API surface as plain Markdown, for language models and for `starlight-llms-txt`'s `optionalLinks`.
 - `<Autodoc name="mypkg.Thing" />` for documenting one object inside a hand-written page, plus the whole component set and a Content Layer loader (`starlight-pydocs/loader`) that exposes one entry per documented object.
