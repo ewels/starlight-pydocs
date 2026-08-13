@@ -11,11 +11,17 @@ sequencing.
   is lifted from starlight-openapi (verified in its source, commit cloned 2026-08-12):
   injected `[...slug]` route → `StarlightPage` with a `headings` prop → ToC; sidebar
   placeholder swapped in route middleware; Pagefind indexes the standard shell.
-- **`@astrojs/markdown-remark` pinned as a direct dependency** for docstring prose
-  instead of the host pipeline. starlight-openapi has moved to
-  `@astrojs/markdown-satteri` on its main branch; astro 7.0.x still depends on
-  `@astrojs/markdown-remark@7.x`, which is what we target. Worth revisiting when the
-  Astro markdown package rename settles.
+- **Docstring prose renders through the host's configured markdown processor**
+  (PLAN.md decision 7, third iteration). History, for anyone reading old commits:
+  the plan first pinned `@astrojs/markdown-remark`; the owner then asked for
+  `@astrojs/markdown-satteri` (briefly implemented, including the dependency swap);
+  the owner then narrowed the requirement — the package must be processor-agnostic
+  because Astro 7 defaults to Sätteri while unified-locked sites (mermaid,
+  starlight-links-validator) cannot leave remark. The satteri dependency and the
+  processor-specific `lib/markdown.ts` were unwound in favour of
+  `processor.createRenderer()` at `astro:config:done` with pre-rendered HTML in a
+  sidecar file. Neither engine appears in the package's dependencies;
+  `@astrojs/markdown-remark` is an optional peer for the Astro 7.0.x fallback only.
 - **Dumps stay on disk**; virtual modules carry config + paths only. starlight-openapi
   inlines parsed schemas into virtual modules, which would be megabytes here.
 - **Anchors are dotted object paths** (`mypkg.Report.generate`), matching mkdocstrings,

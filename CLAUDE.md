@@ -102,11 +102,17 @@ Sphinx inventories (`lib/inventory.ts` handles objects.inv in both directions).
 
 ### Docstring prose
 
-Rendered with our own pinned `@astrojs/markdown-remark` processor (GFM + Shiki
-dual themes) into `set:html` — never the host markdown pipeline. Reason: remark
-plugins appended from an integration's `astro:config:setup` do not run for `.mdx` in
-this Astro 7 pipeline, and injected routes bypass the content pipeline entirely, so
-relying on host configuration gives inconsistent output.
+Rendered through **the host's configured markdown processor**
+(`astroConfig.markdown.processor.createRenderer(...)` — Sätteri on current Astro,
+`unified()` where the site pins it, with a Starlight-style optional-peer fallback
+to `@astrojs/markdown-remark` for Astro 7.0.x). The package depends on neither
+engine and registers no remark/rehype/mdast/hast plugin anywhere. Because the live
+processor exists only in the config-time process, all docstring Markdown is
+pre-rendered at `astro:config:done` (after every integration has mutated
+`processor.options`) into a sidecar JSON beside the cached dump; components consume
+pre-rendered HTML via `set:html`. See PLAN.md decision 7. Do not build on the
+deprecated top-level `markdown.remarkPlugins`/`rehypePlugins`/`remarkRehype`/`gfm`/
+`smartypants` options anywhere, including docs and fixtures.
 
 ### Two runtime contexts for `lib/` code
 
