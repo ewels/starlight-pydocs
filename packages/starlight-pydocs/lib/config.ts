@@ -78,6 +78,14 @@ export interface PydocsSourceLinkTemplate {
   template: string;
   /** Git ref the template points at. Default `main`. */
   ref?: string | undefined;
+  /**
+   * Directory `{path}` is relative to, as a path relative to the project root.
+   * Set it to the repository root when the Python sources live outside the Astro
+   * project (`root: '..'` for a docs site in `docs/`); otherwise `{path}` is
+   * whatever griffe reported, which is only repository-relative when griffe ran
+   * from the repository root.
+   */
+  root?: string | undefined;
 }
 
 /** Source-link preset for the common forges. */
@@ -88,6 +96,8 @@ export interface PydocsSourceLinkPreset {
   repo: string;
   /** Git ref to link to. Default `main`. */
   ref?: string | undefined;
+  /** Directory `{path}` is relative to. See {@link PydocsSourceLinkTemplate.root}. */
+  root?: string | undefined;
 }
 
 export type PydocsSourceLinkInput = PydocsSourceLinkTemplate | PydocsSourceLinkPreset;
@@ -245,6 +255,8 @@ export interface NormalisedSourceLink {
   /** Template with `{path}`, `{start}`, `{end}` and `{ref}` placeholders. */
   template: string;
   ref: string;
+  /** Absolute directory `{path}` is computed against, when configured. */
+  root: string | undefined;
 }
 
 export interface NormalisedFilters {
@@ -405,6 +417,7 @@ function normaliseCacheMode(value: unknown, optionPath: string): CacheMode {
 function normaliseSourceLink(
   input: PydocsSourceLinkInput | undefined,
   optionPath: string,
+  projectRoot: string,
 ): NormalisedSourceLink | undefined {
   if (input === undefined) return undefined;
   if (!isPlainObject(input)) throw configError(optionPath, "must be an object with 'template' or 'host'");
@@ -412,12 +425,18 @@ function normaliseSourceLink(
   if (typeof ref !== 'string' || ref.trim() === '')
     throw configError(`${optionPath}.ref`, 'must be a non-empty string');
 
+  const rootInput = input.root;
+  if (rootInput !== undefined && (typeof rootInput !== 'string' || rootInput.trim() === '')) {
+    throw configError(`${optionPath}.root`, 'must be a non-empty path');
+  }
+  const root = rootInput === undefined ? undefined : path.resolve(projectRoot, rootInput);
+
   if (typeof input.template === 'string') {
     if (input.template.trim() === '') throw configError(`${optionPath}.template`, 'must be a non-empty string');
     if (!input.template.includes('{path}')) {
       throw configError(`${optionPath}.template`, "must contain the '{path}' placeholder");
     }
-    return { template: input.template, ref };
+    return { template: input.template, ref, root };
   }
 
   const host = input.host;
@@ -429,7 +448,7 @@ function normaliseSourceLink(
     throw configError(`${optionPath}.repo`, "must be an 'owner/name' repository slug");
   }
   const preset = SOURCE_LINK_PRESETS[host as PydocsSourceLinkPreset['host']];
-  return { template: preset(repo), ref };
+  return { template: preset(repo), ref, root };
 }
 
 function normaliseFilters(input: PydocsFiltersInput | undefined, optionPath: string): NormalisedFilters {
@@ -588,7 +607,7 @@ function normalisePackage(input: PydocsPackageInput, optionPath: string, project
     source: normaliseSource(input.source, `${optionPath}.source`, projectRoot),
     members: normaliseMembers(input.members, `${optionPath}.members`),
     filters: normaliseFilters(input.filters, `${optionPath}.filters`),
-    sourceLink: normaliseSourceLink(input.sourceLink, `${optionPath}.sourceLink`),
+    sourceLink: normaliseSourceLink(input.sourceLink, `${optionPath}.sourceLink`, projectRoot),
     sidebar: { label: sidebarLabel, collapsed, group },
     versions: normaliseVersions(input.versions, `${optionPath}.versions`),
   };

@@ -30,7 +30,9 @@ export default defineConfig({
               search: ['../fixtures/demopkg/src'],
               extensions: ['griffe_pydantic'],
               extraRequirements: ['griffe-pydantic'],
-              sourceLink: { host: 'github', repo: 'ewels/starlight-pydocs', ref: 'main' },
+              // `root` is the repository root: griffe reports paths relative to
+              // this site, which is one level below it.
+              sourceLink: { host: 'github', repo: 'ewels/starlight-pydocs', ref: 'main', root: '..' },
             },
           ],
         }),

@@ -16,6 +16,8 @@
  *    as mkdocstrings does; the re-export records where the definition lives.
  */
 
+import path from 'node:path';
+
 import type { NormalisedFilters, NormalisedMembers, NormalisedSourceLink } from './config.ts';
 import { formatSourceLink } from './config.ts';
 import { PydocsError } from './errors.ts';
@@ -555,7 +557,7 @@ class ModelBuilder {
   // -- Source links --------------------------------------------------------
 
   private sourceFor(object: GriffeObject): DocSource | undefined {
-    const file = object.relative_filepath;
+    const file = this.sourceFile(object);
     const startLine = typeof object.lineno === 'number' ? object.lineno : undefined;
     const endLine = typeof object.endlineno === 'number' ? object.endlineno : startLine;
     const griffeLink = typeof object.source_link === 'string' ? object.source_link : undefined;
@@ -568,6 +570,24 @@ class ModelBuilder {
 
     if (file === undefined && href === undefined) return undefined;
     return { file, startLine, endLine, href };
+  }
+
+  /**
+   * The path a source link should show.
+   *
+   * Griffe's `relative_filepath` is relative to the process it ran in, which is
+   * the Astro project root. That is repository-relative only when the two are
+   * the same directory; a docs site with its Python sources one level up gets an
+   * absolute path instead. `sourceLink.root` fixes it by naming the directory
+   * paths should be relative to, computed from the absolute `filepath`.
+   */
+  private sourceFile(object: GriffeObject): string | undefined {
+    const root = this.options.sourceLink?.root;
+    const absolute = typeof object.filepath === 'string' ? object.filepath : undefined;
+    if (root !== undefined && absolute !== undefined && path.isAbsolute(absolute)) {
+      return path.relative(root, absolute).split(path.sep).join('/');
+    }
+    return object.relative_filepath;
   }
 
   // -- Pages and symbols ---------------------------------------------------
