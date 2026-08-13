@@ -1,0 +1,713 @@
+/**
+ * starlight-pydocs theme.
+ *
+ * Everything sits in a low-priority cascade layer so a consumer can override any
+ * rule without a specificity fight. Colours go through `--pyd-*` custom
+ * properties that default to Starlight's tokens and fall back to static values,
+ * so the same stylesheet works in a plain Astro project.
+ *
+ * Two things to know before editing:
+ *
+ * 1. Starlight's colour tokens are *contrast* tokens, not literal colours:
+ *    `--sl-color-white` is dark text in light mode. Accent-on-background pairs
+ *    therefore follow Starlight's own LinkButton pattern
+ *    (`background: var(--sl-color-text-accent)`, `color: var(--sl-color-black)`).
+ * 2. Starlight's own rules are unlayered and beat everything in this layer.
+ *    Where a rule must win inside Starlight's `.sl-markdown-content`, it says so
+ *    and uses enough specificity to do it.
+ */
+
+@layer starlight-pydocs {
+  :root {
+    --pyd-text: var(--sl-color-text, #24292f);
+    --pyd-text-muted: var(--sl-color-gray-3, #57606a);
+    --pyd-text-invert: var(--sl-color-black, #ffffff);
+    --pyd-bg: var(--sl-color-bg, #ffffff);
+    --pyd-surface: var(--sl-color-gray-6, #f6f8fa);
+    --pyd-surface-strong: var(--sl-color-gray-5, #eaeef2);
+    --pyd-border: var(--sl-color-hairline-light, #d8dee4);
+    --pyd-accent: var(--sl-color-text-accent, #2563eb);
+    --pyd-accent-low: var(--sl-color-accent-low, #dbeafe);
+
+    --pyd-note: var(--sl-color-blue, #3b82f6);
+    --pyd-note-low: var(--sl-color-blue-low, #dbeafe);
+    --pyd-tip: var(--sl-color-purple, #8b5cf6);
+    --pyd-tip-low: var(--sl-color-purple-low, #ede9fe);
+    --pyd-caution: var(--sl-color-orange, #ea580c);
+    --pyd-caution-low: var(--sl-color-orange-low, #ffedd5);
+    --pyd-danger: var(--sl-color-red, #dc2626);
+    --pyd-danger-low: var(--sl-color-red-low, #fee2e2);
+
+    --pyd-radius: 0.375rem;
+    --pyd-mono: var(--sl-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  }
+
+  /* Dark palette for vanilla sites. Guarded so an explicit light choice wins. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      --pyd-text: var(--sl-color-text, #e6edf3);
+      --pyd-text-muted: var(--sl-color-gray-3, #9198a1);
+      --pyd-text-invert: var(--sl-color-black, #17191e);
+      --pyd-bg: var(--sl-color-bg, #0d1117);
+      --pyd-surface: var(--sl-color-gray-6, #161b22);
+      --pyd-surface-strong: var(--sl-color-gray-5, #21262d);
+      --pyd-border: var(--sl-color-hairline-light, #30363d);
+      --pyd-accent: var(--sl-color-text-accent, #60a5fa);
+      --pyd-accent-low: var(--sl-color-accent-low, #172554);
+      --pyd-note-low: var(--sl-color-blue-low, #172554);
+      --pyd-tip-low: var(--sl-color-purple-low, #2e1065);
+      --pyd-caution-low: var(--sl-color-orange-low, #431407);
+      --pyd-danger-low: var(--sl-color-red-low, #450a0a);
+    }
+  }
+
+  :root[data-theme='dark'] {
+    --pyd-text: var(--sl-color-text, #e6edf3);
+    --pyd-text-muted: var(--sl-color-gray-3, #9198a1);
+    --pyd-text-invert: var(--sl-color-black, #17191e);
+    --pyd-bg: var(--sl-color-bg, #0d1117);
+    --pyd-surface: var(--sl-color-gray-6, #161b22);
+    --pyd-surface-strong: var(--sl-color-gray-5, #21262d);
+    --pyd-border: var(--sl-color-hairline-light, #30363d);
+    --pyd-accent: var(--sl-color-text-accent, #60a5fa);
+    --pyd-accent-low: var(--sl-color-accent-low, #172554);
+    --pyd-note-low: var(--sl-color-blue-low, #172554);
+    --pyd-tip-low: var(--sl-color-purple-low, #2e1065);
+    --pyd-caution-low: var(--sl-color-orange-low, #431407);
+    --pyd-danger-low: var(--sl-color-red-low, #450a0a);
+  }
+
+  /* -- Members and headings ------------------------------------------------ */
+
+  .pyd-member {
+    margin-block: 1.5rem 2rem;
+    padding-inline-start: 0.875rem;
+    border-inline-start: 2px solid var(--pyd-border);
+  }
+
+  .pyd-member:hover {
+    border-inline-start-color: var(--pyd-accent);
+  }
+
+  .pyd-member .pyd-member {
+    margin-block: 1.25rem;
+  }
+
+  .pyd-heading {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: baseline;
+  }
+
+  .pyd-heading .pyd-member-name {
+    font-family: var(--pyd-mono);
+    background: none;
+    padding: 0;
+    border: 0;
+    font-size: inherit;
+  }
+
+  /* CSS-only hover affordance: no script, and it stays reachable by keyboard. */
+  .pyd-anchor {
+    opacity: 0;
+    color: var(--pyd-text-muted);
+    text-decoration: none;
+    font-weight: 400;
+    transition: opacity 0.1s ease;
+  }
+
+  .pyd-heading:hover .pyd-anchor,
+  .pyd-anchor:focus-visible {
+    opacity: 1;
+  }
+
+  .pyd-anchor:hover {
+    color: var(--pyd-accent);
+  }
+
+  /* -- Badges ------------------------------------------------------------- */
+
+  .pyd-badges {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    vertical-align: middle;
+  }
+
+  .pyd-badge {
+    display: inline-block;
+    padding: 0.0625rem 0.375rem;
+    border: 1px solid var(--pyd-border);
+    border-radius: 1rem;
+    background: var(--pyd-surface);
+    color: var(--pyd-text-muted);
+    font-family: var(--pyd-mono);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    line-height: 1.5;
+    white-space: nowrap;
+  }
+
+  .pyd-badge--kind {
+    background: var(--pyd-accent);
+    border-color: var(--pyd-accent);
+    /* LinkButton pattern: `black` is the colour that contrasts the accent. */
+    color: var(--pyd-text-invert);
+  }
+
+  .pyd-badge--deprecated {
+    background: var(--pyd-caution-low);
+    border-color: var(--pyd-caution);
+    color: var(--pyd-caution);
+  }
+
+  /* -- Signatures --------------------------------------------------------- */
+
+  .pyd-signature {
+    margin-block: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--pyd-border);
+    border-radius: var(--pyd-radius);
+    background: var(--pyd-surface);
+    color: var(--pyd-text);
+    font-family: var(--pyd-mono);
+    font-size: 0.875rem;
+    line-height: 1.6;
+    /* Wrap rather than scroll: signatures are prose-shaped, not code blocks. */
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+  }
+
+  .pyd-signature code {
+    font-family: inherit;
+    font-size: inherit;
+    background: none;
+    padding: 0;
+    border: 0;
+  }
+
+  /* Hanging indent puts every wrapped parameter under the first one. */
+  .pyd-signature--multiline {
+    padding-inline-start: 2.5rem;
+    text-indent: -1.75rem;
+  }
+
+  .pyd-signature--overload {
+    background: none;
+    border-style: dashed;
+    color: var(--pyd-text-muted);
+  }
+
+  .pyd-decorator {
+    color: var(--pyd-text-muted);
+  }
+
+  .pyd-type {
+    color: var(--pyd-accent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+
+  .pyd-bases {
+    margin-block: 0.5rem;
+    font-size: 0.9375rem;
+    color: var(--pyd-text-muted);
+  }
+
+  .pyd-bases-label {
+    font-weight: 600;
+  }
+
+  /* -- Provenance and source links ---------------------------------------- */
+
+  .pyd-provenance {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-block: 0.375rem;
+    font-size: 0.8125rem;
+    color: var(--pyd-text-muted);
+  }
+
+  .pyd-provenance:empty {
+    display: none;
+  }
+
+  .pyd-source-link {
+    margin-inline-start: auto;
+    color: var(--pyd-text-muted);
+  }
+
+  .pyd-source-link:hover {
+    color: var(--pyd-accent);
+  }
+
+  /* -- Docstring sections ------------------------------------------------- */
+
+  .pyd-section {
+    margin-block: 1rem;
+  }
+
+  .pyd-section-title {
+    margin-block: 0.75rem 0.375rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--pyd-text-muted);
+  }
+
+  .pyd-table-wrap {
+    /* Wide parameter tables scroll inside their own box, never the page. */
+    overflow-x: auto;
+  }
+
+  .pyd-params,
+  .pyd-summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9375rem;
+  }
+
+  .pyd-params th,
+  .pyd-params td,
+  .pyd-summary-table th,
+  .pyd-summary-table td {
+    padding: 0.375rem 0.625rem;
+    border-bottom: 1px solid var(--pyd-border);
+    text-align: start;
+    vertical-align: top;
+  }
+
+  .pyd-params thead th,
+  .pyd-summary-table thead th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--pyd-text-muted);
+    font-weight: 600;
+  }
+
+  .pyd-param-name code,
+  .pyd-param-type code,
+  .pyd-param-default code,
+  .pyd-value-name,
+  .pyd-value-type {
+    font-family: var(--pyd-mono);
+    font-size: 0.8125rem;
+  }
+
+  .pyd-param-description > :first-child {
+    margin-block-start: 0;
+  }
+
+  .pyd-param-description > :last-child {
+    margin-block-end: 0;
+  }
+
+  .pyd-required,
+  .pyd-undocumented {
+    color: var(--pyd-text-muted);
+    font-size: 0.8125rem;
+    font-style: italic;
+  }
+
+  .pyd-values {
+    margin-block: 0.25rem;
+  }
+
+  .pyd-values dt {
+    font-weight: 600;
+  }
+
+  .pyd-values dd {
+    margin-block: 0.125rem 0.625rem;
+    margin-inline-start: 1rem;
+  }
+
+  .pyd-references {
+    margin-block: 0.25rem;
+    padding-inline-start: 1.25rem;
+  }
+
+  .pyd-reference-brief {
+    color: var(--pyd-text-muted);
+  }
+
+  .pyd-reference-brief::before {
+    content: ' — ';
+  }
+
+  /* -- Asides ------------------------------------------------------------- */
+
+  .pyd-aside {
+    margin-block: 1rem;
+    padding: 0.75rem 1rem;
+    border-inline-start: 4px solid var(--pyd-note);
+    border-radius: var(--pyd-radius);
+    background: var(--pyd-note-low);
+    color: var(--pyd-text);
+  }
+
+  .pyd-aside-title {
+    margin: 0 0 0.25rem;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--pyd-note);
+  }
+
+  .pyd-aside > .pyd-markdown > :first-child {
+    margin-block-start: 0;
+  }
+
+  .pyd-aside > .pyd-markdown > :last-child {
+    margin-block-end: 0;
+  }
+
+  .pyd-aside--tip {
+    border-inline-start-color: var(--pyd-tip);
+    background: var(--pyd-tip-low);
+  }
+
+  .pyd-aside--tip .pyd-aside-title {
+    color: var(--pyd-tip);
+  }
+
+  .pyd-aside--caution {
+    border-inline-start-color: var(--pyd-caution);
+    background: var(--pyd-caution-low);
+  }
+
+  .pyd-aside--caution .pyd-aside-title {
+    color: var(--pyd-caution);
+  }
+
+  .pyd-aside--danger {
+    border-inline-start-color: var(--pyd-danger);
+    background: var(--pyd-danger-low);
+  }
+
+  .pyd-aside--danger .pyd-aside-title {
+    color: var(--pyd-danger);
+  }
+
+  /* -- Member groups, summaries, submodules ------------------------------- */
+
+  .pyd-summary {
+    margin-block: 1rem 1.5rem;
+  }
+
+  .pyd-summary-group {
+    margin-block: 1rem;
+  }
+
+  .pyd-summary-table code {
+    font-family: var(--pyd-mono);
+    font-size: 0.8125rem;
+  }
+
+  .pyd-inherited-note {
+    color: var(--pyd-text-muted);
+    font-size: 0.8125rem;
+  }
+
+  .pyd-submodules ul {
+    margin-block: 0.25rem;
+    padding-inline-start: 1.25rem;
+  }
+
+  .pyd-no-members {
+    color: var(--pyd-text-muted);
+    font-style: italic;
+  }
+
+  /* Inherited members stay open by default so their table-of-contents entries
+     lead somewhere; closing one is the reader's choice. */
+  .pyd-inherited {
+    margin-block: 1rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px dashed var(--pyd-border);
+    border-radius: var(--pyd-radius);
+  }
+
+  .pyd-inherited > summary {
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: var(--pyd-text-muted);
+  }
+
+  .pyd-inherited > summary code {
+    font-family: var(--pyd-mono);
+    font-size: 0.8125rem;
+  }
+
+  /* -- Symbol search ------------------------------------------------------ */
+
+  .pyd-search {
+    display: block;
+    position: relative;
+    margin-block: 1.5rem;
+  }
+
+  .pyd-search-label {
+    display: block;
+    margin-block-end: 0.25rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+
+  .pyd-search-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--pyd-border);
+    border-radius: var(--pyd-radius);
+    background: var(--pyd-bg);
+    color: var(--pyd-text);
+    font-size: 0.9375rem;
+  }
+
+  .pyd-search-input:focus-visible {
+    outline: 2px solid var(--pyd-accent);
+    outline-offset: 1px;
+  }
+
+  .pyd-search-hint {
+    margin-block: 0.25rem 0;
+    font-size: 0.75rem;
+    color: var(--pyd-text-muted);
+  }
+
+  .pyd-search-results {
+    position: absolute;
+    z-index: 10;
+    inset-inline: 0;
+    max-height: 22rem;
+    overflow-y: auto;
+    margin-block-start: 0.25rem;
+    padding: 0.25rem;
+    border: 1px solid var(--pyd-border);
+    border-radius: var(--pyd-radius);
+    background: var(--pyd-bg);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 15%);
+  }
+
+  .pyd-search-results[hidden] {
+    display: none;
+  }
+
+  .pyd-search-group-label {
+    margin: 0.375rem 0.5rem 0.125rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--pyd-text-muted);
+  }
+
+  .pyd-search-option {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0 0.5rem;
+    padding: 0.375rem 0.5rem;
+    border-radius: var(--pyd-radius);
+    color: var(--pyd-text);
+    text-decoration: none;
+  }
+
+  .pyd-search-option:hover,
+  .pyd-search-option--active {
+    background: var(--pyd-accent-low);
+  }
+
+  .pyd-search-option-name {
+    font-family: var(--pyd-mono);
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+
+  .pyd-search-option-path {
+    font-family: var(--pyd-mono);
+    font-size: 0.75rem;
+    color: var(--pyd-text-muted);
+    overflow-wrap: anywhere;
+  }
+
+  .pyd-search-option-brief {
+    grid-column: 1 / -1;
+    font-size: 0.8125rem;
+    color: var(--pyd-text-muted);
+  }
+
+  .pyd-search-empty {
+    margin: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--pyd-text-muted);
+  }
+
+  /* -- Docstring prose and Shiki dual themes ------------------------------ */
+
+  .pyd-markdown--inline > :first-child {
+    margin-block-start: 0;
+  }
+
+  /* Code blocks come from whichever markdown processor the host configured;
+     Sätteri and unified both emit `.astro-code`, and add `.astro-code-themes`
+     when several themes are configured. */
+  .pyd-markdown pre.astro-code {
+    padding: 0.75rem 0.875rem;
+    border: 1px solid var(--pyd-border);
+    border-radius: var(--pyd-radius);
+    font-size: 0.8125rem;
+    overflow-x: auto;
+  }
+
+  /* Dual themes: both palettes ride along as custom properties
+     (`defaultColor: false`), so switching is a colour swap, not a re-highlight.
+     Single-theme output has no such properties and keeps its inline colours —
+     hence every rule below is scoped to `.astro-code-themes`. */
+  .pyd-markdown .astro-code-themes,
+  .pyd-markdown .astro-code-themes code,
+  .pyd-markdown .astro-code-themes span {
+    color: var(--shiki-light);
+  }
+
+  .pyd-markdown .astro-code-themes {
+    background-color: var(--shiki-light-bg);
+  }
+
+  [data-theme='dark'] .pyd-markdown .astro-code-themes,
+  [data-theme='dark'] .pyd-markdown .astro-code-themes code,
+  [data-theme='dark'] .pyd-markdown .astro-code-themes span {
+    color: var(--shiki-dark);
+  }
+
+  [data-theme='dark'] .pyd-markdown .astro-code-themes {
+    background-color: var(--shiki-dark-bg);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) .pyd-markdown .astro-code-themes,
+    :root:not([data-theme='light']) .pyd-markdown .astro-code-themes code,
+    :root:not([data-theme='light']) .pyd-markdown .astro-code-themes span {
+      color: var(--shiki-dark);
+    }
+
+    :root:not([data-theme='light']) .pyd-markdown .astro-code-themes {
+      background-color: var(--shiki-dark-bg);
+    }
+  }
+
+  /* -- The built-in vanilla layout ---------------------------------------- */
+
+  .pyd-page {
+    margin: 0;
+    background: var(--pyd-bg);
+    color: var(--pyd-text);
+    font-family:
+      var(--sl-font, ui-sans-serif),
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      Roboto,
+      Helvetica,
+      Arial,
+      sans-serif;
+    line-height: 1.6;
+  }
+
+  .pyd-page-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 14rem;
+    gap: 2rem;
+    max-width: 78rem;
+    margin-inline: auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  .pyd-page a {
+    color: var(--pyd-accent);
+  }
+
+  .pyd-page code {
+    font-family: var(--pyd-mono);
+    font-size: 0.875em;
+  }
+
+  .pyd-page-title {
+    font-family: var(--pyd-mono);
+    font-size: 1.75rem;
+    margin-block: 0 1rem;
+    overflow-wrap: anywhere;
+  }
+
+  .pyd-page table {
+    border-collapse: collapse;
+  }
+
+  .pyd-toc {
+    position: sticky;
+    top: 1.5rem;
+    align-self: start;
+    font-size: 0.875rem;
+    max-height: calc(100vh - 3rem);
+    overflow-y: auto;
+  }
+
+  .pyd-toc-title {
+    margin-block: 0 0.5rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    color: var(--pyd-text-muted);
+  }
+
+  .pyd-toc ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .pyd-toc li {
+    margin-block: 0.25rem;
+    overflow-wrap: anywhere;
+  }
+
+  .pyd-toc-depth-3 {
+    padding-inline-start: 0.75rem;
+  }
+
+  /* -- Narrow screens ----------------------------------------------------- */
+
+  @media (max-width: 50rem) {
+    .pyd-page-inner {
+      grid-template-columns: minmax(0, 1fr);
+      padding: 1.5rem 1rem 3rem;
+    }
+
+    .pyd-toc {
+      position: static;
+      max-height: none;
+      order: -1;
+    }
+
+    .pyd-member {
+      padding-inline-start: 0.625rem;
+    }
+
+    .pyd-signature {
+      font-size: 0.8125rem;
+    }
+
+    .pyd-signature--multiline {
+      padding-inline-start: 1.75rem;
+      text-indent: -1rem;
+    }
+
+    .pyd-params,
+    .pyd-summary-table {
+      font-size: 0.875rem;
+    }
+  }
+}
