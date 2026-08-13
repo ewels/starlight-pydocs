@@ -20,14 +20,18 @@ A pnpm workspace:
 
 - `packages/starlight-pydocs` — the published package (the only thing shipped to npm).
 - `docs` — a Starlight site (`starlight-pydocs-docs`) that dogfoods the plugin and
-  doubles as the fixture for the end-to-end tests. It documents `demopkg`, the
-  Python fixture package in `fixtures/demopkg`, whose API surface is deliberately
-  exhaustive (three docstring styles, inheritance, overloads, `__all__`, pydantic,
-  deprecations).
-- `examples/vanilla` — a plain Astro site proving the no-Starlight path; also an e2e
+  doubles as the fixture for the end-to-end tests. It documents all three fixture
+  packages: `demopkg` (extracted through uvx, google docstrings, pydantic,
+  deprecations, inheritance, `__all__`), `numpkg` (numpy docstrings) and `sphpkg`
+  (sphinx docstrings from a pre-generated dump, so the no-extraction path is built
+  too). The Playwright configuration lives here and owns both sites.
+- `examples/vanilla` — a plain Astro site proving the no-Starlight path, pinned to the
+  unified markdown pipeline so CI renders docstrings through both engines; also an e2e
   fixture.
 - `fixtures/` — Python fixture packages plus checked-in `griffe dump` JSON for each
-  (so tests never require Python), regenerated with `pnpm gen:dumps` (needs `uv`).
+  (so tests never require Python), regenerated with `pnpm gen:dumps` (needs `uv`), and
+  `fixtures/inventories/` — a small checked-in `objects.inv` standing in for CPython's,
+  written by `pnpm gen:inventory`, so external annotation links are testable offline.
 
 ## Commands
 
@@ -44,6 +48,7 @@ Run from the repo root unless noted. Node >= 22.12, pnpm 10.33.
 | All checks (as CI runs them) | `prek run --all-files`                                               |
 | Dev server / build docs      | `pnpm dev` · `pnpm build` · `pnpm preview`                           |
 | Regenerate fixture dumps     | `pnpm gen:dumps` (requires `uv` on PATH)                             |
+| Regenerate the inventory     | `pnpm gen:inventory`                                                 |
 
 `prek.toml` defines the prettier → eslint → typecheck hooks; `prek install` wires the
 git pre-commit hook and CI runs the exact same `prek run --all-files`. There is no
@@ -51,8 +56,12 @@ build step for the package — it ships its `.ts`/`.astro` source and is consume
 transpiled by the host Astro project.
 
 Playwright uses the pre-installed Chromium at `/opt/pw-browsers/chromium` when present
-(this environment), else a managed download. The docs e2e server runs on port 4321
-under base `/starlight-pydocs`; the vanilla example on 4322.
+(this environment), else a managed download. `docs/playwright.config.ts` has one
+`webServer` entry per site — the docs site on port 4321 under base `/starlight-pydocs`,
+the vanilla example on 4322 — and one project per site, each running only the specs in
+its own `testDir` (`docs/tests/e2e/docs`, `docs/tests/e2e/vanilla`). Both entries set
+`ASTRO_PREVIEW_BACKGROUND=1`, which stops `astro preview` daemonising itself when it
+detects an agentic environment (Playwright would see the command exit immediately).
 
 ## Architecture
 
