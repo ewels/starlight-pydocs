@@ -6,6 +6,15 @@ import starlightPydocs, { pydocsSidebarGroup } from 'starlight-pydocs';
 export default defineConfig({
   site: 'https://ewels.github.io',
   base: '/starlight-pydocs',
+  markdown: {
+    // Shared (non-deprecated) options, so docstring prose and the site's own
+    // content are highlighted identically, in both colour schemes. The processor
+    // itself is Astro's default, Sätteri.
+    shikiConfig: {
+      themes: { light: 'github-light', dark: 'github-dark' },
+      defaultColor: false,
+    },
+  },
   integrations: [
     starlight({
       title: 'Starlight Pydocs',
@@ -13,13 +22,26 @@ export default defineConfig({
       social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/ewels/starlight-pydocs' }],
       plugins: [
         starlightPydocs({
-          packages: [{ name: 'demopkg' }],
+          packages: [
+            {
+              name: 'demopkg',
+              // The fixture package lives outside the docs site, so griffe gets
+              // its source directory rather than the project root.
+              search: ['../fixtures/demopkg/src'],
+              extensions: ['griffe_pydantic'],
+              extraRequirements: ['griffe-pydantic'],
+              sourceLink: { host: 'github', repo: 'ewels/starlight-pydocs', ref: 'main' },
+            },
+          ],
         }),
       ],
       sidebar: [
         {
           label: 'Getting started',
-          items: [{ label: 'Introduction', link: '/' }],
+          items: [
+            { label: 'Introduction', link: '/' },
+            { label: 'Autodoc demo', link: '/autodoc-demo/' },
+          ],
         },
         {
           label: 'API reference',
