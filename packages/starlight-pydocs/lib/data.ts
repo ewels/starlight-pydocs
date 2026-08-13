@@ -10,6 +10,7 @@
 import fs from 'node:fs/promises';
 
 import type { PydocsContext, PydocsPackageContext } from './context.ts';
+import type { RenderedDocstrings } from './docstrings.ts';
 import { PydocsError } from './errors.ts';
 import type { AnnotationResolver } from './expr.ts';
 import type { InventoryLookup } from './inventory.ts';
@@ -23,9 +24,15 @@ interface CachedDump {
   dump: GriffeDump;
 }
 
+interface CachedRendered {
+  mtimeMs: number;
+  rendered: RenderedDocstrings;
+}
+
 const dumpCache = new Map<string, CachedDump>();
 const modelCache = new Map<string, PackageModel>();
 const inventoryCache = new Map<string, InventoryLookup>();
+const renderedCache = new Map<string, CachedRendered>();
 
 /**
  * Parse a dump, reusing the parsed object while the file is unchanged.
@@ -64,6 +71,58 @@ export async function loadDump(dumpPath: string): Promise<GriffeDump> {
   const dump = parsed as GriffeDump;
   dumpCache.set(dumpPath, { mtimeMs, dump });
   return dump;
+}
+
+/**
+ * Read the pre-rendered docstring HTML for a package, reusing it while the file
+ * is unchanged.
+ *
+ * @throws {PydocsError} When the sidecar is missing, which means the
+ *   `astro:config:done` render did not run for this build.
+ */
+export async function loadRendered(renderedPath: string): Promise<RenderedDocstrings> {
+  if (renderedPath === '') {
+    throw new PydocsError(
+      'starlight-pydocs: no pre-rendered docstring path was recorded for this package (extraction did not run)',
+    );
+  }
+
+  let mtimeMs: number;
+  try {
+    mtimeMs = (await fs.stat(renderedPath)).mtimeMs;
+  } catch (cause) {
+    throw new PydocsError(
+      `starlight-pydocs: the pre-rendered docstrings at ${renderedPath} are missing; ` +
+        'docstring prose is rendered at astro:config:done, so this usually means the integration was not registered',
+      { cause },
+    );
+  }
+
+  const cached = renderedCache.get(renderedPath);
+  if (cached !== undefined && cached.mtimeMs === mtimeMs) return cached.rendered;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(await fs.readFile(renderedPath, 'utf8'));
+  } catch (cause) {
+    throw new PydocsError(`starlight-pydocs: ${renderedPath} is not valid JSON`, { cause });
+  }
+
+  const rendered =
+    typeof parsed === 'object' && parsed !== null && 'objects' in parsed
+      ? (parsed as RenderedDocstrings)
+      : { objects: {} };
+  renderedCache.set(renderedPath, { mtimeMs, rendered });
+  return rendered;
+}
+
+/** Pre-rendered docstrings for a configured package. */
+export async function getRenderedDocstrings(context: PydocsContext, pkgName: string): Promise<RenderedDocstrings> {
+  const pkg = context.packages.find((entry) => entry.name === pkgName);
+  if (pkg === undefined) {
+    throw new PydocsError(`starlight-pydocs: '${pkgName}' is not a configured package`);
+  }
+  return loadRendered(pkg.renderedPath);
 }
 
 /** Model options for one package, as recorded in the virtual context. */
@@ -139,9 +198,10 @@ export async function getAnnotationResolver(context: PydocsContext, pkgName: str
   return buildAnnotationResolver(model, (dottedPath) => inventories.lookup(dottedPath)?.href);
 }
 
-/** Drop every cached dump, model and inventory. Used by tests and by dev reloads. */
+/** Drop every cached dump, model, inventory and rendered sidecar. */
 export function clearCaches(): void {
   dumpCache.clear();
   modelCache.clear();
   inventoryCache.clear();
+  renderedCache.clear();
 }

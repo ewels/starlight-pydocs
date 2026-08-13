@@ -85,6 +85,7 @@ describe('createContext', () => {
       'filters',
       'members',
       'name',
+      'renderedPath',
       'sidebar',
       'sourceLink',
     ]);
