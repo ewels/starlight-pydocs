@@ -85,12 +85,16 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read # check out the repository
-      security-events: write # upload the SARIF audit results to code scanning
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
+      # Annotations mode rather than a code-scanning upload: it needs no
+      # Advanced Security (which private repositories lack), and it fails the
+      # job on findings instead of filing them away in the security tab.
       - uses: zizmorcore/zizmor-action@192e21d79ab29983730a13d1382995c2307fbcaa # v0.5.7
         with:
           persona: pedantic
           inputs: .github/workflows
+          advanced-security: false
+          annotations: true

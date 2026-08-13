@@ -33,9 +33,12 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+          # A poisoned dependency cache could inject content into the published
+          # package, so the publish job builds without one.
+          package-manager-cache: false
 
       # Trusted publishing needs npm >= 11.5.1; Node 22 ships an older npm.
-      - run: npm install --global npm@latest
+      - run: npm install --global npm@latest # zizmor: ignore[adhoc-packages]
 
       # On a release, refuse to publish if the tag doesn't match the version
       # we are about to ship (tag v1.0.0 must match package.json 1.0.0).
