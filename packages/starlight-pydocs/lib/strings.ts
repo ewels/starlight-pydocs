@@ -74,10 +74,6 @@ export const STRINGS = {
   labelPydanticValidator: 'pydantic validator',
 
   // Parameter kinds.
-  parameterPositionalOnly: 'positional-only',
-  parameterKeywordOnly: 'keyword-only',
-  parameterVariadicPositional: 'variadic positional',
-  parameterVariadicKeyword: 'variadic keyword',
 
   // Symbol search.
   searchLabel: 'Search symbols',

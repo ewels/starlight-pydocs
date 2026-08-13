@@ -21,7 +21,7 @@ import path from 'node:path';
 import { computeCacheKey, fileExists, versionDumpCacheLocation, worktreeDirectory } from './cache.ts';
 import type { PydocsConfig, PydocsPackageConfig, PydocsVersionRefInput } from './config.ts';
 import { loadDump } from './data.ts';
-import { PydocsError } from './errors.ts';
+import { PydocsError, processOutput } from './errors.ts';
 import type { PydocsLogger } from './logger.ts';
 import { silentLogger } from './logger.ts';
 import type { ExecFileImpl, ExtractionContext, GriffeLauncher } from './runner.ts';
@@ -48,8 +48,7 @@ async function git(execFileImpl: ExecFileImpl, cwd: string, args: string[]): Pro
 }
 
 function gitMessage(cause: unknown): string {
-  const error = cause as { stderr?: string; message?: string };
-  return (error.stderr ?? error.message ?? 'no output').trim().split('\n').at(-1) ?? '';
+  return processOutput(cause, 'no output').split('\n').at(-1) ?? '';
 }
 
 /**

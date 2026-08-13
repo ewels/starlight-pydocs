@@ -26,14 +26,26 @@ import { versionLabelsFrom } from './versions.ts';
 
 interface CachedJson<T> {
   mtimeMs: number;
-  value: T;
+  value: Promise<T>;
 }
 
+// Every cache stores the in-flight promise, not the settled value, so
+// concurrent first requests share one build instead of duplicating it. A
+// rejected promise is evicted, so a transient failure does not poison retries.
 const dumpCache = new Map<string, CachedJson<GriffeDump>>();
-const modelCache = new Map<string, PackageModel>();
-const inventoryCache = new Map<string, InventoryLookup>();
+const modelCache = new Map<string, Promise<PackageModel>>();
+const inventoryCache = new Map<string, Promise<InventoryLookup>>();
 const renderedCache = new Map<string, CachedJson<RenderedDocstrings>>();
-const versionsCache = new Map<string, Map<string, string>>();
+const versionsCache = new Map<string, Promise<Map<string, string>>>();
+
+/** Cache `promise` under `key`, evicting it again if it rejects. */
+function remember<K, V>(cache: Map<K, Promise<V>>, key: K, promise: Promise<V>): Promise<V> {
+  cache.set(key, promise);
+  promise.catch(() => {
+    if (cache.get(key) === promise) cache.delete(key);
+  });
+  return promise;
+}
 
 interface LoadJsonOptions<T> {
   /** Per-process cache, keyed by path and invalidated by mtime. */
@@ -69,15 +81,20 @@ async function loadJson<T>(options: LoadJsonOptions<T>): Promise<T> {
   const cached = options.cache.get(options.path);
   if (cached !== undefined && cached.mtimeMs === mtimeMs) return cached.value;
 
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(await fs.readFile(options.path, 'utf8'));
-  } catch (cause) {
-    throw new PydocsError(options.invalidJson, { cause });
-  }
+  const value = (async () => {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(await fs.readFile(options.path, 'utf8'));
+    } catch (cause) {
+      throw new PydocsError(options.invalidJson, { cause });
+    }
+    return options.interpret(parsed);
+  })();
 
-  const value = options.interpret(parsed);
   options.cache.set(options.path, { mtimeMs, value });
+  value.catch(() => {
+    if (options.cache.get(options.path)?.value === value) options.cache.delete(options.path);
+  });
   return value;
 }
 
@@ -187,14 +204,15 @@ export async function getVersionLabels(context: PydocsContext, base: string): Pr
   const cached = versionsCache.get(pkg.versionsPath);
   if (cached !== undefined) return cached;
 
-  let labels = new Map<string, string>();
-  try {
-    labels = versionLabelsFrom(JSON.parse(await fs.readFile(pkg.versionsPath, 'utf8')) as VersionAnnotations);
-  } catch {
-    // Written at setup; if it is not there, the setup did not run for this build.
-  }
-  versionsCache.set(pkg.versionsPath, labels);
-  return labels;
+  const read = (async () => {
+    try {
+      return versionLabelsFrom(JSON.parse(await fs.readFile(pkg.versionsPath, 'utf8')) as VersionAnnotations);
+    } catch {
+      // Written at setup; if it is not there, the setup did not run for this build.
+      return new Map<string, string>();
+    }
+  })();
+  return remember(versionsCache, pkg.versionsPath, read);
 }
 
 /**
@@ -216,10 +234,11 @@ export async function getModel(context: PydocsContext, base: string): Promise<Pa
   const cached = modelCache.get(key);
   if (cached !== undefined) return cached;
 
-  const [dump, addedIn] = await Promise.all([loadDump(pkg.dumpPath), getVersionLabels(context, base)]);
-  const model = buildModel(dump, addedIn.size === 0 ? options : { ...options, addedIn });
-  modelCache.set(key, model);
-  return model;
+  const build = (async () => {
+    const [dump, addedIn] = await Promise.all([loadDump(pkg.dumpPath), getVersionLabels(context, base)]);
+    return buildModel(dump, addedIn.size === 0 ? options : { ...options, addedIn });
+  })();
+  return remember(modelCache, key, build);
 }
 
 /** Models for every configured package, keyed by base. */
@@ -237,6 +256,10 @@ export async function getInventoryLookup(context: PydocsContext): Promise<Invent
   const cached = inventoryCache.get(key);
   if (cached !== undefined) return cached;
 
+  return remember(inventoryCache, key, buildInventoryLookup(context));
+}
+
+async function buildInventoryLookup(context: PydocsContext): Promise<InventoryLookup> {
   // Read them together: they are independent files, and the first render of a
   // page waits for all of them.
   const read = await Promise.all(
@@ -252,9 +275,7 @@ export async function getInventoryLookup(context: PydocsContext): Promise<Invent
   );
 
   // Configuration order decides which site wins a name, so keep it.
-  const lookup = createInventoryLookup(read.filter((entry) => entry !== undefined));
-  inventoryCache.set(key, lookup);
-  return lookup;
+  return createInventoryLookup(read.filter((entry) => entry !== undefined));
 }
 
 /** Annotation resolver for a package, wired to the site's inventories. */

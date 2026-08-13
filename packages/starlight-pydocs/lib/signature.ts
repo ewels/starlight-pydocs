@@ -9,7 +9,7 @@
 import type { AnnotationResolver, AnnotationToken } from './expr.ts';
 import { annotationTokens, mergeAnnotationTokens } from './expr.ts';
 import type { DocObject } from './model.ts';
-import type { GriffeFunction, GriffeParameter } from './types.ts';
+import type { GriffeFunction } from './types.ts';
 
 /** Parameter names Python hides from signatures when rendering methods. */
 const IMPLICIT_FIRST_PARAMETERS = new Set(['self', 'cls']);
@@ -220,20 +220,4 @@ export function overloadSignatureText(overload: GriffeFunction, doc: DocObject):
   return overloadSignatureTokens(overload, doc)
     .map((token) => token.text)
     .join('');
-}
-
-/** Describe a parameter's kind for the parameter table. */
-export function parameterKindLabel(parameter: GriffeParameter): string | undefined {
-  switch (parameter.kind) {
-    case 'positional-only':
-      return 'parameterPositionalOnly';
-    case 'keyword-only':
-      return 'parameterKeywordOnly';
-    case 'variadic positional':
-      return 'parameterVariadicPositional';
-    case 'variadic keyword':
-      return 'parameterVariadicKeyword';
-    default:
-      return undefined;
-  }
 }

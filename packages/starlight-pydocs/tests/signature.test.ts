@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, test } from 'vitest';
 
 import { buildAnnotationResolver } from '../lib/model.ts';
 import type { PackageModel } from '../lib/model.ts';
-import { overloadSignatureText, parameterKindLabel, signatureText, signatureTokens } from '../lib/signature.ts';
+import { overloadSignatureText, signatureText, signatureTokens } from '../lib/signature.ts';
 import { fixtureModel } from './helpers.ts';
 
 let demopkg: PackageModel;
@@ -113,16 +113,5 @@ describe('overloadSignatureText', () => {
       // `self` is hidden here too, so overloads stack under the implementation
       // signature without a jarring difference.
     ).toBe('def render(value: str) -> str');
-  });
-});
-
-describe('parameterKindLabel', () => {
-  test('names the kinds worth badging', () => {
-    expect(parameterKindLabel({ name: 'a', kind: 'positional-only' })).toBe('parameterPositionalOnly');
-    expect(parameterKindLabel({ name: 'a', kind: 'keyword-only' })).toBe('parameterKeywordOnly');
-    expect(parameterKindLabel({ name: 'a', kind: 'variadic positional' })).toBe('parameterVariadicPositional');
-    expect(parameterKindLabel({ name: 'a', kind: 'variadic keyword' })).toBe('parameterVariadicKeyword');
-    expect(parameterKindLabel({ name: 'a', kind: 'positional or keyword' })).toBeUndefined();
-    expect(parameterKindLabel({ name: 'a' })).toBeUndefined();
   });
 });

@@ -20,3 +20,17 @@ export class PydocsError extends Error {
 export function configError(optionPath: string, message: string): PydocsError {
   return new PydocsError(`${optionPath}: ${message}`);
 }
+
+/** The message of a thrown value, whatever was thrown. */
+export function errorMessage(cause: unknown): string {
+  return cause instanceof Error ? cause.message : String(cause);
+}
+
+/**
+ * What a failed child process said: its stderr, or failing that the error
+ * message, trimmed.
+ */
+export function processOutput(cause: unknown, fallback = ''): string {
+  const error = cause as { stderr?: string; message?: string };
+  return (error.stderr ?? error.message ?? fallback).trim();
+}

@@ -11,6 +11,7 @@ First release, still in development.
 - Symbol search now gives each result a unique option id, so `aria-activedescendant` follows the highlighted option instead of always naming the first one.
 - `objects.inv` parsing finds the end of the header on the raw bytes rather than decoded text, so an inventory whose project name contains multi-byte characters decompresses correctly.
 - The generated sidebar rebuilds after a dev-server re-extraction instead of staying stale until restart: the navigation cache is now keyed by each package's dump path.
+- The dev watcher re-extracts only when a Python file inside a configured search root changes, instead of on any `.py` change anywhere in the project.
 
 ### Features
 

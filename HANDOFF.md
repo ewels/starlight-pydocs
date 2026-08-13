@@ -456,3 +456,21 @@ str, scores: dict[str, float] | None = None)` signature, six distinct internal
   nowhere (render it or delete helper plus keys together); `virtual.d.ts` and
   `OVERRIDABLE_COMPONENTS` list the nine overridable components independently
   and could drift.
+- 2026-08-13: every deferral from the /simplify pass is resolved; nothing is left
+  open. Implemented: `lib/data.ts` caches in-flight promises (concurrent first
+  renders share one model build; rejected promises are evicted so retries work);
+  the four error-message helpers collapsed into `errorMessage` and
+  `processOutput` in `lib/errors.ts`; the dev watcher ignores Python files
+  outside the configured search roots; version-ref extraction and inventory
+  downloads run in parallel at setup; `tests/versions-live.test.ts` adopts
+  `onlyPackage`; the docstring-flavour spec is named for what it tests; and a
+  unit test pins `virtual.d.ts` to `OVERRIDABLE_COMPONENTS` so the two lists
+  cannot drift. Decided and closed rather than implemented: `parameterKindLabel`
+  is deleted together with its four string keys and forty-eight locale entries
+  (the signature's `/` and `*` markers already state parameter kinds, and
+  mkdocstrings does not label kinds in parameter tables either); the
+  `SectionThrown`/`SectionValues` merge is declined (it would change rendered
+  whitespace for a ten-line saving); the test `useWorkspace()` helper and a
+  shared vanilla-example layout are declined on churn and pedagogy grounds. The
+  per-package extraction and render loops stay sequential by design: ordered
+  logs and bounded memory are worth more than the parallel speed-up.

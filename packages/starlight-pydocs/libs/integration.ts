@@ -12,6 +12,7 @@
  * never import `@astrojs/starlight`.
  */
 
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { AstroIntegration, AstroIntegrationLogger } from 'astro';
@@ -22,6 +23,7 @@ import { normalizeConfig } from '../lib/config.ts';
 import type { PydocsContext, PydocsInventoryContext } from '../lib/context.ts';
 import { createContext } from '../lib/context.ts';
 import { clearCaches, getCrossReferenceResolver } from '../lib/data.ts';
+import { errorMessage } from '../lib/errors.ts';
 import { loadInventories } from '../lib/inventory.ts';
 import type { PydocsLogger } from '../lib/logger.ts';
 import { computeVersionAnnotations } from '../lib/ref-extract.ts';
@@ -132,14 +134,21 @@ async function preparePydocs(options: PydocsSetupOptions): Promise<PydocsSetup> 
   const config = normalizeConfig(options.options, fileURLToPath(options.root));
 
   const dumpPaths = await extract(config, logger);
+  // Version-ref extraction (git plus griffe) and inventory downloads are
+  // independent, so they run together.
+  const [versionsPaths, loadedInventories] = await Promise.all([
+    versionPathsFor(config, dumpPaths, logger),
+    inventories(config, logger),
+  ]);
+
   const context = createContext(config, {
     dumpPaths,
     renderedPaths: renderedPathsFor(config, dumpPaths),
-    versionsPaths: await versionPathsFor(config, dumpPaths, logger),
+    versionsPaths,
     siteBase: options.base,
     trailingSlash: options.trailingSlash,
     starlight: options.starlight,
-    inventories: await inventories(config, logger),
+    inventories: loadedInventories,
   });
 
   for (const pkg of config.packages) {
@@ -254,12 +263,17 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
 
       'astro:server:setup': ({ server, logger }) => {
         const directories = watchPaths(setup.config);
+        // The dev server watches the whole project; only Python files inside
+        // the configured search roots concern us. Without this filter any
+        // `.py` change anywhere re-extracted and force-reloaded the site.
+        const roots = directories.map((directory) => path.resolve(directory) + path.sep);
         if (directories.length === 0) return;
         for (const directory of directories) server.watcher.add(directory);
 
         let running = false;
         const reextract = async (file: string): Promise<void> => {
           if (!/\.pyi?$/.test(file) || running) return;
+          if (!roots.some((root) => path.resolve(file).startsWith(root))) return;
           running = true;
           try {
             const dumpPaths = await extract(setup.config, logger);
@@ -287,7 +301,7 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
             server.hot.send({ type: 'full-reload' });
             logger.info(`re-extracted the API after ${file} changed`);
           } catch (cause) {
-            logger.warn(`could not re-extract after ${file} changed: ${describe(cause)}`);
+            logger.warn(`could not re-extract after ${file} changed: ${errorMessage(cause)}`);
           } finally {
             running = false;
           }
@@ -299,8 +313,4 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
       },
     },
   };
-}
-
-function describe(cause: unknown): string {
-  return cause instanceof Error ? cause.message : String(cause);
 }
