@@ -10,6 +10,8 @@
 import fs from 'node:fs/promises';
 
 import type { PydocsContext, PydocsPackageContext } from './context.ts';
+import type { CrossReferenceResolver } from './crossrefs.ts';
+import { createCrossReferenceResolver } from './crossrefs.ts';
 import type { RenderedDocstrings } from './docstrings.ts';
 import { PydocsError } from './errors.ts';
 import type { AnnotationResolver } from './expr.ts';
@@ -196,6 +198,29 @@ export async function getInventoryLookup(context: PydocsContext): Promise<Invent
 export async function getAnnotationResolver(context: PydocsContext, pkgName: string): Promise<AnnotationResolver> {
   const [model, inventories] = await Promise.all([getModel(context, pkgName), getInventoryLookup(context)]);
   return buildAnnotationResolver(model, (dottedPath) => inventories.lookup(dottedPath)?.href);
+}
+
+/**
+ * Cross-reference resolver for the docstrings of one package.
+ *
+ * Order: the package's own symbol index, then every other configured package's,
+ * then the Sphinx inventories. Own package first means a bare `mypkg.Thing`
+ * never resolves to a same-named object documented elsewhere on the site.
+ */
+export async function getCrossReferenceResolver(
+  context: PydocsContext,
+  pkgName: string,
+): Promise<CrossReferenceResolver> {
+  const [models, inventories] = await Promise.all([getAllModels(context), getInventoryLookup(context)]);
+  const own = models.get(pkgName);
+  const others = [...models.entries()].filter(([name]) => name !== pkgName).map(([, model]) => model);
+
+  return createCrossReferenceResolver({
+    models: own === undefined ? others : [own, ...others],
+    siteBase: context.siteBase,
+    trailingSlash: context.trailingSlash,
+    lookupExternal: (dottedPath) => inventories.lookup(dottedPath)?.href,
+  });
 }
 
 /** Drop every cached dump, model, inventory and rendered sidecar. */

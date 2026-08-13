@@ -108,6 +108,28 @@ describe('renderDocstringsForDump', () => {
     await fs.rm(directory, { recursive: true, force: true });
   });
 
+  test('cross-references are links by the time the processor sees them', async () => {
+    const renderer = await resolveDocstringRenderer(markdownConfig({ processor: satteri() }));
+    const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'pydocs-rendered-'));
+    const renderedPath = path.join(directory, 'rendered.json');
+
+    await renderDocstringsForDump({
+      dumpPath: fixturePath('demopkg', 'dump.json'),
+      renderedPath,
+      renderer,
+      crossReferences: (target) =>
+        target === 'demopkg.report.Report' ? '/api/demopkg/report/#demopkg.report.Report' : undefined,
+    });
+
+    const rendered = JSON.parse(await fs.readFile(renderedPath, 'utf8')) as RenderedDocstrings;
+    const prose = renderedSectionBody(rendered, 'demopkg.report.generate_report', 0);
+    expect(prose).toContain('<a href="/api/demopkg/report/#demopkg.report.Report">Report</a>');
+    // The unresolvable one in the same docstring stayed literal.
+    expect(prose).toContain('[nosuchpkg.Thing][]');
+
+    await fs.rm(directory, { recursive: true, force: true });
+  });
+
   test('a failing render costs that one string, not the build', async () => {
     const failing = {
       name: 'exploding',

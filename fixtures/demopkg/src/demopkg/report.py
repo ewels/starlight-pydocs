@@ -166,6 +166,11 @@ def generate_report(source, /, name: str, *, fmt: str = "md") -> Report:
     Exercises a positional-only parameter (`source`, before the `/`) and a
     keyword-only one (`fmt`, after the `*`).
 
+    Returns a [Report][demopkg.report.Report] whose
+    [generate][demopkg.report.Report.generate] method writes a
+    [pathlib.Path][pathlib.Path]. A reference nothing resolves, such as
+    [nosuchpkg.Thing][], is left exactly as it was written.
+
     Args:
         source: Anything with a `read()` method; deliberately unannotated.
         name: Name for the resulting report.
