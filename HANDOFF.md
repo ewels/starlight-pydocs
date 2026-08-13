@@ -147,6 +147,29 @@ sequencing.
   orders the models as: the rendered entry, then every entry whose import name differs. Two
   documented versions of one package would otherwise link into each other's pages, silently
   mixing two APIs in one page's prose.
+- **Version annotations are two modules on purpose.** `lib/versions.ts` is pure — path
+  collection, the oldest-first first-seen diff, the documented-then-canonical lookup — so the
+  rules are unit tested over hand-written dumps with no git and no griffe. `lib/ref-extract.ts`
+  owns everything that touches the world: `git rev-parse --verify <ref>^{commit}`,
+  `git worktree add --detach`, the rebased search paths, the per-commit dump cache. The
+  runner was refactored to share that last step: `resolveGriffeLauncher` picks the executable
+  and `runGriffe` runs it into a cache location, so a ref is extracted exactly as the working
+  tree is (same extensions, same docstring options, same strategy).
+- **A ref's dump is cached by commit sha and never revalidated.** `versions/<name>-<sha12>-
+<options12>/dump.json`. The options half of the key is machine independent (repository-relative
+  search paths), and the sha half cannot change meaning, so after the first build there is no
+  git work at all — the worktree is not even created when the dump is already there.
+- **The "added in" labels travel as a sidecar, not through the virtual module.** Same
+  reasoning as the docstring sidecar: `virtual:starlight-pydocs/context` carries paths, and
+  the map (one entry per object newer than the oldest ref) is read from disk server-side. It is
+  written during `preparePydocs`, not at `astro:config:done`, because it needs no markdown
+  processor. `getModel` passes it to `buildModel` as `ModelOptions.addedIn`; it is kept out of
+  the model cache key, which is safe because the labels are derived from the package's
+  configuration and a dev re-extraction calls `clearCaches()`.
+- **Objects in the oldest ref and objects in none of the refs both get no badge.** The first
+  because "added in 1.0" over most of a package is noise and wrong for anything older; the
+  second because the current source has no version number to show. Both are documented in
+  `guides/version-annotations.mdx` rather than left for a reader to notice.
 - **The vanilla example pins `markdown: { processor: unified() }`.** PLAN.md decision
   7 promises both engines are exercised in CI; the docs site runs Astro's default
   (Sätteri), so the example imports `unified()` from `@astrojs/markdown-remark`. The

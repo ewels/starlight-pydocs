@@ -27,6 +27,7 @@ both directions, and `::: name` becomes `<Autodoc name="…" />`.
 - 📚 **`objects.inv` and `llms.txt`** per package, so other documentation sites and language models can consume yours
 - 🎯 **`<Autodoc>`** to drop one class or function into a hand-written page
 - 🐍 **No Python at build time** when you point at a dump your project's CI published
+- 🏷️ **"Added in" badges** computed by extracting your package at past git refs and comparing, with every ref's dump cached by commit
 - 🌐 **Thirteen languages** out of the box, with label props for sites that translate their own way
 - 🧩 **Works anywhere** — a Starlight plugin, or an Astro integration with no Starlight in its module graph
 
