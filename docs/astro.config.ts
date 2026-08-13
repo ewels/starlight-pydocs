@@ -1,6 +1,10 @@
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
-import starlightPydocs, { pydocsSidebarGroup } from 'starlight-pydocs';
+import starlightPydocs, { createPydocsSidebarGroup, pydocsSidebarGroup } from 'starlight-pydocs';
+
+// `sphpkg` lives in its own part of the sidebar, so it gets its own placeholder
+// instead of joining the shared `pydocsSidebarGroup`.
+const sphinxSidebarGroup = createPydocsSidebarGroup();
 
 // https://astro.build/config
 export default defineConfig({
@@ -34,7 +38,26 @@ export default defineConfig({
               // this site, which is one level below it.
               sourceLink: { host: 'github', repo: 'ewels/starlight-pydocs', ref: 'main', root: '..' },
             },
+            {
+              name: 'numpkg',
+              base: 'api/numpkg',
+              search: ['../fixtures/numpkg/src'],
+              docstringStyle: 'numpy',
+            },
+            {
+              // No extraction at all: a dump the Python project's CI could have
+              // published. A site configured this way needs no Python.
+              name: 'sphpkg',
+              base: 'api/sphpkg',
+              source: { file: '../fixtures/sphpkg/dump.json' },
+              docstringStyle: 'sphinx',
+              sidebar: { group: sphinxSidebarGroup },
+            },
           ],
+          // A local stand-in for CPython's objects.inv (see
+          // `pnpm gen:inventory`), so `pathlib.Path` links to the real Python
+          // documentation without the build reaching the network.
+          inventories: [{ file: '../fixtures/inventories/python-stdlib.inv', base: 'https://docs.python.org/3/' }],
         }),
       ],
       sidebar: [
@@ -42,12 +65,18 @@ export default defineConfig({
           label: 'Getting started',
           items: [
             { label: 'Introduction', link: '/' },
-            { label: 'Autodoc demo', link: '/autodoc-demo/' },
+            { label: 'Getting started', link: '/guides/getting-started/' },
+            { label: 'Vanilla Astro', link: '/guides/vanilla-astro/' },
+            { label: 'Autodoc', link: '/guides/autodoc/' },
           ],
         },
         {
           label: 'API reference',
           items: [pydocsSidebarGroup],
+        },
+        {
+          label: 'Sphinx demo',
+          items: [sphinxSidebarGroup],
         },
       ],
     }),

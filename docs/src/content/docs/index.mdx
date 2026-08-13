@@ -3,8 +3,42 @@ title: Starlight Pydocs
 description: Python API reference documentation for Astro and Starlight, extracted with Griffe.
 ---
 
-Python API reference documentation for Astro and Starlight sites, extracted with
-[Griffe](https://mkdocstrings.github.io/griffe/).
+`starlight-pydocs` generates Python API reference documentation for
+[Astro](https://astro.build) and [Starlight](https://starlight.astro.build) sites. It
+reads your package with [Griffe](https://mkdocstrings.github.io/griffe/) — static
+analysis, so nothing is imported and nothing needs installing — and renders it with
+Astro components on injected routes.
 
-This page is a placeholder while the plugin is under construction; see the sidebar
-for the generated API reference.
+It is the Starlight counterpart of
+[mkdocstrings-python](https://mkdocstrings.github.io/python/), and follows its
+conventions where they make sense: heading anchors are dotted object paths,
+`__all__` selects the documented surface, and `::: name` becomes
+`<Autodoc name="…" />`.
+
+## What you get
+
+- **One page per module**, with a sidebar tree and prev/next links that mirror the
+  package layout.
+- **Signatures with linked types.** Every name in an annotation resolves to a page on
+  this site or, through a Sphinx inventory, to another project's documentation.
+- **Every docstring section**, in google, numpy or sphinx style: parameters, returns,
+  raises, examples, admonitions and deprecations.
+- **Inherited members**, merged from resolvable base classes and labelled with where
+  they came from.
+- **Symbol search** over the API surface, on top of the prose search the site
+  already has.
+- **`objects.inv` and `llms.txt`** for every documented package, so other
+  documentation sites and language models can consume yours.
+- **No Python at build time**, if you would rather point at a dump your CI published.
+
+## Where to go next
+
+- [Getting started](/starlight-pydocs/guides/getting-started/) — install the plugin
+  and document your first package.
+- [Vanilla Astro](/starlight-pydocs/guides/vanilla-astro/) — the same pages without
+  Starlight.
+- [Autodoc](/starlight-pydocs/guides/autodoc/) — drop one object into a
+  hand-written page.
+- The generated reference in the sidebar documents three fixture packages: `demopkg`
+  (google style, pydantic, deprecations), `numpkg` (numpy style) and `sphpkg`
+  (sphinx style, from a pre-generated dump).

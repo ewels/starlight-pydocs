@@ -1,0 +1,42 @@
+---
+title: Autodoc
+description: Document a single Python object in the middle of a hand-written page.
+---
+
+import { Autodoc, SymbolSearch } from 'starlight-pydocs/components';
+
+Generated pages cover a whole package, but a hand-written page sometimes needs one
+class in the middle of the prose. That is what `<Autodoc>` is for: it is the equivalent
+of mkdocstrings' `::: demopkg.report.Report` directive, and it renders exactly what the
+generated pages render.
+
+```mdx
+import { Autodoc } from 'starlight-pydocs/components';
+
+<Autodoc name="demopkg.report.Report" />
+```
+
+Names may be the path an object is documented at or the canonical path Griffe found the
+definition at. Pass `package` when several configured packages could own the name.
+
+<Autodoc name="demopkg.report.Report" />
+
+## Heading levels
+
+`headingLevel` sets the depth of the object's own heading; its members go one level
+deeper. Use it to slot a block under a section of your own without breaking the
+document outline.
+
+```mdx
+<Autodoc name="demopkg.generate_report" headingLevel={3} />
+```
+
+<Autodoc name="demopkg.generate_report" headingLevel={3} />
+
+## Symbol search
+
+`<SymbolSearch />` searches the API surface by name, client-side, from the
+`symbols.json` index the plugin publishes. It is on the generated package pages
+already; this is the same component placed by hand.
+
+<SymbolSearch />

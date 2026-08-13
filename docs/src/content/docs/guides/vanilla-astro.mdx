@@ -1,0 +1,54 @@
+---
+title: Vanilla Astro
+description: Generate the same API reference pages in a plain Astro site, without Starlight.
+---
+
+Starlight is optional. `starlight-pydocs/astro` is an ordinary Astro integration that
+injects the same routes, renders the same components and serves the same
+`symbols.json`, `objects.inv` and `llms.txt`. Nothing in its module graph imports
+Starlight.
+
+```js
+// astro.config.mjs
+import { defineConfig } from 'astro/config';
+import pydocs from 'starlight-pydocs/astro';
+
+export default defineConfig({
+  integrations: [
+    pydocs({
+      packages: [{ name: 'mypkg', search: ['../src'] }],
+    }),
+  ],
+});
+```
+
+Generated pages come with a deliberately minimal built-in layout: a content column, a
+table of contents, and the package stylesheet. Pass `layout` to use your own component
+instead — it receives `title`, `headings` and `description` props and renders the page
+body in its default slot.
+
+```js
+pydocs({
+  packages: [{ name: 'mypkg', search: ['../src'] }],
+  layout: './src/layouts/ApiLayout.astro',
+});
+```
+
+A plain Astro project has no `customCss` for the integration to append to, so import
+the stylesheet yourself in any hand-written page or layout that uses the components:
+
+```astro
+---
+import 'starlight-pydocs/styles';
+import { Autodoc, SymbolSearch } from 'starlight-pydocs/components';
+---
+
+<Autodoc name="mypkg.Thing" />
+<SymbolSearch package="mypkg" />
+```
+
+The components take label props rather than reading Starlight's translations, so every
+string can be replaced: `<Autodoc name="mypkg.Thing" labels={{ parameters: 'Args' }} />`.
+
+`examples/vanilla` in the repository is a working site built this way, and is one of
+the fixtures the end-to-end tests run against.

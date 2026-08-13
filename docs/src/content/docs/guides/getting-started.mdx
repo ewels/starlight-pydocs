@@ -1,0 +1,114 @@
+---
+title: Getting started
+description: Install starlight-pydocs and document a Python package in a Starlight site.
+---
+
+## Install
+
+```sh
+npm install starlight-pydocs
+```
+
+Extraction needs [Griffe](https://mkdocstrings.github.io/griffe/). The plugin finds it
+without any help when [`uv`](https://docs.astral.sh/uv/) is on `PATH` (it runs
+`uvx --from griffe griffe`), and falls back to `python -m griffe` when the interpreter
+has it importable. Neither is needed if you point the plugin at a dump instead; see
+[Without Python](#without-python).
+
+## Minimal configuration
+
+Add the plugin to Starlight, name the package, and put its sidebar placeholder
+wherever the generated pages belong.
+
+```js
+// astro.config.mjs
+import starlight from '@astrojs/starlight';
+import { defineConfig } from 'astro/config';
+import starlightPydocs, { pydocsSidebarGroup } from 'starlight-pydocs';
+
+export default defineConfig({
+  integrations: [
+    starlight({
+      title: 'My project',
+      plugins: [
+        starlightPydocs({
+          packages: [{ name: 'mypkg', search: ['../src'] }],
+        }),
+      ],
+      sidebar: [{ label: 'API reference', items: [pydocsSidebarGroup] }],
+    }),
+  ],
+});
+```
+
+`search` is the list of directories passed to `griffe --search`, relative to the Astro
+project root. Point them at the _parent_ of the package directory: `../src` for
+`../src/mypkg`. `mypkg` is documented at `/api/mypkg/` by default, one page per module.
+
+Alongside the pages, each package gets three files: `symbols.json` (the search index),
+`objects.inv` (a Sphinx inventory other projects can cross-reference) and `llms.txt`
+(the whole surface as plain Markdown).
+
+## Docstring style
+
+Griffe parses docstrings, and it has to be told which flavour to expect. The default is
+`google`; `numpy`, `sphinx` and `auto` are the alternatives.
+
+```js
+starlightPydocs({
+  packages: [{ name: 'mypkg', search: ['../src'], docstringStyle: 'numpy' }],
+});
+```
+
+## Linking to other projects
+
+Type annotations that name something outside your package can link to that project's
+own documentation, given a Sphinx inventory:
+
+```js
+starlightPydocs({
+  packages: [{ name: 'mypkg', search: ['../src'] }],
+  inventories: ['python'],
+});
+```
+
+`'python'` is a preset for the CPython standard library. Any other project that
+publishes an `objects.inv` works too:
+
+```js
+inventories: [
+  'python',
+  { url: 'https://pandas.pydata.org/docs/objects.inv' },
+  { file: './vendor/internal.inv', base: 'https://docs.internal.example/' },
+];
+```
+
+## Source links
+
+Give the plugin your forge and every object links to the lines it is defined on.
+
+```js
+packages: [
+  {
+    name: 'mypkg',
+    search: ['../src'],
+    sourceLink: { host: 'github', repo: 'you/mypkg', ref: 'main', root: '..' },
+  },
+];
+```
+
+`root` is the directory the paths in the URL are relative to. Set it to your repository
+root when the Astro project is a subdirectory, as it is for a `docs/` site.
+
+## Without Python
+
+`griffe dump -f -d <style> --search <dir> <package>` writes the same JSON the plugin
+extracts. Publish it from the Python project's CI and the docs site needs no Python at
+all:
+
+```js
+packages: [{ name: 'mypkg', source: { file: './api/mypkg.json' } }];
+```
+
+`source: { url: '…' }` downloads it instead, with `ETag` revalidation against the
+cache.
