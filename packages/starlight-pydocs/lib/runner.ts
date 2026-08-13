@@ -106,6 +106,15 @@ function uvxArgv(pkg: PydocsPackageConfig, griffeArgs: string[]): { file: string
   return { file: 'uvx', args };
 }
 
+/**
+ * What a failed child process said: its stderr, or failing that the error
+ * message, trimmed.
+ */
+function processOutput(cause: unknown, fallback = ''): string {
+  const error = cause as { stderr?: string; message?: string };
+  return (error.stderr ?? error.message ?? fallback).trim();
+}
+
 async function canRun(
   execFileImpl: ExecFileImpl,
   cwd: string,
@@ -116,9 +125,8 @@ async function canRun(
     await execFileImpl(file, args, { cwd });
     return { ok: true };
   } catch (cause) {
-    const error = cause as { code?: string | number; stderr?: string; message?: string };
-    if (error.code === 'ENOENT') return { ok: false, reason: 'not found on PATH' };
-    const detail = (error.stderr ?? error.message ?? '').trim().split('\n').slice(-1)[0];
+    if ((cause as { code?: string | number }).code === 'ENOENT') return { ok: false, reason: 'not found on PATH' };
+    const detail = processOutput(cause).split('\n').at(-1);
     return { ok: false, reason: detail === undefined || detail === '' ? 'failed to run' : detail };
   }
 }
@@ -139,16 +147,16 @@ export async function resolveExtraction(
   // A dump generated elsewhere, so the docs host needs no Python at all. An
   // explicit `runner.command` still wins over it: the user knows their
   // environment best, which is why the launcher is resolved first.
-  if (config.runner.command === undefined && pkg.source?.kind === 'file') {
-    if (!(await fileExists(pkg.source.path))) {
-      throw new PydocsError(
-        `starlight-pydocs: the dump configured for '${pkg.name}' does not exist: ${pkg.source.path}`,
-      );
+  if (config.runner.command === undefined && pkg.source !== undefined) {
+    if (pkg.source.kind === 'file') {
+      if (!(await fileExists(pkg.source.path))) {
+        throw new PydocsError(
+          `starlight-pydocs: the dump configured for '${pkg.name}' does not exist: ${pkg.source.path}`,
+        );
+      }
+      return { dumpPath: pkg.source.path, strategy: 'file', fromCache: true };
     }
-    return { dumpPath: pkg.source.path, strategy: 'file', fromCache: true };
-  }
 
-  if (config.runner.command === undefined && pkg.source?.kind === 'url') {
     const result = await fetchToCache({
       url: pkg.source.url,
       directory: remoteCacheDirectory(context.cacheDir, pkg.source.url),
@@ -260,12 +268,11 @@ export async function runGriffe(options: RunGriffeOptions): Promise<{ dumpPath: 
     }
   } catch (cause) {
     await fs.rm(temporary, { force: true });
-    const error = cause as { stderr?: string; message?: string };
     throw new PydocsError(
       [
         `starlight-pydocs: griffe failed while extracting ${options.describe}.`,
         `  command: ${[command.file, ...command.args].join(' ')}`,
-        `  ${(error.stderr ?? error.message ?? 'no output').trim()}`,
+        `  ${processOutput(cause, 'no output')}`,
       ].join('\n'),
       { cause },
     );

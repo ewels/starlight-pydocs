@@ -4,7 +4,13 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import type { NormalisedFilters, NormalisedMembers, NormalisedSourceLink } from '../lib/config.ts';
+import type {
+  NormalisedFilters,
+  NormalisedMembers,
+  NormalisedSourceLink,
+  PydocsConfig,
+  PydocsPackageConfig,
+} from '../lib/config.ts';
 import type { ModelOptions, PackageModel } from '../lib/model.ts';
 import { buildModel } from '../lib/model.ts';
 import type { GriffeDump } from '../lib/types.ts';
@@ -22,6 +28,17 @@ export function testFixturePath(...segments: string[]): string {
 
 export async function loadFixtureDump(pkgName: string): Promise<GriffeDump> {
   return JSON.parse(await fs.readFile(fixturePath(pkgName, 'dump.json'), 'utf8')) as GriffeDump;
+}
+
+/**
+ * The single package of a normalised test configuration. Every extraction test
+ * configures exactly one, and `packages[0]` is optional under
+ * `noUncheckedIndexedAccess`.
+ */
+export function onlyPackage(config: PydocsConfig): PydocsPackageConfig {
+  const pkg = config.packages[0];
+  if (pkg === undefined) throw new Error('no package');
+  return pkg;
 }
 
 export const defaultFilters: NormalisedFilters = {

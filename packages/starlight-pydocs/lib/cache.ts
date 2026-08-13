@@ -47,8 +47,6 @@ export interface DumpCacheLocation {
   directory: string;
   /** Absolute path of the cached dump. */
   dumpPath: string;
-  /** The full hash; the directory name uses the first 12 characters. */
-  hash: string;
 }
 
 /** Stable JSON: object keys sorted so key order cannot perturb the hash. */
@@ -62,8 +60,23 @@ function stableStringify(value: unknown): string {
   return `{${entries.join(',')}}`;
 }
 
-export function sha256(value: string): string {
+function sha256(value: string): string {
   return createHash('sha256').update(value).digest('hex');
+}
+
+/** Unique-enough suffix for a temporary file written by this process. */
+function temporaryToken(): string {
+  return `${process.pid.toString(36)}${Date.now().toString(36)}`;
+}
+
+/** A path inside our namespace in the host project's cache directory. */
+function inCache(cacheDir: string, ...segments: string[]): string {
+  return path.join(cacheDir, CACHE_NAMESPACE, ...segments);
+}
+
+/** The artefacts of one cache key, all named from its directory. */
+function dumpLocation(directory: string): DumpCacheLocation {
+  return { directory, dumpPath: path.join(directory, 'dump.json') };
 }
 
 /** Hash of everything that can change a dump's contents. */
@@ -84,8 +97,7 @@ export function computeCacheKey(input: CacheKeyInput): string {
 
 /** Where the dump for a given package and key lives. */
 export function dumpCacheLocation(cacheDir: string, packageName: string, hash: string): DumpCacheLocation {
-  const directory = path.join(cacheDir, CACHE_NAMESPACE, `${packageName}-${hash.slice(0, 12)}`);
-  return { directory, dumpPath: path.join(directory, 'dump.json'), hash };
+  return dumpLocation(inCache(cacheDir, `${packageName}-${hash.slice(0, 12)}`));
 }
 
 /**
@@ -93,6 +105,9 @@ export function dumpCacheLocation(cacheDir: string, packageName: string, hash: s
  * directories, virtualenvs and `node_modules`. Missing roots are reported rather
  * than silently ignored: a typo in `search` would otherwise look like an empty
  * package.
+ *
+ * The order files come back in is unspecified: the walk fans out, and every
+ * consumer sorts (see {@link computeCacheKey}).
  */
 export async function collectPythonFiles(
   roots: string[],
@@ -101,14 +116,7 @@ export async function collectPythonFiles(
   const files: PythonFileStat[] = [];
 
   for (const root of roots) {
-    let rootExists = true;
-    try {
-      const stats = await fs.stat(root);
-      if (!stats.isDirectory()) rootExists = false;
-    } catch {
-      rootExists = false;
-    }
-    if (!rootExists) {
+    if (!(await isDirectory(root))) {
       logger.warn(`search path does not exist or is not a directory: ${root}`);
       continue;
     }
@@ -118,23 +126,39 @@ export async function collectPythonFiles(
   return files;
 }
 
+async function isDirectory(target: string): Promise<boolean> {
+  try {
+    return (await fs.stat(target)).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Walk one directory, statting the Python files and recursing into
+ * subdirectories. Entries are handled concurrently: a search tree is thousands
+ * of independent stats, and doing them one at a time is the slowest part of a
+ * cache-key computation.
+ */
 async function walk(root: string, directory: string, out: PythonFileStat[]): Promise<void> {
   const entries = await fs.readdir(directory, { withFileTypes: true });
-  for (const entry of entries) {
-    if (entry.name.startsWith('.') || IGNORED_DIRECTORIES.has(entry.name)) continue;
-    const absolute = path.join(directory, entry.name);
-    if (entry.isDirectory()) {
-      await walk(root, absolute, out);
-      continue;
-    }
-    if (!entry.isFile() || !PYTHON_EXTENSIONS.has(path.extname(entry.name))) continue;
-    const stats = await fs.stat(absolute);
-    out.push({
-      relativePath: path.relative(root, absolute).split(path.sep).join('/'),
-      mtimeMs: stats.mtimeMs,
-      size: stats.size,
-    });
-  }
+  await Promise.all(
+    entries.map(async (entry) => {
+      if (entry.name.startsWith('.') || IGNORED_DIRECTORIES.has(entry.name)) return;
+      const absolute = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        await walk(root, absolute, out);
+        return;
+      }
+      if (!entry.isFile() || !PYTHON_EXTENSIONS.has(path.extname(entry.name))) return;
+      const stats = await fs.stat(absolute);
+      out.push({
+        relativePath: path.relative(root, absolute).split(path.sep).join('/'),
+        mtimeMs: stats.mtimeMs,
+        size: stats.size,
+      });
+    }),
+  );
 }
 
 /** Cache key for one package's extraction, given the argv it will run. */
@@ -168,7 +192,7 @@ export async function fileExists(target: string): Promise<boolean> {
  */
 export async function writeAtomic(target: string, data: string | Uint8Array): Promise<void> {
   await fs.mkdir(path.dirname(target), { recursive: true });
-  const temporary = `${target}.${process.pid.toString(36)}${Date.now().toString(36)}.tmp`;
+  const temporary = `${target}.${temporaryToken()}.tmp`;
   await fs.writeFile(temporary, data);
   await fs.rename(temporary, target);
 }
@@ -183,12 +207,12 @@ export async function writeAtomic(target: string, data: string | Uint8Array): Pr
  * are base-specific: two entries sharing one dump must not share one sidecar.
  */
 function sidecarPath(cacheDir: string, base: string, dumpPath: string, kind: string): string {
-  const namespaceRoot = path.join(cacheDir, CACHE_NAMESPACE);
-  const key = sha256(`${base}\n${path.resolve(dumpPath)}`).slice(0, 12);
-  if (path.resolve(dumpPath).startsWith(`${path.resolve(namespaceRoot)}${path.sep}`)) {
+  const dump = path.resolve(dumpPath);
+  const key = sha256(`${base}\n${dump}`).slice(0, 12);
+  if (dump.startsWith(`${path.resolve(inCache(cacheDir))}${path.sep}`)) {
     return path.join(path.dirname(dumpPath), `${kind}-${key}.json`);
   }
-  return path.join(namespaceRoot, kind, `${slugifyBase(base)}-${key}`, `${kind}.json`);
+  return inCache(cacheDir, kind, `${slugifyBase(base)}-${key}`, `${kind}.json`);
 }
 
 /** Pre-rendered docstring HTML for one documented package (PLAN.md decision 7). */
@@ -214,23 +238,17 @@ export function versionDumpCacheLocation(
   sha: string,
   optionsHash: string,
 ): DumpCacheLocation {
-  const directory = path.join(
-    cacheDir,
-    CACHE_NAMESPACE,
-    'versions',
-    `${packageName}-${sha.slice(0, 12)}-${optionsHash.slice(0, 12)}`,
-  );
-  return { directory, dumpPath: path.join(directory, 'dump.json'), hash: optionsHash };
+  return dumpLocation(inCache(cacheDir, 'versions', `${packageName}-${sha.slice(0, 12)}-${optionsHash.slice(0, 12)}`));
 }
 
 /** Where the git worktree for one commit is checked out. */
 export function worktreeDirectory(cacheDir: string, sha: string): string {
-  return path.join(cacheDir, CACHE_NAMESPACE, 'worktrees', sha);
+  return inCache(cacheDir, 'worktrees', sha);
 }
 
 /** A temporary path griffe can write to inside a cache directory. */
 export function temporaryDumpPath(location: DumpCacheLocation): string {
-  return path.join(location.directory, `dump.${process.pid.toString(36)}${Date.now().toString(36)}.partial.json`);
+  return path.join(location.directory, `dump.${temporaryToken()}.partial.json`);
 }
 
 // -- Remote artefacts ------------------------------------------------------
@@ -272,17 +290,18 @@ export async function fetchToCache(options: FetchToCacheOptions): Promise<FetchT
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
   const target = path.join(options.directory, options.filename);
   const metaPath = `${target}.meta.json`;
-  const meta = await readMeta(metaPath, options.url);
   const cached = await fileExists(target);
 
   if (options.cache === 'force' && cached) {
     return { path: target, fromCache: true };
   }
 
+  // The validators are only worth reading when they are about to be sent.
   const headers: Record<string, string> = {};
-  if (options.cache === 'revalidate' && cached && meta) {
-    if (meta.etag !== undefined) headers['if-none-match'] = meta.etag;
-    if (meta.lastModified !== undefined) headers['if-modified-since'] = meta.lastModified;
+  if (options.cache === 'revalidate' && cached) {
+    const meta = await readMeta(metaPath, options.url);
+    if (meta?.etag !== undefined) headers['if-none-match'] = meta.etag;
+    if (meta?.lastModified !== undefined) headers['if-modified-since'] = meta.lastModified;
   }
 
   let response: Response;
@@ -345,5 +364,5 @@ function describeError(cause: unknown): string {
 
 /** Directory that remote artefacts for a URL are cached in. */
 export function remoteCacheDirectory(cacheDir: string, url: string): string {
-  return path.join(cacheDir, CACHE_NAMESPACE, 'remote', sha256(url).slice(0, 12));
+  return inCache(cacheDir, 'remote', sha256(url).slice(0, 12));
 }

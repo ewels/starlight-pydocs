@@ -8,7 +8,7 @@
 import path from 'node:path';
 
 import { configError, PydocsError } from './errors.ts';
-import { stripLeadingAndTrailingSlashes } from './paths.ts';
+import { isUnderBase, stripLeadingAndTrailingSlashes } from './paths.ts';
 
 /** Docstring flavour passed to `griffe dump -d`. */
 export type DocstringStyle = 'google' | 'numpy' | 'sphinx' | 'auto';
@@ -373,6 +373,24 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+/** Read a required option that must be a non-blank string. */
+function requireString(value: unknown, optionPath: string, message = 'must be a non-empty string'): string {
+  if (typeof value !== 'string' || value.trim() === '') throw configError(optionPath, message);
+  return value;
+}
+
+/** Read an optional string option, which must not be blank when it is set. */
+function optionalString(value: unknown, optionPath: string, message?: string): string | undefined {
+  return value === undefined ? undefined : requireString(value, optionPath, message);
+}
+
+/** Read an optional boolean option, falling back when it is unset. */
+function optionalBoolean(value: unknown, optionPath: string, fallback: boolean): boolean {
+  if (value === undefined) return fallback;
+  if (typeof value !== 'boolean') throw configError(optionPath, 'must be a boolean');
+  return value;
+}
+
 function requireStringArray(value: unknown, optionPath: string): string[] {
   if (!Array.isArray(value)) throw configError(optionPath, 'must be an array of strings');
   return value.map((entry, index) => {
@@ -389,8 +407,7 @@ function normaliseExtensions(input: PydocsExtensionInput[] | undefined, optionPa
   return input.map((entry, index) => {
     const entryPath = `${optionPath}[${index}]`;
     if (typeof entry === 'string') {
-      if (entry.trim() === '') throw configError(entryPath, 'must be a non-empty string');
-      return { name: entry, options: undefined };
+      return { name: requireString(entry, entryPath), options: undefined };
     }
     if (!isPlainObject(entry) || typeof entry.name !== 'string' || entry.name.trim() === '') {
       throw configError(entryPath, "must be a string or an object with a 'name' property");
@@ -452,22 +469,17 @@ function normaliseSourceLink(
 ): NormalisedSourceLink | undefined {
   if (input === undefined) return undefined;
   if (!isPlainObject(input)) throw configError(optionPath, "must be an object with 'template' or 'host'");
-  const ref = input.ref === undefined ? 'main' : input.ref;
-  if (typeof ref !== 'string' || ref.trim() === '')
-    throw configError(`${optionPath}.ref`, 'must be a non-empty string');
+  const ref = optionalString(input.ref, `${optionPath}.ref`) ?? 'main';
 
-  const rootInput = input.root;
-  if (rootInput !== undefined && (typeof rootInput !== 'string' || rootInput.trim() === '')) {
-    throw configError(`${optionPath}.root`, 'must be a non-empty path');
-  }
+  const rootInput = optionalString(input.root, `${optionPath}.root`, 'must be a non-empty path');
   const root = rootInput === undefined ? undefined : path.resolve(projectRoot, rootInput);
 
   if (typeof input.template === 'string') {
-    if (input.template.trim() === '') throw configError(`${optionPath}.template`, 'must be a non-empty string');
-    if (!input.template.includes('{path}')) {
+    const template = requireString(input.template, `${optionPath}.template`);
+    if (!template.includes('{path}')) {
       throw configError(`${optionPath}.template`, "must contain the '{path}' placeholder");
     }
-    return { template: input.template, ref, root };
+    return { template, ref, root };
   }
 
   const host = input.host;
@@ -485,12 +497,8 @@ function normaliseSourceLink(
 function normaliseFilters(input: PydocsFiltersInput | undefined, optionPath: string): NormalisedFilters {
   if (input === undefined) return { special: false, private: false, imported: false, inherited: true };
   if (!isPlainObject(input)) throw configError(optionPath, 'must be an object');
-  const read = (key: keyof NormalisedFilters, fallback: boolean): boolean => {
-    const value = input[key];
-    if (value === undefined) return fallback;
-    if (typeof value !== 'boolean') throw configError(`${optionPath}.${key}`, 'must be a boolean');
-    return value;
-  };
+  const read = (key: keyof NormalisedFilters, fallback: boolean): boolean =>
+    optionalBoolean(input[key], `${optionPath}.${key}`, fallback);
   return {
     special: read('special', false),
     private: read('private', false),
@@ -533,13 +541,11 @@ function normaliseVersions(
   return {
     refs: refsInput.map((entry, index) => {
       const entryPath = `${optionPath}.refs[${index}]`;
-      if (!isPlainObject(entry) || typeof entry.ref !== 'string' || entry.ref.trim() === '') {
-        throw configError(`${entryPath}.ref`, 'must be a non-empty string');
-      }
-      if (typeof entry.label !== 'string' || entry.label.trim() === '') {
-        throw configError(`${entryPath}.label`, 'must be a non-empty string');
-      }
-      return { ref: entry.ref, label: entry.label };
+      if (!isPlainObject(entry)) throw configError(`${entryPath}.ref`, 'must be a non-empty string');
+      return {
+        ref: requireString(entry.ref, `${entryPath}.ref`),
+        label: requireString(entry.label, `${entryPath}.label`),
+      };
     }),
   };
 }
@@ -562,10 +568,7 @@ function normaliseInventory(
   if (!isPlainObject(input)) throw configError(optionPath, "must be a preset name or an object with 'url' or 'file'");
 
   const cache = normaliseCacheMode(input.cache, `${optionPath}.cache`);
-  const base = input.base;
-  if (base !== undefined && (typeof base !== 'string' || base.trim() === '')) {
-    throw configError(`${optionPath}.base`, 'must be a non-empty string');
-  }
+  const base = optionalString(input.base, `${optionPath}.base`);
 
   if (typeof input.url === 'string' && input.url.trim() !== '') {
     if (input.file !== undefined) throw configError(optionPath, "set either 'url' or 'file', not both");
@@ -593,10 +596,11 @@ function withTrailingSlash(value: string): string {
 
 function normalisePackage(input: PydocsPackageInput, optionPath: string, projectRoot: string): PydocsPackageConfig {
   if (!isPlainObject(input)) throw configError(optionPath, 'must be an object');
-  const name = input.name;
-  if (typeof name !== 'string' || name.trim() === '') {
-    throw configError(`${optionPath}.name`, 'is required and must be the Python import name of the package');
-  }
+  const name = requireString(
+    input.name,
+    `${optionPath}.name`,
+    'is required and must be the Python import name of the package',
+  );
   if (!PACKAGE_NAME_PATTERN.test(name)) {
     throw configError(`${optionPath}.name`, `'${name}' is not a valid Python import name`);
   }
@@ -609,10 +613,7 @@ function normalisePackage(input: PydocsPackageInput, optionPath: string, project
     throw configError(`${optionPath}.base`, 'must be a plain URL path without query, fragment or spaces');
   }
 
-  const label = input.label ?? name;
-  if (typeof label !== 'string' || label.trim() === '') {
-    throw configError(`${optionPath}.label`, 'must be a non-empty string');
-  }
+  const label = optionalString(input.label, `${optionPath}.label`) ?? name;
 
   const style = input.docstringStyle ?? 'google';
   if (!DOCSTRING_STYLES.includes(style)) {
@@ -630,12 +631,8 @@ function normalisePackage(input: PydocsPackageInput, optionPath: string, project
 
   const sidebarInput = input.sidebar ?? {};
   if (!isPlainObject(sidebarInput)) throw configError(`${optionPath}.sidebar`, 'must be an object');
-  const sidebarLabel = sidebarInput.label ?? label;
-  if (typeof sidebarLabel !== 'string' || sidebarLabel.trim() === '') {
-    throw configError(`${optionPath}.sidebar.label`, 'must be a non-empty string');
-  }
-  const collapsed = sidebarInput.collapsed ?? false;
-  if (typeof collapsed !== 'boolean') throw configError(`${optionPath}.sidebar.collapsed`, 'must be a boolean');
+  const sidebarLabel = optionalString(sidebarInput.label, `${optionPath}.sidebar.label`) ?? label;
+  const collapsed = optionalBoolean(sidebarInput.collapsed, `${optionPath}.sidebar.collapsed`, false);
 
   const groupInput = sidebarInput.group;
   let group: string | undefined;
@@ -646,9 +643,7 @@ function normalisePackage(input: PydocsPackageInput, optionPath: string, project
     group = groupInput.label;
   }
 
-  const forceInspection = input.forceInspection ?? false;
-  if (typeof forceInspection !== 'boolean') throw configError(`${optionPath}.forceInspection`, 'must be a boolean');
-
+  const forceInspection = optionalBoolean(input.forceInspection, `${optionPath}.forceInspection`, false);
   const source = normaliseSource(input.source, `${optionPath}.source`, projectRoot);
 
   return {
@@ -673,9 +668,9 @@ function normalisePackage(input: PydocsPackageInput, optionPath: string, project
   };
 }
 
-/** True when `base` is the same page as, or a descendant of, `other`. */
+/** True when either base is the same page as, or a descendant of, the other. */
 function basesOverlap(base: string, other: string): boolean {
-  return base === other || base.startsWith(`${other}/`) || other.startsWith(`${base}/`);
+  return isUnderBase(base, other) || isUnderBase(other, base);
 }
 
 /**
@@ -722,10 +717,7 @@ export function normalizeConfig(user: PydocsUserConfig, projectRoot: string): Py
   if (command !== undefined && command.length === 0) {
     throw configError('runner.command', 'must contain at least the executable');
   }
-  const python = runnerInput.python;
-  if (python !== undefined && (typeof python !== 'string' || python.trim() === '')) {
-    throw configError('runner.python', 'must be a non-empty string');
-  }
+  const python = optionalString(runnerInput.python, 'runner.python');
 
   const inventoriesInput = user.inventories ?? [];
   if (!Array.isArray(inventoriesInput)) throw configError('inventories', 'must be an array');
@@ -744,26 +736,17 @@ export function normalizeConfig(user: PydocsUserConfig, projectRoot: string): Py
     }
   }
 
-  const booleanOption = (value: unknown, optionPath: string, fallback: boolean): boolean => {
-    if (value === undefined) return fallback;
-    if (typeof value !== 'boolean') throw configError(optionPath, 'must be a boolean');
-    return value;
-  };
-
-  const cacheDirInput = user.cacheDir;
-  if (cacheDirInput !== undefined && (typeof cacheDirInput !== 'string' || cacheDirInput.trim() === '')) {
-    throw configError('cacheDir', 'must be a non-empty string');
-  }
+  const cacheDirInput = optionalString(user.cacheDir, 'cacheDir');
 
   return {
     packages,
     runner: { command, python },
     inventories,
-    publishInventory: booleanOption(user.publishInventory, 'publishInventory', true),
-    symbolSearch: booleanOption(user.symbolSearch, 'symbolSearch', true),
-    llmsTxt: booleanOption(user.llmsTxt, 'llmsTxt', true),
+    publishInventory: optionalBoolean(user.publishInventory, 'publishInventory', true),
+    symbolSearch: optionalBoolean(user.symbolSearch, 'symbolSearch', true),
+    llmsTxt: optionalBoolean(user.llmsTxt, 'llmsTxt', true),
     components: components as Partial<Record<OverridableComponentName, string>>,
-    injectStyles: booleanOption(user.injectStyles, 'injectStyles', true),
+    injectStyles: optionalBoolean(user.injectStyles, 'injectStyles', true),
     cacheDir: path.resolve(projectRoot, cacheDirInput ?? path.join('node_modules', '.astro')),
     projectRoot,
   };

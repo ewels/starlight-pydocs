@@ -15,8 +15,9 @@ import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 
 import { normalizeConfig } from '../lib/config.ts';
 import { resolveExtraction } from '../lib/runner.ts';
-import type { GriffeDump, GriffeModule } from '../lib/types.ts';
-import { loadFixtureDump, repoRoot } from './helpers.ts';
+import type { GriffeDump, GriffeModule, GriffeObject } from '../lib/types.ts';
+import { hasMembers } from '../lib/types.ts';
+import { loadFixtureDump, onlyPackage, repoRoot } from './helpers.ts';
 
 const run = promisify(execFile);
 
@@ -31,10 +32,16 @@ async function hasUv(): Promise<boolean> {
 
 const uvAvailable = await hasUv();
 
-function memberNamesOf(dump: GriffeDump, pkgName: string): string[] {
+function moduleIn(dump: GriffeDump, pkgName: string): GriffeModule {
   const root = dump[pkgName];
   if (root === undefined || root.kind !== 'module') throw new Error(`no module ${pkgName} in dump`);
-  return Object.keys((root as GriffeModule).members ?? {}).sort();
+  return root;
+}
+
+/** Member names of a module or class, sorted so declaration order cannot matter. */
+function memberNamesOf(object: GriffeObject | undefined): string[] {
+  if (object === undefined || !hasMembers(object)) throw new Error('expected a dump object with members');
+  return Object.keys(object.members ?? {}).sort();
 }
 
 describe.skipIf(!uvAvailable)('live extraction with uv', () => {
@@ -56,26 +63,19 @@ describe.skipIf(!uvAvailable)('live extraction with uv', () => {
       },
       repoRoot,
     );
-    const pkg = config.packages[0];
-    if (pkg === undefined) throw new Error('no package');
 
-    const result = await resolveExtraction(pkg, config, { cacheDir: workspace, cwd: repoRoot });
+    const result = await resolveExtraction(onlyPackage(config), config, { cacheDir: workspace, cwd: repoRoot });
     expect(result.strategy).toBe('uvx');
     expect(result.fromCache).toBe(false);
 
-    const fresh = JSON.parse(await fs.readFile(result.dumpPath, 'utf8')) as GriffeDump;
-    const checkedIn = await loadFixtureDump('numpkg');
+    const fresh = moduleIn(JSON.parse(await fs.readFile(result.dumpPath, 'utf8')) as GriffeDump, 'numpkg');
+    const checkedIn = moduleIn(await loadFixtureDump('numpkg'), 'numpkg');
 
-    expect(memberNamesOf(fresh, 'numpkg')).toEqual(memberNamesOf(checkedIn, 'numpkg'));
-
-    const freshGrid = (fresh['numpkg'] as GriffeModule).members?.['Grid'];
-    const storedGrid = (checkedIn['numpkg'] as GriffeModule).members?.['Grid'];
-    expect(Object.keys((freshGrid as GriffeModule).members ?? {}).sort()).toEqual(
-      Object.keys((storedGrid as GriffeModule).members ?? {}).sort(),
-    );
+    expect(memberNamesOf(fresh)).toEqual(memberNamesOf(checkedIn));
+    expect(memberNamesOf(fresh.members?.['Grid'])).toEqual(memberNamesOf(checkedIn.members?.['Grid']));
 
     // The docstring parser still produces the sections the renderers rely on.
-    const resample = (fresh['numpkg'] as GriffeModule).members?.['resample'];
+    const resample = fresh.members?.['resample'];
     expect((resample?.docstring?.parsed ?? []).map((section) => section.kind)).toEqual([
       'text',
       'parameters',
@@ -93,10 +93,8 @@ describe.skipIf(!uvAvailable)('live extraction with uv', () => {
       },
       repoRoot,
     );
-    const pkg = config.packages[0];
-    if (pkg === undefined) throw new Error('no package');
 
-    const result = await resolveExtraction(pkg, config, { cacheDir: workspace, cwd: repoRoot });
+    const result = await resolveExtraction(onlyPackage(config), config, { cacheDir: workspace, cwd: repoRoot });
     expect(result.fromCache).toBe(true);
   }, 60_000);
 });

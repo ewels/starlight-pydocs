@@ -17,6 +17,7 @@ import {
 } from '../lib/cache.ts';
 import { normalizeConfig } from '../lib/config.ts';
 import { createMemoryLogger } from '../lib/logger.ts';
+import { onlyPackage } from './helpers.ts';
 
 let workspace: string;
 
@@ -122,9 +123,7 @@ describe('collectPythonFiles', () => {
   test('computeExtractionKey hashes the files under the configured search paths', async () => {
     await fs.mkdir(path.join(workspace, 'src', 'demopkg'), { recursive: true });
     await fs.writeFile(path.join(workspace, 'src', 'demopkg', '__init__.py'), '');
-    const config = normalizeConfig({ packages: [{ name: 'demopkg', search: ['src'] }] }, workspace);
-    const pkg = config.packages[0];
-    if (pkg === undefined) throw new Error('no package');
+    const pkg = onlyPackage(normalizeConfig({ packages: [{ name: 'demopkg', search: ['src'] }] }, workspace));
 
     const before = await computeExtractionKey(pkg, ['uvx']);
     await fs.writeFile(path.join(workspace, 'src', 'demopkg', 'extra.py'), 'x = 1\n');
