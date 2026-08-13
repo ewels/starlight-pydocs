@@ -1,4 +1,4 @@
-# starlight-pydocs — architecture plan
+# starlight-pydocs: architecture plan
 
 `starlight-pydocs` generates Python API reference documentation for Astro and Starlight
 sites. It extracts the API surface with [Griffe](https://mkdocstrings.github.io/griffe/)
@@ -9,11 +9,11 @@ conventions; `HANDOFF.md` is the running log.
 
 ## Reference implementations studied
 
-- `ewels/starlight-quiz` — repo conventions mirrored here: pnpm workspace, no build step
-  (ships `.ts`/`.astro` source), Vitest + Playwright, prek hooks, strictest TS,
-  `@layer`-wrapped CSS, optional `@astrojs/starlight` peer dependency, changelog and
+- `ewels/starlight-quiz`, whose repo conventions are mirrored here: pnpm workspace, no
+  build step (ships `.ts`/`.astro` source), Vitest + Playwright, prek hooks, strictest
+  TS, `@layer`-wrapped CSS, optional `@astrojs/starlight` peer dependency, changelog and
   OIDC release workflow.
-- `HiDeoo/starlight-openapi` — the route-injection reference. Confirmed mechanism: the
+- `HiDeoo/starlight-openapi`, the route-injection reference. Confirmed mechanism: the
   Starlight plugin's `config:setup` hook adds an Astro integration which calls
   `injectRoute` with a `[...slug]` catch-all; the route component renders
   `@astrojs/starlight/components/StarlightPage.astro`, passing `frontmatter` and a
@@ -22,12 +22,12 @@ conventions; `HANDOFF.md` is the running log.
   links inside a route middleware (`addRouteMiddleware` + `defineRouteMiddleware`)
   which mutates `context.locals.starlightRoute.sidebar`. Data reaches the route
   through Vite virtual modules.
-- `HiDeoo/starlight-typedoc` — the file-generating alternative. It writes Markdown
+- `HiDeoo/starlight-typedoc`, the file-generating alternative. It writes Markdown
   into `src/content/docs` at `config:setup` time. Rejected as the primary mechanism;
   see decision 1.
-- `delucis/starlight-llms-txt` — iterates the `docs` content collection only, so
+- `delucis/starlight-llms-txt`: iterates the `docs` content collection only, so
   injected routes are invisible to it. Shapes decision 10.
-- `HiDeoo/starlight-versions` — snapshots `src/content/docs` into per-version
+- `HiDeoo/starlight-versions`: snapshots `src/content/docs` into per-version
   directories. Injected routes are not snapshotted. Shapes decision 11.
 
 ## Verified groundwork (checked in this environment, not assumed)
@@ -47,7 +47,7 @@ conventions; `HANDOFF.md` is the running log.
 - `griffe dump -e griffe_pydantic` works statically via
   `uvx --with griffe-pydantic --from griffe …`: the pydantic fixture gains the
   `pydantic-model` label without pydantic being importable.
-- `griffe check` outputs oneline/verbose/markdown/github/azdo only — no JSON. The
+- `griffe check` outputs oneline/verbose/markdown/github/azdo only, with no JSON. The
   version-annotations stretch feature therefore diffs full dumps between refs
   instead of parsing `griffe check` output (decision 12).
 - The dump JSON schema is published at
@@ -66,13 +66,13 @@ Reasoning: Markdown is a lossy intermediate representation. It forecloses cross-
 type annotations (angle brackets, pipes and braces in `dict[str, float] | None` need
 escaping everywhere), symbol-level search metadata, collapsible member groups and
 badges. Route injection gives direct control of heading IDs (we emit the dotted object
-path, `mypkg.Report.generate`, as the anchor — matching mkdocstrings' anchor scheme so
+path, `mypkg.Report.generate`, as the anchor, matching mkdocstrings' anchor scheme so
 Sphinx inventories interoperate) instead of fighting `github-slugger`. It also avoids
 starlight-typedoc's mtime games: nothing pollutes the user's content directory, and
 `dev` reflects changes without re-writing files.
 
-The load-bearing assumption — that an injected route can populate the table of
-contents and be indexed by Pagefind — is proven by starlight-openapi in production:
+The load-bearing assumption (that an injected route can populate the table of
+contents and be indexed by Pagefind) is proven by starlight-openapi in production:
 `StarlightPage` accepts a `headings` prop and renders the standard page shell,
 including the `data-pagefind-body` content container. **Spike outcome (ROADMAP
 item 2, verified in-repo 2026-08-12): confirmed on all counts.** An injected
@@ -119,7 +119,7 @@ rendering, sidebar placeholder substitution, translation injection, style inject
 
 `lib/runner.ts` resolves an extraction strategy in this order:
 
-1. `runner.command` — explicit argv array supplied by the user.
+1. `runner.command`: explicit argv array supplied by the user.
 2. A pre-generated dump: `source: { file }` or `source: { url }` per package. This is
    how a Python project's CI can publish the artefact so the docs site needs no
    Python at all, and how versioned API docs pin old surfaces.
@@ -190,7 +190,7 @@ in order: the enclosing scope chain of the owning object (module members, then p
 package, following aliases), the builtins table, then configured Sphinx inventories.
 Resolution results in an internal link (same-site page + `#dotted.path` anchor), an
 external link (inventory base URL + object URI), or plain text. Unknown expression
-node types degrade to their string form — the dump keeps a plain-string fallback for
+node types degrade to their string form: the dump keeps a plain-string fallback for
 every annotation, so rendering can never hard-fail on an exotic annotation.
 
 ### 7. Docstring prose: the host's configured processor, pre-rendered at config time
@@ -198,7 +198,7 @@ every annotation, so rendering can never hard-fail on an exotic annotation.
 The only Markdown work this package does is rendering docstring prose: Griffe hands
 us Markdown strings inside the JSON, and everything structural (anchors, heading
 IDs, cross-references, the ToC, member layout) is set directly in components under
-the route-injection design. That is a render call, not a processor plugin — the
+the route-injection design. That is a render call, not a processor plugin: the
 package registers no remark, rehype, mdast or hast plugin anywhere.
 
 The render call goes through **whatever processor the host project has configured**,
@@ -216,7 +216,7 @@ unnecessary for a pure render call.
 
 Mechanics, and the constraint that shapes them: the live processor instance exists
 only in the config-time process, while routes and components execute in Vite's SSR
-module graph — module state does not cross that boundary and a processor cannot be
+module graph: module state does not cross that boundary and a processor cannot be
 serialised into a virtual module. So docstring prose is rendered **eagerly at
 `astro:config:done`**, which runs after every integration's `astro:config:setup`
 has finished mutating `processor.options` (Starlight's asides, a site's mermaid
@@ -262,10 +262,10 @@ engines end to end.
 
 Generated pages are indexed by Pagefind automatically because `StarlightPage` renders
 the standard shell (spike verifies). On top, symbol-level search: an injected endpoint
-route serves `<base>/symbols.json` (name, kind, path, url, brief — small, built from
-the symbol index), and a `<PydocsSearch>` custom element does client-side substring +
-CamelCase/dot-segment matching, grouped by kind, keyboard accessible. The plugin puts
-it on generated package index pages; users can place it anywhere via
+route serves `<base>/symbols.json`, a small payload built from the symbol index (name,
+kind, path, url, brief), and a `<PydocsSearch>` custom element does client-side
+substring + CamelCase/dot-segment matching, grouped by kind, keyboard accessible. The
+plugin puts it on generated package index pages; users can place it anywhere via
 `starlight-pydocs/components`. Vanilla sites get the same component; nothing in it
 touches Starlight. Implemented as promised: both page routes render `<SymbolSearch>`
 above the module documentation on the page whose object is a package root module,
@@ -310,7 +310,7 @@ fixture running two instances of the same package at different bases.
 plugin twice fails: both instances resolve the same
 `virtual:starlight-pydocs/context` module id (the first one wins, so the second
 instance's packages do not exist at render time) and both inject the same
-`[...pydocsSlug]` catch-all, which Astro reports as a route conflict — a build
+`[...pydocsSlug]` catch-all, which Astro reports as a route conflict. A build
 against `examples/vanilla` ends in `no configured package serves
 /api/v1/numpkg/llms.txt`. Making it work needs a per-instance virtual module
 namespace and a per-instance route pattern, which is a feature, not a fix.
@@ -320,15 +320,15 @@ entry is identified by its `base`, not by its name.** The duplicate-name
 rejection is gone; `base` was already validated unique and non-overlapping, so it
 is now the key for the dump and sidecar maps, the model cache, the route props,
 endpoint matching and every context lookup. A per-package `label` (default `name`)
-names an entry for humans — the sidebar group, the `llms.txt` heading, the
-published inventory — so `demopkg 1.x` and `demopkg` are distinguishable in one
+names an entry for humans in the sidebar group, the `llms.txt` heading and the
+published inventory, so `demopkg 1.x` and `demopkg` are distinguishable in one
 site. `<Autodoc>` and `<SymbolSearch>` resolve a `package` prop as a base first
 and an import name second, and a bare name that several entries answer to is an
 error naming the candidate bases rather than a silent pick. Cross-reference
 resolution across entries skips entries whose import name matches the rendered
 one, so one documented version never links into another's pages. The supported
 recipe is therefore one instance, one entry per version, each with its own pinned
-dump and its own sidebar placeholder from `createPydocsSidebarGroup()` — which
+dump and its own sidebar placeholder from `createPydocsSidebarGroup()`, which
 slots straight into starlight-versions' per-version sidebars. Per-version _builds_
 remain documented as the alternative for sites that want wholly separate
 deployments. Covered by an e2e fixture: the docs site documents `demopkg` twice,
@@ -351,7 +351,7 @@ oldest first.** The split is git on one side and arithmetic on the other:
 checks it out with `git worktree add --detach <cacheDir>/starlight-pydocs/worktrees/<sha>`
 (reusing an existing directory, pruning and retrying once if git disagrees), rebases
 the package's search paths onto the worktree and runs the same `griffe dump` through
-the launcher the current source uses — `lib/runner.ts` grew `resolveGriffeLauncher`
+the launcher the current source uses. `lib/runner.ts` grew `resolveGriffeLauncher`
 and a reusable `runGriffe` for that, argv arrays throughout. Ref dumps live at
 `<cacheDir>/starlight-pydocs/versions/<name>-<sha12>-<options12>/dump.json`; a commit
 is immutable, so an existing dump is never re-made and later builds do no git work.
