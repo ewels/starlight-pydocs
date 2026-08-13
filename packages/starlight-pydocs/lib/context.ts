@@ -15,6 +15,7 @@ import type {
   NormalisedMembers,
   NormalisedSourceLink,
   PydocsConfig,
+  PydocsSidebarConfig,
 } from './config.ts';
 import { stripLeadingAndTrailingSlashes } from './paths.ts';
 
@@ -25,6 +26,11 @@ export interface PydocsPackageContext {
   base: string;
   /** Absolute path to the griffe dump JSON for this package. */
   dumpPath: string;
+  /**
+   * Absolute path to the pre-rendered docstring HTML for this package, written
+   * at `astro:config:done` (PLAN.md decision 7).
+   */
+  renderedPath: string;
   /** Docstring flavour the dump was parsed with, for display and diagnostics. */
   docstringStyle: DocstringStyle;
   /** Member selection globs, needed to build the model. */
@@ -34,7 +40,7 @@ export interface PydocsPackageContext {
   /** Resolved source-link template, or undefined when source links are off. */
   sourceLink: NormalisedSourceLink | undefined;
   /** Sidebar presentation for this package's generated group. */
-  sidebar: { label: string; collapsed: boolean };
+  sidebar: PydocsSidebarConfig;
 }
 
 export interface PydocsInventoryContext {
@@ -67,6 +73,8 @@ export interface PydocsContext {
 export interface CreateContextOptions {
   /** Absolute dump path per package name, from the runner. */
   dumpPaths: Map<string, string>;
+  /** Absolute sidecar path per package name, from `renderedSidecarPath`. */
+  renderedPaths?: Map<string, string> | undefined;
   /** Astro's `base`, in any form; normalised to '' or '/prefix'. */
   siteBase: string | undefined;
   trailingSlash: 'always' | 'never' | 'ignore';
@@ -84,6 +92,7 @@ export function createContext(config: PydocsConfig, options: CreateContextOption
       name: pkg.name,
       base: pkg.base,
       dumpPath: options.dumpPaths.get(pkg.name) ?? '',
+      renderedPath: options.renderedPaths?.get(pkg.name) ?? '',
       docstringStyle: pkg.docstringStyle,
       members: pkg.members,
       filters: pkg.filters,

@@ -172,6 +172,27 @@ export async function writeAtomic(target: string, data: string | Uint8Array): Pr
   await fs.rename(temporary, target);
 }
 
+/**
+ * Where the pre-rendered docstring HTML for a dump lives.
+ *
+ * Beside the dump when the dump is ours (the directory is content-keyed, so the
+ * sidecar cannot outlive the dump it describes), and under the cache directory
+ * keyed on the dump's path when the dump is a pre-generated file the user owns
+ * and we must not write next to.
+ */
+export function renderedSidecarPath(cacheDir: string, packageName: string, dumpPath: string): string {
+  const namespaceRoot = path.join(cacheDir, CACHE_NAMESPACE);
+  if (path.resolve(dumpPath).startsWith(`${path.resolve(namespaceRoot)}${path.sep}`)) {
+    return path.join(path.dirname(dumpPath), 'rendered.json');
+  }
+  return path.join(
+    namespaceRoot,
+    'rendered',
+    `${packageName}-${sha256(path.resolve(dumpPath)).slice(0, 12)}`,
+    'rendered.json',
+  );
+}
+
 /** A temporary path griffe can write to inside a cache directory. */
 export function temporaryDumpPath(location: DumpCacheLocation): string {
   return path.join(location.directory, `dump.${process.pid.toString(36)}${Date.now().toString(36)}.partial.json`);
