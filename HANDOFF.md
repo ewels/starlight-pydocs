@@ -53,6 +53,34 @@ sequencing.
 - **No TypeScript parameter properties (or other non-erasable syntax) anywhere in
   `lib/`**: `fixtures/generate-dumps.ts` runs under `node --experimental-strip-types`,
   which only handles erasable syntax, and any future script may import any lib module.
+- **The pre-rendered docstring sidecar is keyed by canonical path and section index.**
+  `<cacheDir>/starlight-pydocs/<pkg-hash>/rendered.json` (or, for a user-supplied
+  `source.file` dump we must not write next to, `…/rendered/<pkg>-<hash>/rendered.json`)
+  maps canonical object path → section index → `{body, entries, blocks}` plus a
+  `deprecated` slot. Re-exports and inherited members share the definition's prose, so
+  components look up `doc.canonicalPath`, not `doc.path`. The sidecar is rewritten on
+  every `astro:config:done`, never reused from a previous run: its content depends on
+  the host's markdown pipeline, which can change without the dump changing.
+- **`ObjectDoc` owns the member recursion, not the kind-specific bodies.** It recurses
+  with `Astro.self` (the same trick Starlight's `SidebarSublist` uses) and dispatches
+  only signature-and-docstring bodies to `ClassDoc`/`FunctionDoc`/`AttributeDoc`. That
+  keeps the module graph acyclic even though the bodies are imported through
+  `virtual:starlight-pydocs/components`, which `ObjectDoc` itself is reachable from.
+  Modules never appear as members inside a page (submodules get their own pages), so
+  `ModuleDoc → ObjectDoc` is a one-way edge.
+- **Attributes get real headings.** The brief suggested rendering attributes and
+  properties as compact definition entries, but `pageHeadings()` lists every class
+  member at depth 3, so a heading-less attribute is a dead table-of-contents link.
+  They render through `ObjectDoc` like every other member, with a compact
+  `AttributeDoc` body. For the same reason inherited-member `<details>` blocks are
+  `open` by default: a collapsed one hides live anchor targets.
+- **Theme tokens are `--pyd-*`**, not the `--pydocs-*` this file and PLAN.md first
+  said; the class prefix is `.pyd-` and having the two agree is worth more than the
+  older spelling. CLAUDE.md is updated to match.
+- **`sidebar.group` on a package config** accepts a placeholder from
+  `createPydocsSidebarGroup()` and normalises to its label string, so one site can
+  place different packages in different parts of the sidebar (starlight-openapi's
+  `createOpenAPISidebarGroup` pattern).
 
 ## Environment notes (this sandbox)
 
@@ -128,11 +156,38 @@ Verified against generated dumps, not documentation. `lib/types.ts` follows thes
 - Prettier reformats Markdown, which broke the golden snapshots the moment `pnpm format`
   ran: the file no longer matched the renderer byte for byte. `tests/snapshots/**` is now
   in `.prettierignore`, next to the checked-in dumps.
-- `index.ts` and `middleware.ts` are still spike-level. `index.ts` now validates options
-  through `normalizeConfig` and builds the context with `createContext`, but it passes an
-  empty `dumpPaths` map (so `dumpPath` is `''`) and no inventories: extraction, inventory
-  loading and the real routes belong to ROADMAP item 5. `lib/data.ts` throws a clear
-  error if anything asks for a model before that wiring exists.
+- **A processor-specific markdown module cannot live in the SSR graph.** The first
+  implementation of decision 7 built its own Shiki-configured processor and called it
+  from components. It worked in Vitest and died in `astro build`: `Theme
+'github-light' is not included in this bundle`. Astro tree-shakes Shiki's bundled
+  theme and language tables out of the server bundle (`bundledThemes` becomes `[]`), so
+  only themes the host's own config asked for exist at render time. Pre-rendering at
+  `astro:config:done` sidesteps this entirely — that code runs in the config process,
+  where the untrimmed Shiki bundle is available.
+- **Under Starlight, docstring code fences come out as expressive-code**, not
+  `.astro-code`: Starlight registers expressive-code on the processor, and we render
+  through the host's processor, so docstring code blocks match the rest of the site for
+  free. Two consequences: our `.astro-code` rules only bite in plain Astro, and EC
+  emits its `<link>`/`<script>` tags inline in the body for these blocks rather than
+  hoisting them to `<head>` (harmless, deduplicated by URL, but visible in the HTML).
+- **`astro check` only type-checks files inside its own project.** The package's
+  `.astro` components live in `packages/starlight-pydocs`, so the docs site compiled
+  them without ever type-checking them. `docs/tsconfig.json` now includes the
+  package's `components/`, `layouts/`, `routes/`, `libs/` and root `.ts` files; that
+  raised the check from 4 files to 46 and caught two real type errors (`Response` will
+  not take a `Uint8Array<ArrayBufferLike>`, so `buildInventory` now returns
+  `Uint8Array<ArrayBuffer>`; and `exactOptionalPropertyTypes` needs one commented cast
+  on the Astro 7.0.x `createMarkdownProcessor` fallback).
+- **`pnpm format` wants to reformat PLAN.md** (`*emphasis*` → `_emphasis_` on one
+  line). Left alone deliberately — this agent was told not to touch PLAN.md — so the
+  first `prek run --all-files` will show that one-line diff.
+- **`<pre>` contents in `.astro` rely on JSX-style whitespace trimming.** Prettier
+  reflows the signature markup inside `{...map()}` expressions; Astro drops
+  whitespace-only text nodes that contain a newline inside expressions, so the built
+  `<pre>` stays clean (verified in the built HTML for the non-overload path). Keep
+  `<code>` adjacent to `<pre>` and explicit spaces as `{' '}`. Griffe 2.1.0 does not
+  serialise overloads, so the overload `<pre>` has no fixture coverage in the built
+  site yet.
 
 ## Progress log
 
@@ -148,3 +203,22 @@ Verified against generated dumps, not documentation. `lib/types.ts` follows thes
   `context`). 253 Vitest tests, including a golden Markdown snapshot of the demopkg
   report page and a uv-guarded live extraction test. Format, lint, typecheck and tests
   all green. Nothing renders yet: components and routes are ROADMAP item 5.
+- 2026-08-13: ROADMAP item 5 and item 7's endpoints and loader landed — the pages
+  exist. Docstring prose renders through the host's processor into a sidecar
+  (`lib/docstrings.ts`, `libs/docstring-renderer.ts`), the component set renders
+  modules, classes, functions, attributes, signatures with linked annotations, every
+  docstring section, badges, provenance, source links, member summaries, collapsible
+  inherited members and a client-side symbol search; the Starlight route, the vanilla
+  route with its built-in layout, and the `symbols.json`, `objects.inv` and `llms.txt`
+  endpoints are injected by one shared setup used by both the plugin and the vanilla
+  integration; the middleware builds the real sidebar tree and pagination; a Content
+  Layer loader exposes the same model as data. 320 Vitest tests. The docs site
+  documents `demopkg` from the fixture source through `uvx --with griffe-pydantic`,
+  and `pnpm build` produces the five pages plus all three endpoint files. Verified in
+  the built HTML of `/api/demopkg/report/`: the `__init__`-merged `class Report(name:
+str, scores: dict[str, float] | None = None)` signature, six distinct internal
+  annotation links, the parameter tables, 21 dotted-path anchors matching the ToC,
+  deprecation and kind badges, inherited-from provenance, source links, asides and
+  `data-pagefind-body`. `examples/vanilla` and the Playwright suite are next
+  (ROADMAP item 6); nothing here has been exercised without Starlight yet beyond
+  type-checking.
