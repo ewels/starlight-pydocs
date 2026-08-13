@@ -39,10 +39,8 @@ copy: a documentation build should not fail because a release asset was briefly 
 cached copy, it fails, and the message names the URL and the status.
 
 :::caution[A dump is content for your site]
-Everything in the dump — docstring prose above all — ends up rendered on your pages, and markdown
-passes raw HTML through unsanitised (the same trust model as mkdocstrings). Treat a dump like a
-pull request to your docs: only point `source` at dumps whose provenance you trust, over URLs you
-control.
+Everything in the dump ends up rendered on your pages, and markdown passes raw HTML through unsanitised (the same trust model as mkdocstrings).
+Treat a dump like the rest of your docs: only use dumps whose provenance you trust.
 :::
 
 :::note[The plugin's parser options do not apply]
