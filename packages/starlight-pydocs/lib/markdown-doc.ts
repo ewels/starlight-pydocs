@@ -86,10 +86,7 @@ function renderObject(doc: DocObject, depth: number, lines: string[], options: M
     lines.push(`${label('aliasOf', options)}: \`${doc.externalTargetPath}\``, '');
   }
   if (doc.deprecated !== undefined) {
-    const detail = [doc.deprecated.version, doc.deprecated.description]
-      .filter((part) => part !== undefined)
-      .join(' — ');
-    lines.push(`**${label('deprecated', options)}**${detail === '' ? '' : `: ${detail}`}`, '');
+    pushDeprecation(doc.deprecated.version, doc.deprecated.description, lines, options);
   }
 
   for (const section of doc.docstring?.sections ?? []) {
@@ -105,6 +102,17 @@ function renderObject(doc: DocObject, depth: number, lines: string[], options: M
   }
 }
 
+/** The deprecation line, written the same way for an object and for a section. */
+function pushDeprecation(
+  version: string | undefined,
+  description: string | undefined,
+  lines: string[],
+  options: MarkdownDocOptions,
+): void {
+  const detail = [version, description].filter((part) => part !== undefined).join(' — ');
+  lines.push(`**${label('deprecated', options)}**${detail === '' ? '' : `: ${detail}`}`, '');
+}
+
 function renderGroup(group: MemberGroup, depth: number, lines: string[], options: MarkdownDocOptions): void {
   // Submodules are pages of their own; the parent page only lists them.
   if (group.id === 'modules') return;
@@ -118,11 +126,31 @@ function objectBadges(doc: DocObject, options: MarkdownDocOptions): string[] {
   const kindKey = kindLabelKey(doc);
   if (kindKey !== undefined) badges.push(`*${label(kindKey, options)}*`);
   if (doc.addedIn !== undefined) badges.push(`*${label('addedIn', options)} ${doc.addedIn}*`);
+  for (const { key, raw } of labelBadges(doc)) {
+    badges.push(`*${key === undefined ? raw : label(key, options)}*`);
+  }
+  return badges;
+}
+
+/** One griffe label to badge: its translation key, or the raw label. */
+export interface LabelBadge {
+  key: StringKey | undefined;
+  raw: string;
+}
+
+/**
+ * The griffe labels an object should be badged with.
+ *
+ * Shared with the HTML renderer so both name the same set: the label the kind
+ * badge already carries is dropped, so a property is not badged `property` twice.
+ */
+export function labelBadges(doc: DocObject): LabelBadge[] {
+  const kindKey = kindLabelKey(doc);
+  const badges: LabelBadge[] = [];
   for (const raw of doc.labels) {
     const key = labelKeyFor(raw);
-    // The kind badge already says `property`; do not repeat the label.
     if (key !== undefined && key === kindKey) continue;
-    badges.push(`*${key === undefined ? raw : label(key, options)}*`);
+    badges.push({ key, raw });
   }
   return badges;
 }
@@ -161,8 +189,28 @@ const LABEL_KEYS: Record<string, StringKey> = {
 };
 
 /** The `STRINGS` key for a raw griffe label, when we have a translation for it. */
-export function labelKeyFor(raw: string): StringKey | undefined {
+function labelKeyFor(raw: string): StringKey | undefined {
   return LABEL_KEYS[raw];
+}
+
+/**
+ * The `STRINGS` key for a section heading.
+ *
+ * Griffe's section kinds double as string keys wherever the two spell a name the
+ * same way, so only the multi-word kinds need mapping.
+ */
+function headingKey(kind: StringKey | 'other parameters' | 'type parameters' | 'type aliases'): StringKey {
+  switch (kind) {
+    case 'other parameters':
+      return 'otherParameters';
+    case 'type parameters':
+      return 'typeParameters';
+    // A list of type aliases is shown under the modules heading.
+    case 'type aliases':
+      return 'modules';
+    default:
+      return kind;
+  }
 }
 
 function renderSection(section: DocstringSection, lines: string[], options: MarkdownDocOptions): void {
@@ -177,23 +225,15 @@ function renderSection(section: DocstringSection, lines: string[], options: Mark
     case 'other parameters':
     case 'attributes':
     case 'type parameters': {
-      const heading =
-        section.kind === 'parameters'
-          ? 'parameters'
-          : section.kind === 'other parameters'
-            ? 'otherParameters'
-            : section.kind === 'type parameters'
-              ? 'typeParameters'
-              : 'attributes';
-      renderNamedValues(section as DocstringSectionNamedValues, heading, lines, options, true);
+      // Parameters and attributes are the sections that carry default values.
+      renderNamedValues(section as DocstringSectionNamedValues, headingKey(section.kind), lines, options, true);
       return;
     }
 
     case 'returns':
     case 'yields':
     case 'receives': {
-      const heading = section.kind === 'returns' ? 'returns' : section.kind === 'yields' ? 'yields' : 'receives';
-      renderNamedValues(section as DocstringSectionNamedValues, heading, lines, options, false);
+      renderNamedValues(section as DocstringSectionNamedValues, headingKey(section.kind), lines, options, false);
       return;
     }
 
@@ -201,7 +241,7 @@ function renderSection(section: DocstringSection, lines: string[], options: Mark
     case 'warns': {
       const entries = (section as DocstringSectionThrown).value;
       if (!Array.isArray(entries) || entries.length === 0) return;
-      lines.push(`**${label(section.kind === 'raises' ? 'raises' : 'warns', options)}**`, '');
+      lines.push(`**${label(headingKey(section.kind), options)}**`, '');
       for (const entry of entries) {
         const type = annotationText(entry.annotation);
         lines.push(`- ${type === '' ? '' : `\`${type}\` — `}${(entry.description ?? '').trim()}`);
@@ -240,8 +280,7 @@ function renderSection(section: DocstringSection, lines: string[], options: Mark
 
     case 'deprecated': {
       const value = (section as DocstringSectionDeprecated).value;
-      const detail = [value?.version, value?.description].filter((part) => part !== undefined).join(' — ');
-      lines.push(`**${label('deprecated', options)}**${detail === '' ? '' : `: ${detail}`}`, '');
+      pushDeprecation(value?.version, value?.description, lines, options);
       return;
     }
 
@@ -251,9 +290,7 @@ function renderSection(section: DocstringSection, lines: string[], options: Mark
     case 'type aliases': {
       const entries = (section as DocstringSectionReferences).value;
       if (!Array.isArray(entries) || entries.length === 0) return;
-      const heading: StringKey =
-        section.kind === 'functions' ? 'functions' : section.kind === 'classes' ? 'classes' : 'modules';
-      lines.push(`**${label(heading, options)}**`, '');
+      lines.push(`**${label(headingKey(section.kind), options)}**`, '');
       for (const entry of entries) {
         lines.push(`- \`${entry.name ?? ''}\` — ${(entry.description ?? '').trim()}`);
       }

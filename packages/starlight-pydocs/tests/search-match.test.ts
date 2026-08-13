@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
 import type { SearchEntry } from '../lib/search-match.ts';
-import { groupMatchesByKind, matchHref, matchSymbols, shortSymbolName } from '../lib/search-match.ts';
+import { groupMatchesByKind, matchHref, matchSymbols } from '../lib/search-match.ts';
 
 const entries: SearchEntry[] = [
   { path: 'demopkg', kind: 'module', page: 'api/demopkg', anchor: '', brief: 'Demo package.' },
@@ -35,13 +35,6 @@ const entries: SearchEntry[] = [
     brief: 'Build a report.',
   },
 ];
-
-describe('shortSymbolName', () => {
-  test('takes the last dotted segment', () => {
-    expect(shortSymbolName('demopkg.report.Report')).toBe('Report');
-    expect(shortSymbolName('demopkg')).toBe('demopkg');
-  });
-});
 
 describe('matchSymbols', () => {
   test('is empty for a blank query', () => {

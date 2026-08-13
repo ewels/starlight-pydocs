@@ -168,6 +168,11 @@ export interface PackageModel {
   pagesBySlug: Map<string, PageModel>;
   /** Every documented object, keyed by documented path. */
   objectsByPath: Map<string, DocObject>;
+  /**
+   * Shortest documented path for every canonical path, so an object documented
+   * only at a re-export is found from its definition path without a scan.
+   */
+  documentedByCanonicalPath: Map<string, string>;
   symbols: SymbolIndexEntry[];
   symbolsByPath: Map<string, SymbolIndexEntry>;
   /** Name lookup tables per module/class scope, for annotation resolution. */
@@ -213,7 +218,9 @@ class ModelBuilder {
   private readonly warnings: string[] = [];
   private readonly scopes = new Map<string, Map<string, string>>();
   private readonly objectsByPath = new Map<string, DocObject>();
+  private readonly documentedByCanonicalPath = new Map<string, string>();
   private readonly linearisations = new Map<string, string[]>();
+  private readonly basesByClass = new Map<string, { bases: DocBase[]; unresolved: string[] }>();
 
   private readonly options: ModelOptions;
 
@@ -240,6 +247,7 @@ class ModelBuilder {
       pages,
       pagesBySlug: new Map(pages.map((page) => [page.slug, page])),
       objectsByPath: this.objectsByPath,
+      documentedByCanonicalPath: this.documentedByCanonicalPath,
       symbols,
       symbolsByPath: new Map(symbols.map((entry) => [entry.path, entry])),
       scopes: this.scopes,
@@ -380,6 +388,7 @@ class ModelBuilder {
     };
 
     this.objectsByPath.set(docPath, doc);
+    this.rememberDocumentedPath(docPath, target.path);
 
     if (hasMembers(target) && !context.visiting.has(target.path)) {
       const visiting = new Set(context.visiting).add(target.path);
@@ -406,6 +415,18 @@ class ModelBuilder {
     }
 
     return doc;
+  }
+
+  /**
+   * Record where a definition is documented, so {@link documentedPathFor} needs
+   * no scan. The shortest path wins; a tie keeps the one built first, which is
+   * the order the tree is walked in.
+   */
+  private rememberDocumentedPath(docPath: string, canonicalPath: string): void {
+    const documented = this.documentedByCanonicalPath.get(canonicalPath);
+    if (documented === undefined || docPath.length < documented.length) {
+      this.documentedByCanonicalPath.set(canonicalPath, docPath);
+    }
   }
 
   /** Follow an alias into the dump when the target is part of it. */
@@ -443,7 +464,17 @@ class ModelBuilder {
 
   // -- Inheritance ---------------------------------------------------------
 
+  /**
+   * The declared bases of a class, resolved once per class.
+   *
+   * Every reader shares one entry: the class' own page, a re-export of it, and
+   * the linearisation, which would otherwise walk the same expressions and
+   * scopes again. Nothing mutates the arrays.
+   */
   private resolveBases(klass: GriffeClass): { bases: DocBase[]; unresolved: string[] } {
+    const cached = this.basesByClass.get(klass.path);
+    if (cached !== undefined) return cached;
+
     const bases: DocBase[] = [];
     const unresolved: string[] = [];
 
@@ -455,7 +486,16 @@ class ModelBuilder {
       if (resolvedPath === undefined) unresolved.push(text === '' ? 'unknown' : text);
     }
 
-    return { bases, unresolved };
+    const resolved = { bases, unresolved };
+    this.basesByClass.set(klass.path, resolved);
+    return resolved;
+  }
+
+  /** Dotted paths of the bases of a class that resolve inside the package. */
+  private resolvedBasePaths(klass: GriffeClass): string[] {
+    return this.resolveBases(klass)
+      .bases.map((base) => base.path)
+      .filter((value): value is string => value !== undefined);
   }
 
   /** Resolve a base-class name to a class inside the dump, following aliases. */
@@ -509,15 +549,7 @@ class ModelBuilder {
     this.linearisations.set(classPath, [classPath]);
 
     const object = this.index.get(classPath);
-    const parents =
-      object?.kind === 'class'
-        ? (object.bases ?? [])
-            .map((base) => {
-              const dotted = expressionToPath(base);
-              return dotted === undefined ? undefined : this.resolveClassPath(dotted, classPath);
-            })
-            .filter((value): value is string => value !== undefined)
-        : [];
+    const parents = object?.kind === 'class' ? this.resolvedBasePaths(object) : [];
 
     const sequences: string[][] = [
       ...parents.map((parent) => this.lineariseClass(parent)),
@@ -689,10 +721,10 @@ export function groupMembers(members: DocObject[], parentKind: 'module' | 'class
     else bucket.push(member);
   }
 
-  return GROUP_ORDER.filter((id) => (buckets.get(id)?.length ?? 0) > 0).map((id) => ({
-    id,
-    members: buckets.get(id) ?? [],
-  }));
+  return GROUP_ORDER.flatMap((id) => {
+    const bucket = buckets.get(id);
+    return bucket === undefined ? [] : [{ id, members: bucket }];
+  });
 }
 
 function groupIdFor(member: DocObject, parentKind: 'module' | 'class'): MemberGroupId {
@@ -751,7 +783,7 @@ function overloadsFrom(object: GriffeObject): GriffeFunction[] | undefined {
  * an `objects.inv`, where a leftover asterisk matters less than pulling in a
  * markdown parser.
  */
-export function briefFrom(object: GriffeObject): string {
+function briefFrom(object: GriffeObject): string {
   const sections = object.docstring?.parsed ?? [];
   const text = sections.find((section): section is DocstringSectionText => section.kind === 'text');
   const raw = typeof text?.value === 'string' ? text.value : (object.docstring?.value ?? '');
@@ -765,7 +797,7 @@ function firstLine(value: string): string {
   return first.trim();
 }
 
-export function stripMarkdown(value: string): string {
+function stripMarkdown(value: string): string {
   return value
     .replace(/`{1,3}([^`]*)`{1,3}/g, '$1')
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
@@ -781,7 +813,7 @@ export function stripMarkdown(value: string): string {
  * admonition that the google parser produces (griffe 2.1.0 routes google-style
  * `Deprecated:` blocks through `admonition`, not `deprecated`).
  */
-export function deprecationFrom(object: GriffeObject): DocDeprecation | undefined {
+function deprecationFrom(object: GriffeObject): DocDeprecation | undefined {
   const sections = object.docstring?.parsed ?? [];
 
   for (const section of sections) {
@@ -807,16 +839,11 @@ export function buildAnnotationResolver(
   model: PackageModel,
   lookupExternal?: (dottedPath: string) => string | undefined,
 ): AnnotationResolver {
-  const documented = new Set<string>();
-  for (const entry of model.symbols) {
-    documented.add(entry.path);
-    // Canonical paths matter too: an annotation may name the definition site.
-    const object = model.objectsByPath.get(entry.path);
-    if (object !== undefined) documented.add(object.canonicalPath);
-  }
-
   return createAnnotationResolver({
-    isDocumented: (dottedPath) => documented.has(dottedPath),
+    // Canonical paths count as documented too: an annotation may name the
+    // definition site of an object documented at a re-export.
+    isDocumented: (dottedPath) =>
+      model.objectsByPath.has(dottedPath) || model.documentedByCanonicalPath.has(dottedPath),
     lookupScope: (scopePath, name) => model.scopes.get(scopePath)?.get(name),
     lookupExternal,
   });
@@ -828,10 +855,5 @@ export function buildAnnotationResolver(
  */
 export function documentedPathFor(model: PackageModel, canonicalPath: string): string | undefined {
   if (model.objectsByPath.has(canonicalPath)) return canonicalPath;
-  let best: string | undefined;
-  for (const [path, object] of model.objectsByPath) {
-    if (object.canonicalPath !== canonicalPath) continue;
-    if (best === undefined || path.length < best.length) best = path;
-  }
-  return best;
+  return model.documentedByCanonicalPath.get(canonicalPath);
 }

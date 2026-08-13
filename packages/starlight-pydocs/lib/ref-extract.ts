@@ -26,7 +26,7 @@ import type { PydocsLogger } from './logger.ts';
 import { silentLogger } from './logger.ts';
 import type { ExecFileImpl, ExtractionContext, GriffeLauncher } from './runner.ts';
 import { defaultExecFile, resolveGriffeLauncher, runGriffe } from './runner.ts';
-import type { VersionAnnotations } from './versions.ts';
+import type { VersionAnnotations, VersionSnapshot } from './versions.ts';
 import { collectDumpPaths, firstSeenLabels, toVersionAnnotations } from './versions.ts';
 
 /** One ref, extracted. */
@@ -49,7 +49,7 @@ async function git(execFileImpl: ExecFileImpl, cwd: string, args: string[]): Pro
 
 function gitMessage(cause: unknown): string {
   const error = cause as { stderr?: string; message?: string };
-  return (error.stderr ?? error.message ?? 'no output').trim().split('\n').slice(-1)[0] ?? '';
+  return (error.stderr ?? error.message ?? 'no output').trim().split('\n').at(-1) ?? '';
 }
 
 /**
@@ -252,7 +252,7 @@ export async function computeVersionAnnotations(
   context: ExtractionContext,
 ): Promise<{ annotations: VersionAnnotations; refs: VersionRefDump[] }> {
   const refs = await resolveVersionExtractions(pkg, config, context);
-  const snapshots = [];
+  const snapshots: VersionSnapshot[] = [];
   for (const ref of refs) {
     snapshots.push({ label: ref.label, paths: collectDumpPaths(await loadDump(ref.dumpPath)) });
   }

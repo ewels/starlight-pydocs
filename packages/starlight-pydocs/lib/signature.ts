@@ -7,7 +7,7 @@
  */
 
 import type { AnnotationResolver, AnnotationToken } from './expr.ts';
-import { annotationTokens } from './expr.ts';
+import { annotationTokens, mergeAnnotationTokens } from './expr.ts';
 import type { DocObject } from './model.ts';
 import type { GriffeFunction, GriffeParameter } from './types.ts';
 
@@ -44,7 +44,7 @@ export function signatureTokens(doc: DocObject, options: SignatureOptions = {}):
       });
       tokens.push({ text: ')' });
     }
-    return merge(tokens);
+    return mergeAnnotationTokens(tokens);
   }
 
   if (doc.kind === 'attribute') {
@@ -59,12 +59,12 @@ export function signatureTokens(doc: DocObject, options: SignatureOptions = {}):
       tokens.push({ text: ' = ' });
       tokens.push(...annotationTokens(value, scope, resolver));
     }
-    return merge(tokens);
+    return mergeAnnotationTokens(tokens);
   }
 
   if (doc.kind !== 'function') {
     tokens.push({ text: name });
-    return merge(tokens);
+    return mergeAnnotationTokens(tokens);
   }
 
   const fn = doc.object as GriffeFunction;
@@ -77,11 +77,11 @@ export function signatureTokens(doc: DocObject, options: SignatureOptions = {}):
     tokens.push(...annotationTokens(fn.returns, scope, resolver));
   }
 
-  return merge(tokens);
+  return mergeAnnotationTokens(tokens);
 }
 
 /** The `(…)` part of a function signature. */
-export function parameterTokens(fn: GriffeFunction, scope: string, options: SignatureOptions = {}): AnnotationToken[] {
+function parameterTokens(fn: GriffeFunction, scope: string, options: SignatureOptions = {}): AnnotationToken[] {
   const resolver = options.resolver;
   const parameters = [...(fn.parameters ?? [])];
   const hideFirst = options.hideImplicitFirstParameter !== false;
@@ -180,7 +180,7 @@ export function renderedSignatureTokens(doc: DocObject, options: SignatureOption
   if (options.includeKeyword !== false) tokens.push({ text: 'class ' });
   tokens.push({ text: options.qualified === true ? doc.path : doc.name });
   tokens.push(...parameterTokens(constructor, doc.path, options));
-  return merge(tokens);
+  return mergeAnnotationTokens(tokens);
 }
 
 /**
@@ -212,7 +212,7 @@ export function overloadSignatureTokens(
   if (overload.returns !== undefined && overload.returns !== null) {
     tokens.push({ text: ' -> ' }, ...annotationTokens(overload.returns, doc.path, options.resolver));
   }
-  return merge(tokens);
+  return mergeAnnotationTokens(tokens);
 }
 
 /** Plain-text signature of one `@overload` variant. */
@@ -236,17 +236,4 @@ export function parameterKindLabel(parameter: GriffeParameter): string | undefin
     default:
       return undefined;
   }
-}
-
-function merge(tokens: AnnotationToken[]): AnnotationToken[] {
-  const merged: AnnotationToken[] = [];
-  for (const token of tokens) {
-    const previous = merged[merged.length - 1];
-    if (token.target === undefined && previous !== undefined && previous.target === undefined) {
-      previous.text += token.text;
-      continue;
-    }
-    merged.push({ ...token });
-  }
-  return merged;
 }

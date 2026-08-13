@@ -33,8 +33,6 @@ export interface VersionAnnotations {
   addedIn: Record<string, string>;
 }
 
-export const EMPTY_VERSION_ANNOTATIONS: VersionAnnotations = { addedIn: {} };
-
 /**
  * Every object path a dump contains, aliases included.
  *
@@ -97,11 +95,8 @@ export function addedInLabel(
 
 /** Turn the labels into the sidecar shape, with sorted keys for stable files. */
 export function toVersionAnnotations(labels: ReadonlyMap<string, string>): VersionAnnotations {
-  const addedIn: Record<string, string> = {};
-  for (const path of [...labels.keys()].sort()) {
-    addedIn[path] = labels.get(path) ?? '';
-  }
-  return { addedIn };
+  const sorted = [...labels].sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0));
+  return { addedIn: Object.fromEntries(sorted) };
 }
 
 /** Read a sidecar back, ignoring anything that is not a string label. */

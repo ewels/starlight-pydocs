@@ -48,7 +48,7 @@ export interface AnnotationResolver {
  * Builtin names worth linking. Only types and constants that appear in
  * annotations; the full builtins namespace would add noise without value.
  */
-export const BUILTIN_NAMES: readonly string[] = [
+const BUILTIN_NAMES = new Set([
   'bool',
   'bytearray',
   'bytes',
@@ -121,9 +121,7 @@ export const BUILTIN_NAMES: readonly string[] = [
   'ValueError',
   'Warning',
   'ZeroDivisionError',
-];
-
-const BUILTIN_NAME_SET = new Set(BUILTIN_NAMES);
+]);
 
 const NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/;
 
@@ -174,7 +172,7 @@ export function createAnnotationResolver(options: AnnotationResolverOptions): An
       const direct = asTarget(name);
       if (direct !== undefined) return direct;
 
-      if (BUILTIN_NAME_SET.has(name)) {
+      if (BUILTIN_NAMES.has(name)) {
         const href = lookupExternal?.(name) ?? lookupExternal?.(`builtins.${name}`);
         return href === undefined ? undefined : { kind: 'external', href };
       }
@@ -207,9 +205,9 @@ export function annotationTokens(
   scopePath: string,
   resolver?: AnnotationResolver | undefined,
 ): AnnotationToken[] {
-  const tokens: AnnotationToken[] = [];
-  walk(expr, scopePath, resolver, tokens, 0);
-  return mergePlainTokens(tokens);
+  const context: WalkContext = { scopePath, resolver, tokens: [] };
+  walk(context, expr, 0);
+  return mergeAnnotationTokens(context.tokens);
 }
 
 /** The annotation as plain text, with no linking. */
@@ -247,32 +245,28 @@ export function expressionToPath(expr: Annotation): string | undefined {
 
 const MAX_DEPTH = 32;
 
-function push(tokens: AnnotationToken[], text: string): void {
-  if (text !== '') tokens.push({ text });
+/** What every step of the walk needs: where to resolve names, where to write. */
+interface WalkContext {
+  /** Dotted path of the object the expression belongs to. */
+  scopePath: string;
+  resolver: AnnotationResolver | undefined;
+  tokens: AnnotationToken[];
 }
 
-function pushName(
-  tokens: AnnotationToken[],
-  name: string,
-  scopePath: string,
-  resolver: AnnotationResolver | undefined,
-): void {
-  const target = resolver?.resolve(name, scopePath);
-  tokens.push(target === undefined ? { text: name } : { text: name, target });
+function push(context: WalkContext, text: string): void {
+  if (text !== '') context.tokens.push({ text });
 }
 
-function walkList(
-  values: unknown,
-  scopePath: string,
-  resolver: AnnotationResolver | undefined,
-  tokens: AnnotationToken[],
-  depth: number,
-  separator: string,
-): void {
+function pushName(context: WalkContext, name: string): void {
+  const target = context.resolver?.resolve(name, context.scopePath);
+  context.tokens.push(target === undefined ? { text: name } : { text: name, target });
+}
+
+function walkList(context: WalkContext, values: unknown, depth: number, separator: string): void {
   if (!Array.isArray(values)) return;
   (values as ExprOrString[]).forEach((value, index) => {
-    if (index > 0) push(tokens, separator);
-    walk(value, scopePath, resolver, tokens, depth + 1);
+    if (index > 0) push(context, separator);
+    walk(context, value, depth + 1);
   });
 }
 
@@ -283,30 +277,43 @@ function field(expr: Expr, key: string): Annotation {
   return isExpr(value) ? value : undefined;
 }
 
-function walk(
-  expr: Annotation,
-  scopePath: string,
-  resolver: AnnotationResolver | undefined,
-  tokens: AnnotationToken[],
-  depth: number,
-): void {
+/** A string field of a node, or the fallback when the dump omits it. */
+function stringField(expr: Expr, key: string, fallback: string): string {
+  const value = expr[key];
+  return typeof value === 'string' ? value : fallback;
+}
+
+/** True when a node carries a field at all, whatever its type. */
+function hasField(expr: Expr, key: string): boolean {
+  const value = expr[key];
+  return value !== undefined && value !== null;
+}
+
+/** Brackets a comprehension is written in, by node class. */
+const COMPREHENSION_BRACKETS: Record<string, [string, string]> = {
+  ExprListComp: ['[', ']'],
+  ExprSetComp: ['{', '}'],
+  ExprGeneratorExp: ['(', ')'],
+};
+
+function walk(context: WalkContext, expr: Annotation, depth: number): void {
   if (expr === null || expr === undefined) return;
   if (depth > MAX_DEPTH) {
-    push(tokens, '…');
+    push(context, '…');
     return;
   }
 
   if (typeof expr === 'string') {
     // Griffe falls back to plain strings for simple annotations such as `None`.
-    if (NAME_PATTERN.test(expr)) pushName(tokens, expr, scopePath, resolver);
-    else push(tokens, expr);
+    if (NAME_PATTERN.test(expr)) pushName(context, expr);
+    else push(context, expr);
     return;
   }
 
   switch (expr.cls) {
     case 'ExprName': {
       const name = expr['name'];
-      if (typeof name === 'string') pushName(tokens, name, scopePath, resolver);
+      if (typeof name === 'string') pushName(context, name);
       return;
     }
 
@@ -315,177 +322,170 @@ function walk(
       // rendering the segments when nothing resolves it.
       const dotted = expressionToPath(expr);
       if (dotted !== undefined) {
-        const target = resolver?.resolve(dotted, scopePath);
-        if (target !== undefined) {
-          tokens.push({ text: dotted, target });
-          return;
-        }
-        push(tokens, dotted);
+        if (dotted !== '') pushName(context, dotted);
         return;
       }
-      walkList(expr['values'], scopePath, resolver, tokens, depth, '.');
+      walkList(context, expr['values'], depth, '.');
       return;
     }
 
     case 'ExprSubscript': {
-      walk(field(expr, 'left'), scopePath, resolver, tokens, depth + 1);
-      push(tokens, '[');
-      walk(field(expr, 'slice'), scopePath, resolver, tokens, depth + 1);
-      push(tokens, ']');
+      walk(context, field(expr, 'left'), depth + 1);
+      push(context, '[');
+      walk(context, field(expr, 'slice'), depth + 1);
+      push(context, ']');
       return;
     }
 
     case 'ExprBinOp': {
-      const operator = typeof expr['operator'] === 'string' ? expr['operator'] : '|';
-      walk(field(expr, 'left'), scopePath, resolver, tokens, depth + 1);
-      push(tokens, ` ${operator} `);
-      walk(field(expr, 'right'), scopePath, resolver, tokens, depth + 1);
+      walk(context, field(expr, 'left'), depth + 1);
+      push(context, ` ${stringField(expr, 'operator', '|')} `);
+      walk(context, field(expr, 'right'), depth + 1);
       return;
     }
 
     case 'ExprBoolOp': {
-      const operator = typeof expr['operator'] === 'string' ? expr['operator'] : 'or';
-      walkList(expr['values'], scopePath, resolver, tokens, depth, ` ${operator} `);
+      walkList(context, expr['values'], depth, ` ${stringField(expr, 'operator', 'or')} `);
       return;
     }
 
     case 'ExprUnaryOp': {
-      const operator = typeof expr['operator'] === 'string' ? expr['operator'] : '-';
-      push(tokens, /[A-Za-z]/.test(operator) ? `${operator} ` : operator);
-      walk(field(expr, 'value'), scopePath, resolver, tokens, depth + 1);
+      const operator = stringField(expr, 'operator', '-');
+      push(context, /[A-Za-z]/.test(operator) ? `${operator} ` : operator);
+      walk(context, field(expr, 'value'), depth + 1);
       return;
     }
 
     case 'ExprTuple': {
+      // An implicit tuple is the bare `int, str` inside a subscript.
       const implicit = expr['implicit'] === true;
-      if (!implicit) push(tokens, '(');
-      walkList(expr['elements'], scopePath, resolver, tokens, depth, ', ');
-      if (!implicit) push(tokens, ')');
+      if (!implicit) push(context, '(');
+      walkList(context, expr['elements'], depth, ', ');
+      if (!implicit) push(context, ')');
       return;
     }
 
     case 'ExprList': {
-      push(tokens, '[');
-      walkList(expr['elements'], scopePath, resolver, tokens, depth, ', ');
-      push(tokens, ']');
+      push(context, '[');
+      walkList(context, expr['elements'], depth, ', ');
+      push(context, ']');
       return;
     }
 
     case 'ExprSet': {
-      push(tokens, '{');
-      walkList(expr['elements'], scopePath, resolver, tokens, depth, ', ');
-      push(tokens, '}');
+      push(context, '{');
+      walkList(context, expr['elements'], depth, ', ');
+      push(context, '}');
       return;
     }
 
     case 'ExprDict': {
       const keys = Array.isArray(expr['keys']) ? (expr['keys'] as ExprOrString[]) : [];
       const values = Array.isArray(expr['values']) ? (expr['values'] as ExprOrString[]) : [];
-      push(tokens, '{');
+      push(context, '{');
       keys.forEach((key, index) => {
-        if (index > 0) push(tokens, ', ');
-        walk(key, scopePath, resolver, tokens, depth + 1);
-        push(tokens, ': ');
-        walk(values[index], scopePath, resolver, tokens, depth + 1);
+        if (index > 0) push(context, ', ');
+        walk(context, key, depth + 1);
+        push(context, ': ');
+        walk(context, values[index], depth + 1);
       });
-      push(tokens, '}');
+      push(context, '}');
       return;
     }
 
     case 'ExprSlice': {
-      walk(field(expr, 'lower'), scopePath, resolver, tokens, depth + 1);
-      push(tokens, ':');
-      walk(field(expr, 'upper'), scopePath, resolver, tokens, depth + 1);
-      if (expr['step'] !== undefined && expr['step'] !== null) {
-        push(tokens, ':');
-        walk(field(expr, 'step'), scopePath, resolver, tokens, depth + 1);
+      walk(context, field(expr, 'lower'), depth + 1);
+      push(context, ':');
+      walk(context, field(expr, 'upper'), depth + 1);
+      if (hasField(expr, 'step')) {
+        push(context, ':');
+        walk(context, field(expr, 'step'), depth + 1);
       }
       return;
     }
 
     case 'ExprExtSlice': {
-      walkList(expr['dims'], scopePath, resolver, tokens, depth, ', ');
+      walkList(context, expr['dims'], depth, ', ');
       return;
     }
 
     case 'ExprCall': {
-      walk(field(expr, 'function'), scopePath, resolver, tokens, depth + 1);
-      push(tokens, '(');
-      walkList(expr['arguments'], scopePath, resolver, tokens, depth, ', ');
-      push(tokens, ')');
+      walk(context, field(expr, 'function'), depth + 1);
+      push(context, '(');
+      walkList(context, expr['arguments'], depth, ', ');
+      push(context, ')');
       return;
     }
 
     case 'ExprKeyword': {
-      const name = typeof expr['name'] === 'string' ? expr['name'] : '';
-      push(tokens, `${name}=`);
-      walk(field(expr, 'value'), scopePath, resolver, tokens, depth + 1);
+      push(context, `${stringField(expr, 'name', '')}=`);
+      walk(context, field(expr, 'value'), depth + 1);
       return;
     }
 
     case 'ExprVarPositional': {
-      push(tokens, '*');
-      walk(field(expr, 'value'), scopePath, resolver, tokens, depth + 1);
+      push(context, '*');
+      walk(context, field(expr, 'value'), depth + 1);
       return;
     }
 
     case 'ExprVarKeyword': {
-      push(tokens, '**');
-      walk(field(expr, 'value'), scopePath, resolver, tokens, depth + 1);
+      push(context, '**');
+      walk(context, field(expr, 'value'), depth + 1);
       return;
     }
 
     case 'ExprConstant': {
       // Already source-formatted, quotes included: `Literal["a"]`.
-      push(tokens, String(expr['value'] ?? ''));
+      push(context, String(expr['value'] ?? ''));
       return;
     }
 
     case 'ExprLambda': {
-      push(tokens, 'lambda ');
-      walkList(expr['parameters'], scopePath, resolver, tokens, depth, ', ');
-      push(tokens, ': ');
-      walk(field(expr, 'body'), scopePath, resolver, tokens, depth + 1);
+      push(context, 'lambda ');
+      walkList(context, expr['parameters'], depth, ', ');
+      push(context, ': ');
+      walk(context, field(expr, 'body'), depth + 1);
       return;
     }
 
     case 'ExprCompare': {
-      walk(field(expr, 'left'), scopePath, resolver, tokens, depth + 1);
+      walk(context, field(expr, 'left'), depth + 1);
       const operators = Array.isArray(expr['operators']) ? (expr['operators'] as unknown[]) : [];
       const comparators = Array.isArray(expr['comparators']) ? (expr['comparators'] as ExprOrString[]) : [];
       comparators.forEach((comparator, index) => {
-        push(tokens, ` ${String(operators[index] ?? '==')} `);
-        walk(comparator, scopePath, resolver, tokens, depth + 1);
+        push(context, ` ${String(operators[index] ?? '==')} `);
+        walk(context, comparator, depth + 1);
       });
       return;
     }
 
     case 'ExprIfExp': {
-      walk(field(expr, 'body'), scopePath, resolver, tokens, depth + 1);
-      push(tokens, ' if ');
-      walk(field(expr, 'test'), scopePath, resolver, tokens, depth + 1);
-      push(tokens, ' else ');
-      walk(field(expr, 'orelse'), scopePath, resolver, tokens, depth + 1);
+      walk(context, field(expr, 'body'), depth + 1);
+      push(context, ' if ');
+      walk(context, field(expr, 'test'), depth + 1);
+      push(context, ' else ');
+      walk(context, field(expr, 'orelse'), depth + 1);
       return;
     }
 
     case 'ExprNamedExpr': {
-      walk(field(expr, 'target'), scopePath, resolver, tokens, depth + 1);
-      push(tokens, ' := ');
-      walk(field(expr, 'value'), scopePath, resolver, tokens, depth + 1);
+      walk(context, field(expr, 'target'), depth + 1);
+      push(context, ' := ');
+      walk(context, field(expr, 'value'), depth + 1);
       return;
     }
 
     case 'ExprComprehension': {
-      if (expr['is_async'] === true) push(tokens, 'async ');
-      push(tokens, 'for ');
-      walk(field(expr, 'target'), scopePath, resolver, tokens, depth + 1);
-      push(tokens, ' in ');
-      walk(field(expr, 'iterable'), scopePath, resolver, tokens, depth + 1);
+      if (expr['is_async'] === true) push(context, 'async ');
+      push(context, 'for ');
+      walk(context, field(expr, 'target'), depth + 1);
+      push(context, ' in ');
+      walk(context, field(expr, 'iterable'), depth + 1);
       const conditions = Array.isArray(expr['conditions']) ? (expr['conditions'] as ExprOrString[]) : [];
       for (const condition of conditions) {
-        push(tokens, ' if ');
-        walk(condition, scopePath, resolver, tokens, depth + 1);
+        push(context, ' if ');
+        walk(context, condition, depth + 1);
       }
       return;
     }
@@ -493,64 +493,62 @@ function walk(
     case 'ExprGeneratorExp':
     case 'ExprListComp':
     case 'ExprSetComp': {
-      const [open, close] =
-        expr.cls === 'ExprListComp' ? ['[', ']'] : expr.cls === 'ExprSetComp' ? ['{', '}'] : ['(', ')'];
-      push(tokens, open);
-      walk(field(expr, 'element'), scopePath, resolver, tokens, depth + 1);
-      push(tokens, ' ');
-      walkList(expr['generators'], scopePath, resolver, tokens, depth, ' ');
-      push(tokens, close);
+      const [open, close] = COMPREHENSION_BRACKETS[expr.cls] ?? ['(', ')'];
+      push(context, open);
+      walk(context, field(expr, 'element'), depth + 1);
+      push(context, ' ');
+      walkList(context, expr['generators'], depth, ' ');
+      push(context, close);
       return;
     }
 
     case 'ExprDictComp': {
-      push(tokens, '{');
-      walk(field(expr, 'key'), scopePath, resolver, tokens, depth + 1);
-      push(tokens, ': ');
-      walk(field(expr, 'value'), scopePath, resolver, tokens, depth + 1);
-      push(tokens, ' ');
-      walkList(expr['generators'], scopePath, resolver, tokens, depth, ' ');
-      push(tokens, '}');
+      push(context, '{');
+      walk(context, field(expr, 'key'), depth + 1);
+      push(context, ': ');
+      walk(context, field(expr, 'value'), depth + 1);
+      push(context, ' ');
+      walkList(context, expr['generators'], depth, ' ');
+      push(context, '}');
       return;
     }
 
     case 'ExprJoinedStr':
     case 'ExprTemplateStr': {
-      walkList(expr['values'], scopePath, resolver, tokens, depth, '');
+      walkList(context, expr['values'], depth, '');
       return;
     }
 
     case 'ExprFormatted':
     case 'ExprInterpolation': {
-      push(tokens, '{');
-      walk(field(expr, 'value'), scopePath, resolver, tokens, depth + 1);
-      push(tokens, '}');
+      push(context, '{');
+      walk(context, field(expr, 'value'), depth + 1);
+      push(context, '}');
       return;
     }
 
     case 'ExprYield':
     case 'ExprYieldFrom': {
-      push(tokens, expr.cls === 'ExprYieldFrom' ? 'yield from ' : 'yield ');
-      walk(field(expr, 'value'), scopePath, resolver, tokens, depth + 1);
+      push(context, expr.cls === 'ExprYieldFrom' ? 'yield from ' : 'yield ');
+      walk(context, field(expr, 'value'), depth + 1);
       return;
     }
 
     case 'ExprParameter': {
-      const name = typeof expr['name'] === 'string' ? expr['name'] : '';
-      push(tokens, name);
-      if (expr['annotation'] !== undefined && expr['annotation'] !== null) {
-        push(tokens, ': ');
-        walk(field(expr, 'annotation'), scopePath, resolver, tokens, depth + 1);
+      push(context, stringField(expr, 'name', ''));
+      if (hasField(expr, 'annotation')) {
+        push(context, ': ');
+        walk(context, field(expr, 'annotation'), depth + 1);
       }
-      if (expr['default'] !== undefined && expr['default'] !== null) {
-        push(tokens, '=');
-        walk(field(expr, 'default'), scopePath, resolver, tokens, depth + 1);
+      if (hasField(expr, 'default')) {
+        push(context, '=');
+        walk(context, field(expr, 'default'), depth + 1);
       }
       return;
     }
 
     default:
-      walkUnknown(expr, scopePath, resolver, tokens, depth);
+      walkUnknown(context, expr, depth);
   }
 }
 
@@ -559,17 +557,11 @@ function walk(
  * griffe provided one, else concatenate whatever nested strings and expressions
  * the node carries, in insertion order.
  */
-function walkUnknown(
-  expr: Expr,
-  scopePath: string,
-  resolver: AnnotationResolver | undefined,
-  tokens: AnnotationToken[],
-  depth: number,
-): void {
+function walkUnknown(context: WalkContext, expr: Expr, depth: number): void {
   for (const key of ['canonical_path', 'canonical_name', 'string']) {
     const value = expr[key];
     if (typeof value === 'string' && value !== '') {
-      pushName(tokens, value, scopePath, resolver);
+      pushName(context, value);
       return;
     }
   }
@@ -577,21 +569,21 @@ function walkUnknown(
   for (const [key, value] of Object.entries(expr)) {
     if (key === 'cls') continue;
     if (typeof value === 'string') {
-      push(tokens, value);
+      push(context, value);
       continue;
     }
     if (isExpr(value)) {
-      walk(value, scopePath, resolver, tokens, depth + 1);
+      walk(context, value, depth + 1);
       continue;
     }
     if (Array.isArray(value)) {
-      walkList(value, scopePath, resolver, tokens, depth, ', ');
+      walkList(context, value, depth, ', ');
     }
   }
 }
 
 /** Collapse runs of unlinked tokens so renderers emit fewer nodes. */
-function mergePlainTokens(tokens: AnnotationToken[]): AnnotationToken[] {
+export function mergeAnnotationTokens(tokens: AnnotationToken[]): AnnotationToken[] {
   const merged: AnnotationToken[] = [];
   for (const token of tokens) {
     const previous = merged[merged.length - 1];
