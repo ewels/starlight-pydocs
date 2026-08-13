@@ -28,7 +28,7 @@ import type {
   GriffeDump,
   GriffeObject,
 } from './types.ts';
-import { hasMembers } from './types.ts';
+import { memberList } from './types.ts';
 
 /** Where one rendered string belongs inside a section. */
 export type DocstringSlot = 'body' | 'entry' | 'block' | 'deprecated';
@@ -105,9 +105,7 @@ export function collectDocstringMarkdown(dump: GriffeDump): DocstringMarkdownIte
       collectSection(object.path, section, sectionIndex, items);
     });
 
-    if (hasMembers(object)) {
-      for (const member of Object.values(object.members ?? {})) visit(member);
-    }
+    for (const member of memberList(object)) visit(member);
   };
 
   for (const entry of Object.values(dump)) visit(entry);

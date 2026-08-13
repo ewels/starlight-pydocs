@@ -18,7 +18,7 @@
  */
 
 import type { GriffeDump, GriffeObject } from './types.ts';
-import { hasMembers } from './types.ts';
+import { memberList } from './types.ts';
 
 /** One extracted ref, in configuration order (oldest first). */
 export interface VersionSnapshot {
@@ -46,8 +46,7 @@ export function collectDumpPaths(dump: GriffeDump): Set<string> {
   const visit = (object: GriffeObject): void => {
     if (typeof object?.path !== 'string' || paths.has(object.path)) return;
     paths.add(object.path);
-    if (!hasMembers(object)) return;
-    for (const member of Object.values(object.members ?? {})) visit(member);
+    for (const member of memberList(object)) visit(member);
   };
 
   for (const entry of Object.values(dump)) visit(entry);

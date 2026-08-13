@@ -434,3 +434,25 @@ str, scores: dict[str, float] | None = None)` signature, six distinct internal
   not yet run on GitHub (the workflows trigger on pull_request and push to main;
   everything so far lives on the working branch), so the first PR is also the first
   live CI run.
+- 2026-08-13: whole-project /simplify pass, four parallel agents in isolated git
+  worktrees (data layer, model layer, render surface, glue and sites), each gated
+  on format/lint/typecheck/unit tests and verified against byte-identical rendered
+  output where it touched rendering. Merged as one commit per section plus a
+  coordinator commit for the cross-section consolidations no single agent could
+  apply (shared route preamble in `libs/route.ts`, `memberList` adoption,
+  navigation cache keyed by dump path, explicit numpkg source links). The pass
+  also surfaced three real defects, fixed separately: the inventory header
+  byte/character offset bug, non-unique symbol-search option ids breaking
+  `aria-activedescendant`, and the dev-server sidebar staying stale after
+  re-extraction. Suggestions deliberately deferred for a human decision:
+  `lib/data.ts` caches values rather than in-flight promises (concurrent renders
+  can duplicate model builds; blocks parallelising the docstring render loop);
+  four near-identical error-message helpers could share one home
+  (`cache.describeError`, `integration.describe`, `ref-extract.gitMessage`,
+  `runner.processOutput`); the dev watcher re-extracts on any `.py` change
+  anywhere rather than only under the search roots; `SectionThrown` and
+  `SectionValues` are near-duplicates whose merge changes whitespace;
+  `parameterKindLabel` is wired and translated in all locales but rendered
+  nowhere (render it or delete helper plus keys together); `virtual.d.ts` and
+  `OVERRIDABLE_COMPONENTS` list the nine overridable components independently
+  and could drift.
