@@ -1,0 +1,58 @@
+---
+/**
+ * The API surface as data.
+ *
+ * `pydocsLoader` puts one Content Layer entry per documented object in the `api`
+ * collection, so a page like this can list, filter or tabulate the surface
+ * without rendering the generated pages at all.
+ */
+import { getCollection } from 'astro:content';
+import 'starlight-pydocs/styles';
+
+const entries = (await getCollection('api')).sort((left, right) => left.data.path.localeCompare(right.data.path));
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>numpkg symbols</title>
+    <meta
+      name="description"
+      content="Every documented numpkg object, from the starlight-pydocs Content Layer loader."
+    />
+  </head>
+  <body class="pyd-page">
+    <div class="pyd-page-inner">
+      <main class="pyd-content">
+        <h1>numpkg symbols</h1>
+
+        <p>{entries.length} objects, loaded from a pre-generated griffe dump.</p>
+
+        <table class="pyd-summary-table" id="loader-entries">
+          <thead>
+            <tr>
+              <th scope="col">Path</th>
+              <th scope="col">Kind</th>
+              <th scope="col">Summary</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              entries.map((entry) => (
+                <tr data-symbol-path={entry.data.path}>
+                  <th scope="row">
+                    <code>{entry.data.path}</code>
+                  </th>
+                  <td>{entry.data.kind}</td>
+                  <td>{entry.data.brief}</td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </main>
+    </div>
+  </body>
+</html>
