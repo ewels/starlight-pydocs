@@ -94,14 +94,14 @@ decisions 10 and 11 instead.
 Following starlight-quiz: a single published package with `@astrojs/starlight` as an
 optional peer dependency. Subpath exports:
 
-| Export                                                     | Contents                                                                                              |
-| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `starlight-pydocs`                                         | Starlight plugin (default export), `pydocsSidebarGroup`, `createStarlightPydocs()` for multi-instance |
-| `starlight-pydocs/astro`                                   | vanilla Astro integration (no Starlight imports anywhere in its module graph)                         |
-| `starlight-pydocs/loader`                                  | Astro Content Layer loader emitting one entry per documented object                                   |
-| `starlight-pydocs/components`                              | `<Autodoc>` and the presentational component set                                                      |
-| `starlight-pydocs/styles`                                  | theme CSS                                                                                             |
-| `starlight-pydocs/middleware`, `starlight-pydocs/routes/*` | internal entrypoints referenced by string from the plugin/integration                                 |
+| Export                                                     | Contents                                                                              |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `starlight-pydocs`                                         | Starlight plugin (default export), `pydocsSidebarGroup`, `createPydocsSidebarGroup()` |
+| `starlight-pydocs/astro`                                   | vanilla Astro integration (no Starlight imports anywhere in its module graph)         |
+| `starlight-pydocs/loader`                                  | Astro Content Layer loader emitting one entry per documented object                   |
+| `starlight-pydocs/components`                              | `<Autodoc>` and the presentational component set                                      |
+| `starlight-pydocs/styles`                                  | theme CSS                                                                             |
+| `starlight-pydocs/middleware`, `starlight-pydocs/routes/*` | internal entrypoints referenced by string from the plugin/integration                 |
 
 Hard rule inherited from starlight-quiz: `lib/` never imports `astro` or
 `@astrojs/starlight`. Components never import `@astrojs/starlight` either (unlike
@@ -306,9 +306,7 @@ starlight-openapi's `createOpenAPISidebarGroup`), so versioned sidebars slot eac
 group under the right version. Documented with a full recipe and covered by an e2e
 fixture running two instances of the same package at different bases.
 
-**Status (verified 2026-08-13): multi-instance is not supported, and the recipe is
-per-version builds instead.** Only `createPydocsSidebarGroup()` shipped, and one
-plugin instance rejects two entries with the same package name. Registering the
+**Status (verified 2026-08-13): multi-instance is not supported.** Registering the
 plugin twice fails: both instances resolve the same
 `virtual:starlight-pydocs/context` module id (the first one wins, so the second
 instance's packages do not exist at render time) and both inject the same
@@ -316,9 +314,25 @@ instance's packages do not exist at render time) and both inject the same
 against `examples/vanilla` ends in `no configured package serves
 /api/v1/numpkg/llms.txt`. Making it work needs a per-instance virtual module
 namespace and a per-instance route pattern, which is a feature, not a fix.
-`docs/src/content/docs/guides/versioned-docs.mdx` documents what does work: pin a
-version's dump, build the site once per version and deploy each under its own base,
-with starlight-versions handling the prose.
+
+**Resolution (2026-08-13): one instance covers the use case, because a package
+entry is identified by its `base`, not by its name.** The duplicate-name
+rejection is gone; `base` was already validated unique and non-overlapping, so it
+is now the key for the dump and sidecar maps, the model cache, the route props,
+endpoint matching and every context lookup. A per-package `label` (default `name`)
+names an entry for humans — the sidebar group, the `llms.txt` heading, the
+published inventory — so `demopkg 1.x` and `demopkg` are distinguishable in one
+site. `<Autodoc>` and `<SymbolSearch>` resolve a `package` prop as a base first
+and an import name second, and a bare name that several entries answer to is an
+error naming the candidate bases rather than a silent pick. Cross-reference
+resolution across entries skips entries whose import name matches the rendered
+one, so one documented version never links into another's pages. The supported
+recipe is therefore one instance, one entry per version, each with its own pinned
+dump and its own sidebar placeholder from `createPydocsSidebarGroup()` — which
+slots straight into starlight-versions' per-version sidebars. Per-version _builds_
+remain documented as the alternative for sites that want wholly separate
+deployments. Covered by an e2e fixture: the docs site documents `demopkg` twice,
+at `api/demopkg` from source and at `1x/api/demopkg` from the checked-in dump.
 
 ### 12. Stretch: version annotations by diffing dumps across refs
 
@@ -357,7 +371,8 @@ starlightPydocs({
   packages: [
     {
       name: 'demopkg',                     // import name, required
-      base: 'api/demopkg',                 // URL base, default `api/<name>`
+      base: 'api/demopkg',                 // URL base, default `api/<name>`; identifies the entry
+      label: 'demopkg',                    // display name, default `name`
       search: ['../py/src'],               // griffe --search, relative to project root
       docstringStyle: 'google',            // google | numpy | sphinx | auto
       docstringOptions: {},                // griffe -D passthrough

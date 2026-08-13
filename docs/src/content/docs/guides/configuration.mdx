@@ -38,7 +38,8 @@ Each entry of `packages` describes one Python package.
 | Option              | Type                                   | Default        | What it does                                                          |
 | ------------------- | -------------------------------------- | -------------- | --------------------------------------------------------------------- |
 | `name`              | `string`                               | required       | Python import name, e.g. `mypkg`. Must be a valid dotted import name.  |
-| `base`              | `string`                               | `api/<name>`   | URL base for the generated pages, relative to the site root.           |
+| `base`              | `string`                               | `api/<name>`   | URL base for the generated pages, relative to the site root. Identifies the entry. |
+| `label`             | `string`                               | `name`         | Display name for this entry: the sidebar group, the `llms.txt` heading. |
 | `search`            | `string[]`                             | project root   | Directories passed to `griffe --search`, relative to the project root. |
 | `docstringStyle`    | `'google' \| 'numpy' \| 'sphinx' \| 'auto'` | `'google'` | Docstring flavour, passed to `griffe -d`.                          |
 | `docstringOptions`  | `Record<string, unknown>`               | `{}`           | Parser options, serialised into `griffe -D`.                           |
@@ -56,8 +57,9 @@ Each entry of `packages` describes one Python package.
 unset only when the package sits in the Astro project root.
 
 `base` may not be empty, may not be the site root, and may not overlap another package's base;
-`api/mypkg` and `api` together are rejected, because one would swallow the other's pages. Package
-names must be unique within one plugin instance.
+`api/mypkg` and `api` together are rejected, because one would swallow the other's pages. Names need
+not be unique: the same import name may be documented at several bases, one per release, as
+[Versioned docs](/starlight-pydocs/guides/versioned-docs/) describes.
 
 ### Member selection
 

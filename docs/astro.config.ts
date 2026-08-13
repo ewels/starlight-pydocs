@@ -6,6 +6,11 @@ import starlightPydocs, { createPydocsSidebarGroup, pydocsSidebarGroup } from 's
 // instead of joining the shared `pydocsSidebarGroup`.
 const sphinxSidebarGroup = createPydocsSidebarGroup();
 
+// The archived 1.x pages of `demopkg` get a placeholder of their own too, which
+// is how a starlight-versions site puts each version's API under its own
+// section.
+const legacySidebarGroup = createPydocsSidebarGroup();
+
 // https://astro.build/config
 export default defineConfig({
   site: 'https://ewels.github.io',
@@ -43,6 +48,16 @@ export default defineConfig({
               base: 'api/numpkg',
               search: ['../fixtures/numpkg/src'],
               docstringStyle: 'numpy',
+            },
+            {
+              // The same package name again, at its own base: the 1.x release,
+              // pinned to a dump generated at that version. One instance, one
+              // entry per documented version.
+              name: 'demopkg',
+              base: '1x/api/demopkg',
+              label: 'demopkg 1.x',
+              source: { file: '../fixtures/demopkg/dump.json' },
+              sidebar: { group: legacySidebarGroup },
             },
             {
               // No extraction at all: a dump the Python project's CI could have
@@ -95,6 +110,10 @@ export default defineConfig({
         {
           label: 'API reference',
           items: [pydocsSidebarGroup],
+        },
+        {
+          label: 'v1.x',
+          items: [legacySidebarGroup],
         },
         {
           label: 'Sphinx demo',

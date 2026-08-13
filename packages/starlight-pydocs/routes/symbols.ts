@@ -18,9 +18,10 @@ export const GET: APIRoute = async ({ url }) => {
     throw new PydocsError(`starlight-pydocs: no configured package serves ${url.pathname}`);
   }
 
-  const model = await getModel(context, pkg.name);
+  const model = await getModel(context, pkg.base);
   const body = {
     package: pkg.name,
+    base: pkg.base,
     generated: new Date().toISOString(),
     symbols: model.symbols.map((entry) => ({
       path: entry.path,

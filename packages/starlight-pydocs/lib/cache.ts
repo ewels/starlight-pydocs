@@ -17,6 +17,7 @@ import type { CacheMode, NormalisedExtension, PydocsPackageConfig } from './conf
 import { PydocsError } from './errors.ts';
 import type { PydocsLogger } from './logger.ts';
 import { silentLogger } from './logger.ts';
+import { slugifyBase } from './paths.ts';
 
 /** Namespace inside the host project's cache directory. */
 const CACHE_NAMESPACE = 'starlight-pydocs';
@@ -173,24 +174,22 @@ export async function writeAtomic(target: string, data: string | Uint8Array): Pr
 }
 
 /**
- * Where the pre-rendered docstring HTML for a dump lives.
+ * Where the pre-rendered docstring HTML for one documented package lives.
  *
  * Beside the dump when the dump is ours (the directory is content-keyed, so the
  * sidecar cannot outlive the dump it describes), and under the cache directory
- * keyed on the dump's path when the dump is a pre-generated file the user owns
- * and we must not write next to.
+ * when the dump is a pre-generated file the user owns and we must not write next
+ * to. Either way the file name carries the package's base: the rendered prose
+ * contains cross-reference hrefs, which are base-specific, so two entries
+ * sharing one dump must not share one sidecar.
  */
-export function renderedSidecarPath(cacheDir: string, packageName: string, dumpPath: string): string {
+export function renderedSidecarPath(cacheDir: string, base: string, dumpPath: string): string {
   const namespaceRoot = path.join(cacheDir, CACHE_NAMESPACE);
+  const key = sha256(`${base}\n${path.resolve(dumpPath)}`).slice(0, 12);
   if (path.resolve(dumpPath).startsWith(`${path.resolve(namespaceRoot)}${path.sep}`)) {
-    return path.join(path.dirname(dumpPath), 'rendered.json');
+    return path.join(path.dirname(dumpPath), `rendered-${key}.json`);
   }
-  return path.join(
-    namespaceRoot,
-    'rendered',
-    `${packageName}-${sha256(path.resolve(dumpPath)).slice(0, 12)}`,
-    'rendered.json',
-  );
+  return path.join(namespaceRoot, 'rendered', `${slugifyBase(base)}-${key}`, 'rendered.json');
 }
 
 /** A temporary path griffe can write to inside a cache directory. */

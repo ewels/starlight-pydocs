@@ -12,6 +12,7 @@ import {
   fetchToCache,
   fileExists,
   remoteCacheDirectory,
+  renderedSidecarPath,
   writeAtomic,
 } from '../lib/cache.ts';
 import { normalizeConfig } from '../lib/config.ts';
@@ -139,6 +140,28 @@ describe('dumpCacheLocation', () => {
     const location = dumpCacheLocation('/cache', 'demopkg', 'abcdef0123456789');
     expect(location.directory).toBe(path.join('/cache', 'starlight-pydocs', 'demopkg-abcdef012345'));
     expect(location.dumpPath).toBe(path.join(location.directory, 'dump.json'));
+  });
+});
+
+describe('renderedSidecarPath', () => {
+  test('sits beside a dump of ours, keyed on the base as well as the dump', () => {
+    const dump = path.join('/cache', 'starlight-pydocs', 'demopkg-abcdef012345', 'dump.json');
+    const current = renderedSidecarPath('/cache', 'api/demopkg', dump);
+    const pinned = renderedSidecarPath('/cache', '1x/api/demopkg', dump);
+
+    expect(path.dirname(current)).toBe(path.dirname(dump));
+    expect(current).not.toBe(pinned);
+  });
+
+  test('goes under the cache directory for a dump the user owns', () => {
+    const dump = path.join('/project', 'dumps', 'demopkg.json');
+    const sidecar = renderedSidecarPath('/cache', '1x/api/demopkg', dump);
+
+    expect(sidecar.startsWith(path.join('/cache', 'starlight-pydocs', 'rendered', '1x-api-demopkg-'))).toBe(true);
+    expect(path.basename(sidecar)).toBe('rendered.json');
+    // Two entries may pin the same dump file; their prose differs, because
+    // cross-reference hrefs point inside their own base.
+    expect(renderedSidecarPath('/cache', 'api/demopkg', dump)).not.toBe(sidecar);
   });
 });
 

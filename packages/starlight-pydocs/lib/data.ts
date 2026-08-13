@@ -10,6 +10,7 @@
 import fs from 'node:fs/promises';
 
 import type { PydocsContext, PydocsPackageContext } from './context.ts';
+import { packageByBase } from './context.ts';
 import type { CrossReferenceResolver } from './crossrefs.ts';
 import { createCrossReferenceResolver } from './crossrefs.ts';
 import type { RenderedDocstrings } from './docstrings.ts';
@@ -118,13 +119,28 @@ export async function loadRendered(renderedPath: string): Promise<RenderedDocstr
   return rendered;
 }
 
-/** Pre-rendered docstrings for a configured package. */
-export async function getRenderedDocstrings(context: PydocsContext, pkgName: string): Promise<RenderedDocstrings> {
-  const pkg = context.packages.find((entry) => entry.name === pkgName);
+/**
+ * The configured entry with this base.
+ *
+ * Everything here is keyed by base rather than by import name: a name may be
+ * documented at several bases (one per version), and each of those has its own
+ * dump, model and pre-rendered prose.
+ */
+export function requirePackage(context: PydocsContext, base: string): PydocsPackageContext {
+  const pkg = packageByBase(context, base);
   if (pkg === undefined) {
-    throw new PydocsError(`starlight-pydocs: '${pkgName}' is not a configured package`);
+    throw new PydocsError(
+      `starlight-pydocs: no package is documented at '${base}' (configured: ${context.packages
+        .map((entry) => entry.base)
+        .join(', ')})`,
+    );
   }
-  return loadRendered(pkg.renderedPath);
+  return pkg;
+}
+
+/** Pre-rendered docstrings for the package documented at `base`. */
+export async function getRenderedDocstrings(context: PydocsContext, base: string): Promise<RenderedDocstrings> {
+  return loadRendered(requirePackage(context, base).renderedPath);
 }
 
 /** Model options for one package, as recorded in the virtual context. */
@@ -142,20 +158,16 @@ export function modelOptionsFor(pkg: PydocsPackageContext): ModelOptions {
  * Build (or reuse) the normalised model for a package.
  *
  * @param context - The virtual module context.
- * @param pkgName - Python import name of a configured package.
+ * @param base - Base of a configured package entry.
  */
-export async function getModel(context: PydocsContext, pkgName: string): Promise<PackageModel> {
-  const pkg = context.packages.find((entry) => entry.name === pkgName);
-  if (pkg === undefined) {
-    throw new PydocsError(
-      `starlight-pydocs: '${pkgName}' is not a configured package (configured: ${context.packages
-        .map((entry) => entry.name)
-        .join(', ')})`,
-    );
-  }
+export async function getModel(context: PydocsContext, base: string): Promise<PackageModel> {
+  const pkg = requirePackage(context, base);
 
   const options = modelOptionsFor(pkg);
-  const key = JSON.stringify([pkg.dumpPath, options]);
+  // The base is part of the key as well as of the options: two entries may share
+  // a dump file (the same pinned dump documented at two bases) and must still
+  // get one model each.
+  const key = JSON.stringify([pkg.base, pkg.dumpPath, options]);
   const cached = modelCache.get(key);
   if (cached !== undefined) return cached;
 
@@ -164,11 +176,11 @@ export async function getModel(context: PydocsContext, pkgName: string): Promise
   return model;
 }
 
-/** Models for every configured package, keyed by import name. */
+/** Models for every configured package, keyed by base. */
 export async function getAllModels(context: PydocsContext): Promise<Map<string, PackageModel>> {
   const models = new Map<string, PackageModel>();
   for (const pkg of context.packages) {
-    models.set(pkg.name, await getModel(context, pkg.name));
+    models.set(pkg.base, await getModel(context, pkg.base));
   }
   return models;
 }
@@ -195,28 +207,33 @@ export async function getInventoryLookup(context: PydocsContext): Promise<Invent
 }
 
 /** Annotation resolver for a package, wired to the site's inventories. */
-export async function getAnnotationResolver(context: PydocsContext, pkgName: string): Promise<AnnotationResolver> {
-  const [model, inventories] = await Promise.all([getModel(context, pkgName), getInventoryLookup(context)]);
+export async function getAnnotationResolver(context: PydocsContext, base: string): Promise<AnnotationResolver> {
+  const [model, inventories] = await Promise.all([getModel(context, base), getInventoryLookup(context)]);
   return buildAnnotationResolver(model, (dottedPath) => inventories.lookup(dottedPath)?.href);
 }
 
 /**
  * Cross-reference resolver for the docstrings of one package.
  *
- * Order: the package's own symbol index, then every other configured package's,
- * then the Sphinx inventories. Own package first means a bare `mypkg.Thing`
- * never resolves to a same-named object documented elsewhere on the site.
+ * Order: the package's own symbol index, then the index of every configured
+ * package with a *different* import name, then the Sphinx inventories. Own
+ * entry first means a bare `mypkg.Thing` never resolves to a same-named object
+ * documented elsewhere on the site; skipping same-named entries keeps one
+ * documented version of `mypkg` from linking into another version's pages, which
+ * would silently mix two APIs.
  */
-export async function getCrossReferenceResolver(
-  context: PydocsContext,
-  pkgName: string,
-): Promise<CrossReferenceResolver> {
+export async function getCrossReferenceResolver(context: PydocsContext, base: string): Promise<CrossReferenceResolver> {
+  const own = requirePackage(context, base);
   const [models, inventories] = await Promise.all([getAllModels(context), getInventoryLookup(context)]);
-  const own = models.get(pkgName);
-  const others = [...models.entries()].filter(([name]) => name !== pkgName).map(([, model]) => model);
+
+  const ownModel = models.get(own.base);
+  const others = context.packages
+    .filter((pkg) => pkg.base !== own.base && pkg.name !== own.name)
+    .map((pkg) => models.get(pkg.base))
+    .filter((model): model is PackageModel => model !== undefined);
 
   return createCrossReferenceResolver({
-    models: own === undefined ? others : [own, ...others],
+    models: ownModel === undefined ? others : [ownModel, ...others],
     siteBase: context.siteBase,
     trailingSlash: context.trailingSlash,
     lookupExternal: (dottedPath) => inventories.lookup(dottedPath)?.href,

@@ -258,14 +258,14 @@ const defaultExecFile: ExecFileImpl = async (file, args, options) => {
   return { stdout: String(stdout), stderr: String(stderr) };
 };
 
-/** Resolve dumps for every configured package, in order. */
+/** Resolve dumps for every configured package, in order, keyed by base. */
 export async function resolveAllExtractions(
   config: PydocsConfig,
   context: ExtractionContext,
 ): Promise<Map<string, ExtractionResult>> {
   const results = new Map<string, ExtractionResult>();
   for (const pkg of config.packages) {
-    results.set(pkg.name, await resolveExtraction(pkg, config, context));
+    results.set(pkg.base, await resolveExtraction(pkg, config, context));
   }
   return results;
 }

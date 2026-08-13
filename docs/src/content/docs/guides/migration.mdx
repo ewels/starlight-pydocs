@@ -127,8 +127,10 @@ round: pages are generated, one per module, and the directive is for the excepti
 - **`show_*` options are mostly not options.** Signatures, source links, badges, member summaries and
   inherited members are rendered as designed, with CSS and component overrides as the escape hatch,
   rather than a matrix of switches.
-- **One package name per build.** The same import name cannot be documented twice in one site build;
-  see [Versioned docs](/starlight-pydocs/guides/versioned-docs/).
+- **A package is identified by its URL base.** mkdocstrings has no such notion; here the same import
+  name may be documented at several bases, one per release, and a `<Autodoc package>` prop takes the
+  base when a name is documented more than once. See
+  [Versioned docs](/starlight-pydocs/guides/versioned-docs/).
 - **Extraction is a subprocess.** Griffe runs as `griffe dump`, found through `uv` or an interpreter
   that has it, or skipped entirely with a
   [pre-generated dump](/starlight-pydocs/guides/pregenerated-dumps/). Nothing Python is imported by
