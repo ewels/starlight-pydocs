@@ -9,7 +9,7 @@ export default defineConfig({
   server: { port: 4322 },
   markdown: {
     // Astro 7 defaults to Sätteri, which the docs site uses. This site pins the
-    // unified pipeline instead, so both engines render docstring prose in CI —
+    // unified pipeline instead, so both engines render docstring prose in CI:
     // the package must work with whichever one the host has configured.
     processor: unified(),
   },

@@ -15,7 +15,7 @@
  * targets that have a real Markdown reference definition alone.
  *
  * Resolution itself is the caller's: `createCrossReferenceResolver` builds the
- * documented order — this package's symbol index, then the other configured
+ * documented order: this package's symbol index, then the other configured
  * packages', then the Sphinx inventories.
  */
 

@@ -3,8 +3,8 @@ title: Internationalisation
 description: The bundled locales, how Starlight picks one, and label props for sites without Starlight.
 ---
 
-Every label the pages render — section headings, badges, table columns, the search box, the
-permalink hint — comes from a translation table. Thirteen languages ship with the package, and
+Every label the pages render (section headings, badges, table columns, the search box, the
+permalink hint) comes from a translation table. Thirteen languages ship with the package, and
 nothing needs configuring to use them.
 
 ## Bundled locales
@@ -62,7 +62,7 @@ one is the same as overriding any Starlight string:
 ```
 
 The same file is how you add a locale the package does not ship yet. If you translate a full set,
-a pull request adding it to `translations.ts` is welcome — see
+a pull request adding it to `translations.ts` is welcome. See
 [Contributing](/starlight-pydocs/guides/contributing/).
 
 ## Without Starlight
@@ -81,8 +81,8 @@ import { Autodoc, SymbolSearch } from 'starlight-pydocs/components';
 ```
 
 The generated pages of a vanilla site are rendered by the route rather than by you, so there is no
-`labels` prop to pass them. They read a translation function off `Astro.locals` instead — the same
-mechanism Starlight's `t()` arrives through — so one middleware translates every generated page:
+`labels` prop to pass them. They read a translation function off `Astro.locals` instead (the same
+mechanism Starlight's `t()` arrives through), so one middleware translates every generated page:
 
 ```ts
 // src/middleware.ts

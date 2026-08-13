@@ -2,8 +2,8 @@
  * The Starlight plugin.
  *
  * Starlight-specific work only: translations, the sidebar placeholder, the route
- * middleware that swaps it, and the stylesheet. Everything else — validation,
- * extraction, inventories, routes, virtual modules, dev watching — is the shared
+ * middleware that swaps it, and the stylesheet. Everything else (validation,
+ * extraction, inventories, routes, virtual modules, dev watching) is the shared
  * setup in `libs/integration.ts`, which the vanilla integration uses too.
  */
 

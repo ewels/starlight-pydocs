@@ -15,7 +15,7 @@ const SINGLE_PARAGRAPH = /^<p>([\s\S]*)<\/p>$/;
  * Unwrap rendered HTML for somewhere a block element would be wrong: a table
  * cell, a definition term, a badge.
  *
- * Multi-paragraph input keeps its block markup — unwrapping only the
+ * Multi-paragraph input keeps its block markup. Unwrapping only the
  * single-paragraph case is what makes this safe to use for docstring
  * descriptions of unknown length.
  */

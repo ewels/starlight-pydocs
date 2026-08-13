@@ -3,25 +3,25 @@ title: Migrating from mkdocstrings
 description: Map an mkdocs.yml mkdocstrings-python configuration onto starlight-pydocs, and know what differs.
 ---
 
-`starlight-pydocs` reads the same model mkdocstrings-python reads — Griffe's — and follows its
+`starlight-pydocs` reads the same model mkdocstrings-python reads (Griffe's) and follows its
 conventions where they are conventions rather than implementation details. If your Python package is
 already documented with mkdocstrings, most of what you know transfers, and so do your docstrings and
 your URLs.
 
 ## What carries over untouched
 
-- **Docstrings.** Google, numpy and sphinx styles, parsed by the same Griffe parsers with the same
+- Docstrings: Google, numpy and sphinx styles, parsed by the same Griffe parsers with the same
   options.
-- **Heading anchors.** `#mypkg.report.Report.generate`, the dotted object path, exactly as
-  mkdocstrings emits it. Existing deep links and bookmarks keep working.
-- **`__all__` semantics.** A module that declares `__all__` publishes that list; otherwise
-  visibility heuristics apply. Filters and glob selection then refine it.
-- **`objects.inv`, both ways.** Your published inventory has the same names, roles and anchors, so
+- Heading anchors: `#mypkg.report.Report.generate`, the dotted object path, exactly as mkdocstrings
+  emits it. Existing deep links and bookmarks keep working.
+- `__all__` semantics: a module that declares `__all__` publishes that list; otherwise visibility
+  heuristics apply. Filters and glob selection then refine it.
+- `objects.inv`, both ways: your published inventory has the same names, roles and anchors, so
   other projects' `intersphinx_mapping` and `inventories` entries keep resolving; and you can consume
   any inventory you consume today.
-- **Cross-references in prose.** `[title][mypkg.thing]` and `[mypkg.thing][]` resolve, against your
+- Cross-references in prose: `[title][mypkg.thing]` and `[mypkg.thing][]` resolve, against your
   own package first and then the inventories.
-- **Signatures with `__init__` merged into the class**, inherited members with provenance,
+- Signatures with `__init__` merged into the class, inherited members with provenance,
   positional-only and keyword-only markers, property and classmethod badges.
 
 ## The configuration map
@@ -103,7 +103,7 @@ round: pages are generated, one per module, and the directive is for the excepti
 - `mypkg` is documented at `/api/mypkg/`, each submodule at `/api/mypkg/<module>/`, nested to mirror
   the package. `base` moves the whole tree.
 - Members are documented on their module's page, so `mypkg.report.Report.generate` is a heading on
-  `/api/mypkg/report/` — the same shape as an mkdocstrings site with one `:::` per module, which is
+  `/api/mypkg/report/`, the same shape as an mkdocstrings site with one `:::` per module, which is
   the common layout.
 - Where you want a bespoke page, `<Autodoc>` renders one object exactly as the generated pages do,
   at whatever heading level you choose. That is the direct replacement for a hand-written page full
@@ -113,25 +113,25 @@ round: pages are generated, one per module, and the directive is for the excepti
 
 ## Honest differences
 
-- **No mkdocs hooks or plugin ecosystem.** There is no equivalent of `hooks.py`,
+- No mkdocs hooks or plugin ecosystem: there is no equivalent of `hooks.py`,
   `mkdocs-gen-files` or `mkdocs-literate-nav`. The extension points are
   [component overrides](/starlight-pydocs/guides/component-overrides/), the
   [theme tokens](/starlight-pydocs/guides/theming/) and the
   [Content Layer loader](/starlight-pydocs/guides/vanilla-astro/#the-content-layer-loader), which is
   a different (and more typed) way of building the same custom pages.
-- **`@typing.overload` signatures are not shown yet.** Griffe's own `Function.as_dict` does not
+- `@typing.overload` signatures are not shown yet. Griffe's own `Function.as_dict` does not
   serialise overloads, so the dump only contains the implementation. The renderer already stacks
   overload signatures when a dump carries them, so this fixes itself in a future Griffe release.
-- **Templates are components, not Jinja.** mkdocstrings' template overrides map onto Astro component
-  overrides: nine components, typed props, and your own `.astro` files.
-- **`show_*` options are mostly not options.** Signatures, source links, badges, member summaries and
+- Templates are components rather than Jinja. mkdocstrings' template overrides map onto Astro
+  component overrides: nine components, typed props, and your own `.astro` files.
+- `show_*` options are mostly not options. Signatures, source links, badges, member summaries and
   inherited members are rendered as designed, with CSS and component overrides as the escape hatch,
   rather than a matrix of switches.
-- **A package is identified by its URL base.** mkdocstrings has no such notion; here the same import
+- A package is identified by its URL base. mkdocstrings has no such notion; here the same import
   name may be documented at several bases, one per release, and a `<Autodoc package>` prop takes the
   base when a name is documented more than once. See
   [Versioned docs](/starlight-pydocs/guides/versioned-docs/).
-- **Extraction is a subprocess.** Griffe runs as `griffe dump`, found through `uv` or an interpreter
+- Extraction is a subprocess. Griffe runs as `griffe dump`, found through `uv` or an interpreter
   that has it, or skipped entirely with a
   [pre-generated dump](/starlight-pydocs/guides/pregenerated-dumps/). Nothing Python is imported by
   the docs build, and no Python dependency is installed into it.

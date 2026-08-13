@@ -571,8 +571,8 @@
 
   /* Dual themes: both palettes ride along as custom properties
      (`defaultColor: false`), so switching is a colour swap, not a re-highlight.
-     Single-theme output has no such properties and keeps its inline colours —
-     hence every rule below is scoped to `.astro-code-themes`. */
+     Single-theme output has no such properties and keeps its inline colours,
+     so every rule below is scoped to `.astro-code-themes`. */
   .pyd-markdown .astro-code-themes,
   .pyd-markdown .astro-code-themes code,
   .pyd-markdown .astro-code-themes span {

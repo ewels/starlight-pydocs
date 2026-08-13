@@ -1,5 +1,5 @@
 /**
- * `<base>/llms.txt` — the whole API surface as plain Markdown.
+ * `<base>/llms.txt`: the whole API surface as plain Markdown.
  *
  * starlight-llms-txt walks the `docs` content collection, which cannot see
  * injected routes (PLAN.md decision 10), so we render our own. It is also useful

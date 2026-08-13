@@ -5,7 +5,7 @@
  * `griffe check` has no machine-readable output (PLAN.md decision 12), so the
  * comparison is ours: a dump lists every object path it contains, and the first
  * listed version containing a path is the version that introduced it. Everything
- * in this module is pure — the git work and the extraction live in
+ * in this module is pure: the git work and the extraction live in
  * `lib/ref-extract.ts`, so the diff can be unit tested over hand-written dumps.
  *
  * Two deliberate rules:

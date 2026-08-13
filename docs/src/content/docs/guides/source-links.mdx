@@ -47,7 +47,7 @@ sourceLink: {
 | `{end}`     | Last line of the object, or the first when griffe knows only one |
 | `{ref}`     | The `ref` option                                              |
 
-`{path}` is required — a template without it is a configuration error, because a link to a whole
+`{path}` is required: a template without it is a configuration error, because a link to a whole
 repository is not a source link. The other placeholders are optional; drop the line fragment if
 your browser does not do line anchors. Paths always use forward slashes, whatever the build ran on.
 
@@ -56,7 +56,7 @@ your browser does not do line anchors. Paths always use forward slashes, whateve
 Griffe reports file paths relative to the directory it ran in, which is the Astro project root.
 That is repository-relative only when the two are the same directory. A documentation site in
 `docs/` with its Python sources one level up therefore gets paths that are not
-repository-relative — and when the sources are outside the project entirely, an absolute path.
+repository-relative. When the sources are outside the project entirely, the paths are absolute.
 
 `root` names the directory `{path}` should be computed against, itself relative to the Astro
 project root:
@@ -90,7 +90,7 @@ per component with `labels={{ viewSource: 'Source' }}`.
 
 ## Without any configuration
 
-Griffe 2 records a `source_link` per object — a blob URL at the commit it extracted from, derived
+Griffe 2 records a `source_link` per object: a blob URL at the commit it extracted from, derived
 from the repository's own git remote. When no `sourceLink` is configured, that link is used as-is.
 It is convenient and it needs nothing from you, with two caveats: it is pinned to the commit that
 was checked out when the dump was made, and it only exists when griffe ran inside a git checkout

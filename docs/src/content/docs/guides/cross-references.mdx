@@ -4,7 +4,7 @@ description: How type annotations and docstring references resolve into links, a
 ---
 
 Two different things get linked: the names inside type annotations, and the references you write
-in docstring prose. Both resolve to the same places — a page on this site, or another project's
+in docstring prose. Both resolve to the same places: a page on this site, or another project's
 documentation through a Sphinx inventory.
 
 ## Linked annotations
@@ -62,7 +62,7 @@ Everything else is left exactly as written:
 - An escaped bracket (`\[title][target]`) is left alone.
 
 Both a documented path and the canonical path Griffe found the definition at resolve. If an object
-is documented at several paths — a re-export and its definition — the shortest one wins, so
+is documented at several paths (a re-export and its definition), the shortest one wins, so
 `[Report][mypkg.Report]` and `[Report][mypkg.report.Report]` both land somewhere sensible.
 
 :::note[The `llms.txt` rendition keeps the raw syntax]

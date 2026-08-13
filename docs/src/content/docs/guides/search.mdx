@@ -18,7 +18,7 @@ Two things follow from Pagefind indexing whole pages:
 
 - A module page's search result covers every member on it, so a query matching a method's prose
   takes the reader to that module page, not to the method's anchor.
-- Excluding API pages from search is the same job as excluding any Starlight page — Pagefind's own
+- Excluding API pages from search is the same job as excluding any Starlight page: Pagefind's own
   `data-pagefind-ignore` attribute, applied from a
   [component override](/starlight-pydocs/guides/component-overrides/) if you want to drop part of a
   page rather than all of it.
@@ -50,8 +50,8 @@ The element turns `page` and `anchor` into a URL, so the payload stays base-agno
 
 ### Where it appears
 
-The search box is placed automatically on each package's root page — the page at the package's
-`base`, documenting the package's top-level module. That is where somebody arrives looking for a
+The search box is placed automatically on each package's root page (the page at the package's
+`base`, documenting the package's top-level module). That is where somebody arrives looking for a
 name, and one box per package keeps it off every module page below.
 
 Put it anywhere else by hand:

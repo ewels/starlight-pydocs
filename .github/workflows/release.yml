@@ -1,7 +1,7 @@
 name: Release
 
 # Publishes the package to npm when a GitHub release is published. Uses npm
-# trusted publishing (OIDC), so no NPM_TOKEN secret is needed — the trusted
+# trusted publishing (OIDC), so no NPM_TOKEN secret is needed: the trusted
 # publisher is configured once in the package settings on npmjs.com.
 #
 # The very first publish must be done manually (see the Contributing guide),

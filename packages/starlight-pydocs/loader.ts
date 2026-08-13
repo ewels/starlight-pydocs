@@ -1,8 +1,8 @@
 /**
  * A Content Layer loader emitting one entry per documented object.
  *
- * For sites that want the API surface as data — a custom search page, a cheat
- * sheet, a table of every deprecated function — rather than as generated pages.
+ * For sites that want the API surface as data (a custom search page, a cheat
+ * sheet, a table of every deprecated function) rather than as generated pages.
  * It runs the same extraction and model as the plugin, so a project can use both
  * and they agree.
  *

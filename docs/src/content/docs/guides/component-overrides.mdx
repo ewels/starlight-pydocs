@@ -37,7 +37,7 @@ being ignored.
 
 Everything else is fixed: the object heading, badges, provenance and deprecation notice come from
 `ObjectDoc`, which also owns the member recursion, and `<Autodoc>` and `<SymbolSearch>` are entry
-points rather than pieces. Style those with CSS instead — see
+points rather than pieces. Style those with CSS instead. See
 [Theming](/starlight-pydocs/guides/theming/).
 
 ## The props
@@ -124,7 +124,7 @@ mechanism, so there is no loop.
 
 ```astro
 ---
-// src/components/pydocs/ClassDoc.astro — the stock body, plus a warning for abstract classes
+// src/components/pydocs/ClassDoc.astro (the stock body, plus a warning for abstract classes)
 import { ClassDoc } from 'starlight-pydocs/components';
 import type { RenderScope } from 'starlight-pydocs/render';
 
@@ -146,6 +146,6 @@ const isAbstract = doc.labels.includes('abstract');
 
 :::note[Type-check your overrides]
 Overrides are compiled by your own project, so `astro check` covers them. Keeping the props exactly
-as listed above is what makes that check meaningful — an override with a missing prop fails at
+as listed above is what makes that check meaningful: an override with a missing prop fails at
 build time rather than rendering a blank block.
 :::
