@@ -1,5 +1,15 @@
 {
   "extends": "astro/tsconfigs/strictest",
-  "include": [".astro/types.d.ts", "**/*"],
+  "//": "The package's .astro components, routes and layouts are included here on purpose: `astro check` only looks at files inside its project, and this is the one project that renders them. The package's own `tsc --noEmit` covers lib/ and loader.ts.",
+  "include": [
+    ".astro/types.d.ts",
+    "**/*",
+    "../packages/starlight-pydocs/components/**/*",
+    "../packages/starlight-pydocs/layouts/**/*",
+    "../packages/starlight-pydocs/routes/**/*",
+    "../packages/starlight-pydocs/*.ts",
+    "../packages/starlight-pydocs/libs/**/*",
+    "../packages/starlight-pydocs/virtual.d.ts"
+  ],
   "exclude": ["dist", "playwright-report", "test-results"]
 }
