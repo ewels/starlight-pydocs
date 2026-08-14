@@ -36,7 +36,13 @@ imports it, so you never have to install it.
    npm install starlight-pydocs
    ```
 
-2. Add the integration. The import is `starlight-pydocs/astro`: the package's default export is a
+2. Make sure that Griffe is available in your system's Python, or that
+   [uv](https://docs.astral.sh/uv/) is installed.
+
+   If you prefer, Griffe can be run separately and the plugin pointed at the JSON file
+   it writes. See [Without Python](../getting-started/#without-python) for more information.
+
+3. Add the integration. The import is `starlight-pydocs/astro`: the package's default export is a
    Starlight plugin, which is not an Astro integration and does not belong in `integrations`.
 
    ```js title="astro.config.mjs" {2}
@@ -53,7 +59,7 @@ imports it, so you never have to install it.
    });
    ```
 
-3. Start the dev server. `mypkg` is documented at `/api/mypkg/`, one page per module, and each
+4. Start the dev server. `mypkg` is documented at `/api/mypkg/`, one page per module, and each
    package also gets `symbols.json`, `objects.inv` and `llms.txt` alongside its pages.
 
 </Steps>

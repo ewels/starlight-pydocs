@@ -14,11 +14,6 @@ install of the package it documents.
 
 ## Setup
 
-Griffe itself does have to be runnable. The plugin finds it without any help when
-[`uv`](https://docs.astral.sh/uv/) is on `PATH` (it runs `uvx --from griffe griffe`), and
-falls back to `python -m griffe` when the interpreter has it importable. Neither is needed
-if you point the plugin at a dump instead; see [Without Python](#without-python).
-
 <Steps>
 
 1. Install the plugin.
@@ -47,7 +42,26 @@ if you point the plugin at a dump instead; see [Without Python](#without-python)
      </TabItem>
    </Tabs>
 
-2. Add it to Starlight, name the package, and reserve a spot in the sidebar for the pages
+2. Check that the build process can run Griffe.
+
+   By default, the plugin runs Griffe at site build time to understand your package.
+   The recommended method is to use [uv](https://docs.astral.sh/uv/):
+   the plugin will automatically use `uv` when it is available on your `PATH`, otherwise
+   falls back to running `python -m griffe`.
+
+   If you prefer, Griffe can be run separately and the plugin pointed at the JSON file
+   it writes. See [Without Python](#without-python) for more information.
+
+   ```sh
+   # Check if uv is available
+   uv --version
+
+   # If not, on macOS and Linux:
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+
+
+3. Add the plugin to Starlight, name the package, and reserve a spot in the sidebar for the pages
    it will generate.
 
    ```js title="astro.config.mjs" {3, 10-15, 17-18}
@@ -74,7 +88,7 @@ if you point the plugin at a dump instead; see [Without Python](#without-python)
    });
    ```
 
-   Starlight reads its sidebar out of your config, long before the plugin has parsed a
+   Starlight reads its sidebar out of your config before the plugin has parsed a
    package and knows what pages exist. `pydocsSidebarGroup` is an empty group that holds a
    position in that tree; route middleware replaces it with the generated links as each
    page renders. Put it wherever the API reference belongs.
@@ -83,7 +97,7 @@ if you point the plugin at a dump instead; see [Without Python](#without-python)
    project root. Point them at the _parent_ of the package directory: `../src` for
    `../src/mypkg`.
 
-3. Start the dev server.
+4. Start the dev server.
 
    ```sh frame="none"
    npm run dev
