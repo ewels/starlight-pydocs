@@ -6,6 +6,6 @@ h1#_top,
 .hero h1 {
   font-family: Michroma, system-ui, sans-serif;
   font-weight: 400;
-  font-size: clamp(1.5rem, 1rem + 1.8vw, 2.1rem);
+  font-size: clamp(1.75rem, 1.1rem + 2.2vw, 2.5rem);
   line-height: 1.3;
 }
