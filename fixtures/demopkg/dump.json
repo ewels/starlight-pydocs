@@ -2720,12 +2720,152 @@
             "runtime": true,
             "target_path": "demopkg.report.ReportError"
           },
+          "SECTION_STYLES": {
+            "analysis": "static",
+            "annotation": {
+              "cls": "ExprSubscript",
+              "left": {
+                "cls": "ExprName",
+                "member": null,
+                "name": "dict"
+              },
+              "slice": {
+                "cls": "ExprTuple",
+                "elements": [
+                  {
+                    "cls": "ExprName",
+                    "member": null,
+                    "name": "str"
+                  },
+                  {
+                    "cls": "ExprSubscript",
+                    "left": {
+                      "cls": "ExprName",
+                      "member": null,
+                      "name": "dict"
+                    },
+                    "slice": {
+                      "cls": "ExprTuple",
+                      "elements": [
+                        {
+                          "cls": "ExprName",
+                          "member": null,
+                          "name": "str"
+                        },
+                        {
+                          "cls": "ExprName",
+                          "member": null,
+                          "name": "str"
+                        }
+                      ],
+                      "implicit": true
+                    }
+                  }
+                ],
+                "implicit": true
+              }
+            },
+            "docstring": {
+              "endlineno": 25,
+              "lineno": 19,
+              "parsed": [
+                {
+                  "kind": "text",
+                  "value": "How each section of a rendered report is presented.\n\nDeliberately long: it is the fixture for a signature whose value is broken\nacross lines at its brackets and then folded behind a toggle. The captions hold\nbrackets, commas and quotes so the line-breaker has string literals to step\nover."
+                }
+              ],
+              "value": "How each section of a rendered report is presented.\n\nDeliberately long: it is the fixture for a signature whose value is broken\nacross lines at its brackets and then folded behind a toggle. The captions hold\nbrackets, commas and quotes so the line-breaker has string literals to step\nover."
+            },
+            "endlineno": 18,
+            "filepath": "fixtures/demopkg/src/demopkg/utils.py",
+            "is_class_private": false,
+            "is_deprecated": false,
+            "is_exported": false,
+            "is_imported": false,
+            "is_private": false,
+            "is_public": true,
+            "is_special": false,
+            "is_wildcard_exposed": true,
+            "kind": "attribute",
+            "labels": [
+              "module-attribute"
+            ],
+            "lineno": 13,
+            "name": "SECTION_STYLES",
+            "path": "demopkg.utils.SECTION_STYLES",
+            "relative_filepath": "fixtures/demopkg/src/demopkg/utils.py",
+            "relative_package_filepath": "demopkg/utils.py",
+            "runtime": true,
+            "value": {
+              "cls": "ExprDict",
+              "keys": [
+                "'summary'",
+                "'detail'",
+                "'appendix'",
+                "'footer'"
+              ],
+              "values": [
+                {
+                  "cls": "ExprDict",
+                  "keys": [
+                    "'colour'",
+                    "'marker'",
+                    "'caption'"
+                  ],
+                  "values": [
+                    "'#1b1f2a'",
+                    "'*'",
+                    "'Summary, at a glance'"
+                  ]
+                },
+                {
+                  "cls": "ExprDict",
+                  "keys": [
+                    "'colour'",
+                    "'marker'",
+                    "'caption'"
+                  ],
+                  "values": [
+                    "'#2a334e'",
+                    "'-'",
+                    "'Detail (one row per metric)'"
+                  ]
+                },
+                {
+                  "cls": "ExprDict",
+                  "keys": [
+                    "'colour'",
+                    "'marker'",
+                    "'caption'"
+                  ],
+                  "values": [
+                    "'#f2c641'",
+                    "'+'",
+                    "'Appendix [optional, omitted by default]'"
+                  ]
+                },
+                {
+                  "cls": "ExprDict",
+                  "keys": [
+                    "'colour'",
+                    "'marker'",
+                    "'caption'"
+                  ],
+                  "values": [
+                    "'#aab2c4'",
+                    "'.'",
+                    "'Footer, with the generated-at stamp'"
+                  ]
+                }
+              ]
+            }
+          },
           "_private_helper": {
             "analysis": "static",
             "decorators": [],
             "docstring": {
-              "endlineno": 69,
-              "lineno": 69,
+              "endlineno": 83,
+              "lineno": 83,
               "parsed": [
                 {
                   "kind": "text",
@@ -2734,7 +2874,7 @@
               ],
               "value": "Format a summary line. Private, so it must never be documented."
             },
-            "endlineno": 70,
+            "endlineno": 84,
             "filepath": "fixtures/demopkg/src/demopkg/utils.py",
             "is_class_private": false,
             "is_deprecated": false,
@@ -2745,7 +2885,7 @@
             "is_special": false,
             "is_wildcard_exposed": false,
             "kind": "function",
-            "lineno": 68,
+            "lineno": 82,
             "name": "_private_helper",
             "parameters": [
               {
@@ -2802,8 +2942,8 @@
             "analysis": "static",
             "decorators": [],
             "docstring": {
-              "endlineno": 64,
-              "lineno": 56,
+              "endlineno": 78,
+              "lineno": 70,
               "parsed": [
                 {
                   "kind": "text",
@@ -2850,7 +2990,7 @@
               ],
               "value": "Summarise a report in one line.\n\nArgs:\n    report: The report to describe.\n    **extra: Extra key/value pairs appended to the summary.\n\nReturns:\n    A single line of plain text."
             },
-            "endlineno": 65,
+            "endlineno": 79,
             "filepath": "fixtures/demopkg/src/demopkg/utils.py",
             "is_class_private": false,
             "is_deprecated": false,
@@ -2861,7 +3001,7 @@
             "is_special": false,
             "is_wildcard_exposed": true,
             "kind": "function",
-            "lineno": 55,
+            "lineno": 69,
             "name": "describe",
             "parameters": [
               {
@@ -2899,8 +3039,8 @@
             "analysis": "static",
             "decorators": [],
             "docstring": {
-              "endlineno": 26,
-              "lineno": 15,
+              "endlineno": 40,
+              "lineno": 29,
               "parsed": [
                 {
                   "kind": "text",
@@ -2946,7 +3086,7 @@
               ],
               "value": "Walk the sections of a report in render order.\n\nArgs:\n    report: The report to walk.\n\nYields:\n    Section names, uppercased.\n\nExamples:\n    >>> list(iter_sections(Report(\"weekly\")))\n    []"
             },
-            "endlineno": 28,
+            "endlineno": 42,
             "filepath": "fixtures/demopkg/src/demopkg/utils.py",
             "is_class_private": false,
             "is_deprecated": false,
@@ -2957,7 +3097,7 @@
             "is_special": false,
             "is_wildcard_exposed": true,
             "kind": "function",
-            "lineno": 14,
+            "lineno": 28,
             "name": "iter_sections",
             "parameters": [
               {
@@ -2993,8 +3133,8 @@
             "analysis": "static",
             "decorators": [],
             "docstring": {
-              "endlineno": 45,
-              "lineno": 32,
+              "endlineno": 59,
+              "lineno": 46,
               "parsed": [
                 {
                   "kind": "text",
@@ -3088,7 +3228,7 @@
               ],
               "value": "Combine the scores of two reports.\n\nArgs:\n    left: Report whose scores take precedence.\n    right: Report contributing the remaining scores.\n\nReturns:\n    A new mapping holding both sets of scores.\n\nRaises:\n    ReportError: If the two reports disagree on a metric.\n    TypeError: If either argument is not a report.\n    ValueError: If either report has no scores."
             },
-            "endlineno": 52,
+            "endlineno": 66,
             "filepath": "fixtures/demopkg/src/demopkg/utils.py",
             "is_class_private": false,
             "is_deprecated": false,
@@ -3099,7 +3239,7 @@
             "is_special": false,
             "is_wildcard_exposed": true,
             "kind": "function",
-            "lineno": 31,
+            "lineno": 45,
             "name": "merge_scores",
             "parameters": [
               {

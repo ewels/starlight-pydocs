@@ -41,7 +41,12 @@ describe('member filtering', () => {
   });
 
   test('private members are dropped from modules and classes', () => {
-    expect(memberNames(demopkg, 'demopkg.utils')).toEqual(['describe', 'iter_sections', 'merge_scores']);
+    expect(memberNames(demopkg, 'demopkg.utils')).toEqual([
+      'SECTION_STYLES',
+      'describe',
+      'iter_sections',
+      'merge_scores',
+    ]);
     expect(memberNames(demopkg, 'demopkg.models.User')).toEqual(['email', 'name', 'reports']);
   });
 
@@ -73,7 +78,12 @@ describe('member filtering', () => {
 
   test('a single-segment star does not cross dots', async () => {
     const model = await fixtureModel('demopkg', { members: { include: ['demopkg.utils.*'] } });
-    expect(memberNames(model, 'demopkg.utils')).toEqual(['describe', 'iter_sections', 'merge_scores']);
+    expect(memberNames(model, 'demopkg.utils')).toEqual([
+      'SECTION_STYLES',
+      'describe',
+      'iter_sections',
+      'merge_scores',
+    ]);
     // Only the path towards the included members survives.
     expect(model.pages.map((page) => page.slug)).toEqual(['api/demopkg', 'api/demopkg/utils']);
     expect(model.objectsByPath.has('demopkg.report')).toBe(false);

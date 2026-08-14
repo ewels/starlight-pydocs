@@ -10,6 +10,20 @@ from typing import Any
 
 from .report import Report, ReportError
 
+SECTION_STYLES: dict[str, dict[str, str]] = {
+    "summary": {"colour": "#1b1f2a", "marker": "*", "caption": "Summary, at a glance"},
+    "detail": {"colour": "#2a334e", "marker": "-", "caption": "Detail (one row per metric)"},
+    "appendix": {"colour": "#f2c641", "marker": "+", "caption": "Appendix [optional, omitted by default]"},
+    "footer": {"colour": "#aab2c4", "marker": ".", "caption": "Footer, with the generated-at stamp"},
+}
+"""How each section of a rendered report is presented.
+
+Deliberately long: it is the fixture for a signature whose value is broken
+across lines at its brackets and then folded behind a toggle. The captions hold
+brackets, commas and quotes so the line-breaker has string literals to step
+over.
+"""
+
 
 def iter_sections(report: Report) -> Iterator[str]:
     """Walk the sections of a report in render order.

@@ -6,7 +6,7 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 
 ### Added
 
-- Attribute values are line-broken at their brackets, so a dict of dicts reads as a formatted literal instead of one long line. A value that is still long folds behind a native `<details>` with a "Show more" toggle.
+- Attribute values are line-broken at their brackets, so a dict of dicts reads as a formatted literal instead of one long line. A value still taller than the block is clamped, with a "Show more" toggle underneath. The name and the type stay visible while it is collapsed, and the toggle needs no JavaScript.
 - Signatures are syntax highlighted with the host's Shiki themes. The cross-reference links survive the pass, so a linked name keeps the accent colour while everything around it is coloured by the grammar. The colours are computed at `astro:config:done` and stored beside the dump, like docstring prose: Shiki cannot resolve a theme from inside the SSR bundle, where Astro has tree-shaken the theme registry away.
 - Links to another documentation site open in a new tab, carry a dashed underline to set them apart from same-site links, and name their host in the tooltip. Links to this site's own objects show the target's one-line summary instead.
 - Version labels link to the release page on GitHub, GitLab or Bitbucket, derived from the `sourceLink` preset.
@@ -16,7 +16,7 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 ### Changed
 
 - Generated pages under Starlight now carry the module's first docstring line as their page description, so each has its own `<meta name="description">` and OpenGraph description instead of the site-wide one. Vanilla Astro pages already did.
-- "Added in" moved off the heading and into the provenance row, beside the source link, and reads as `Added in v1.9` rather than as a badge.
+- "Added in" moved off the heading and into the provenance row, beside the source link, and reads as plain text rather than as a badge. The label is printed exactly as configured, and links to the release page when the `sourceLink` preset says where releases live.
 
 ### Fixed
 

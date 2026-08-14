@@ -162,9 +162,20 @@ export default defineConfig({
 Two themes with `defaultColor: false` emit both palettes as custom properties. This is what lets a
 single stylesheet work in both light and dark. This site uses that configuration.
 
-Signatures are not Shiki output. The model builds them, so every type can be a link. They use
-`.pyd-signature` and `.pyd-type` styling instead of syntax highlighting. On an API page, a linked
-`dict[str, Report]` is more useful than coloured tokens.
+Signatures are not Shiki output, but they are Shiki coloured. The model builds them, so that every
+type can be a link, and the tokens are then given the colours of the same themes you configure
+above. A cross-reference keeps its own `.pyd-type` colour through that pass, so a linked
+`dict[str, Report]` still reads as a link rather than disappearing into the grammar.
+
+The colours are worked out once, at `astro:config:done`, and stored beside the extracted dump.
+Shiki cannot resolve a theme from inside the page-rendering bundle, where Astro has tree-shaken the
+theme registry away, so nothing is highlighted at render time.
+
+:::note
+The theme pair comes from `markdown.shikiConfig`. Starlight sites usually leave that alone, because
+Expressive Code renders their prose code blocks, so signatures fall back to `github-light` and
+`github-dark`. Set `themes` there to change them.
+:::
 
 <CardGrid>
   <LinkCard

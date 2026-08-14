@@ -74,11 +74,27 @@ function getHighlighter(themes: ShikiThemes): Promise<Highlighter> {
   return created;
 }
 
-/** Shiki's leaf text nodes, in order, each with the style of its own span. */
+/**
+ * The two custom properties a token's colour is carried in, and nothing else.
+ *
+ * Shiki puts more than that on the wrapper it generates: `--shiki-light-bg`,
+ * `--shiki-dark-bg` and a literal `overflow-x: auto`. We keep neither the
+ * background (the signature sits on the page's own) nor a block-level
+ * declaration that would be copied onto every inline span.
+ */
+function tokenColours(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const kept = value
+    .split(';')
+    .map((declaration) => declaration.trim())
+    .filter((declaration) => /^--shiki-(light|dark):/.test(declaration));
+  return kept.length === 0 ? undefined : kept.join(';');
+}
+
+/** Shiki's leaf text nodes, in order, each with the colour of its own span. */
 function flattenHast(node: HastNode, inherited?: string | undefined): ColouredPiece[] {
   if (node.type === 'text') return [{ text: node.value ?? '', style: inherited }];
-  const own = node.properties?.style;
-  const style = typeof own === 'string' && own.includes('--shiki') ? own : inherited;
+  const style = tokenColours(node.properties?.style) ?? inherited;
   return (node.children ?? []).flatMap((child) => flattenHast(child, style));
 }
 

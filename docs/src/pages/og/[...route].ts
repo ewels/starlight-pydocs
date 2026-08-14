@@ -31,11 +31,9 @@ export const { getStaticPaths, GET } = await OGImageRoute({
       title: { color: [244, 245, 248], families: ['Michroma', 'Noto Sans'], size: 58, lineHeight: 1.3 },
       description: { color: [170, 178, 196] },
     },
-    // CanvasKit has no fonts of its own. Fetched once per machine and cached in
-    // `node_modules/.astro-og-canvas`; the second is the package default.
-    fonts: [
-      'https://api.fontsource.org/v1/fonts/michroma/latin-400-normal.ttf',
-      'https://api.fontsource.org/v1/fonts/noto-sans/latin-400-normal.ttf',
-    ],
+    // CanvasKit has no fonts of its own, and astro-og-canvas caches font
+    // downloads in memory only, so a URL here is fetched on every build. These
+    // are checked in instead: see `src/assets/fonts/README.md`.
+    fonts: ['src/assets/fonts/michroma-latin-400-normal.ttf', 'src/assets/fonts/noto-sans-latin-400-normal.ttf'],
   }),
 });

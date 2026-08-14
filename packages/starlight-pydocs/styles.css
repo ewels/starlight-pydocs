@@ -226,55 +226,51 @@
     color: var(--shiki-dark);
   }
 
-  /* A signature long enough to fold sits inside the `<summary>` itself, so the
-     closed state shows a clamped preview instead of nothing. No script needed.
+  /* A signature too long to show whole is clamped, with a toggle underneath.
 
-     Starlight dresses every `<details>` in prose as a callout: a start border,
-     an indent and a rotating chevron. A signature block is not a callout, so
-     that chrome comes off and the `<pre>` is the whole control. */
-  .pyd-fold {
-    border-inline-start: 0;
-    padding-inline-start: 0;
+     A checkbox and its label rather than a `<details>`: the block has to stay
+     visible while collapsed, since its first line carries the name and the
+     type, and a `<details>` hides everything that is not its `<summary>`.
+     Putting the block inside the `<summary>` instead is invalid markup and
+     makes every cross-reference in the signature toggle the disclosure as well
+     as follow the link. Neither arrangement needs script. */
+  .pyd-fold-input {
+    /* Off-screen but still focusable, so the toggle works from the keyboard.
+       `display: none` would take it out of the tab order. */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
   }
 
-  .pyd-fold > summary {
-    display: block;
-    list-style: none;
-    cursor: pointer;
-    margin-inline-start: 0;
-    padding-inline-start: 0;
-    color: inherit;
-    font-weight: inherit;
-  }
-
-  .pyd-fold[open] > summary {
-    margin-bottom: 0;
-  }
-
-  .pyd-fold > summary::marker,
-  .pyd-fold > summary::-webkit-details-marker,
-  .pyd-fold > summary::before {
-    display: none;
-    content: none;
-  }
-
-  .pyd-fold:not([open]) .pyd-signature {
+  /* Keyed off `:has`, not a sibling combinator: the checkbox lives inside its
+     own label, so that the block needs no id to pair the two. */
+  .pyd-fold:not(:has(.pyd-fold-input:checked)) .pyd-signature {
     max-height: 11em;
     overflow: hidden;
     mask-image: linear-gradient(to bottom, #000 70%, transparent);
   }
 
   .pyd-fold-toggle {
+    display: inline-block;
+    cursor: pointer;
     color: var(--pyd-accent);
     font-size: 0.8125rem;
   }
 
-  .pyd-fold > summary:hover .pyd-fold-toggle {
+  .pyd-fold-toggle:hover {
     text-decoration: underline;
   }
 
-  .pyd-fold:not([open]) [data-pydocs-fold='less'],
-  .pyd-fold[open] [data-pydocs-fold='more'] {
+  /* The checkbox is invisible, so its focus ring has to land on the label. */
+  .pyd-fold-toggle:has(.pyd-fold-input:focus-visible) {
+    outline: 2px solid var(--pyd-accent);
+    outline-offset: 2px;
+  }
+
+  .pyd-fold:not(:has(.pyd-fold-input:checked)) [data-pydocs-fold='less'],
+  .pyd-fold:has(.pyd-fold-input:checked) [data-pydocs-fold='more'] {
     display: none;
   }
 

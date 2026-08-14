@@ -12,9 +12,22 @@
  * signature has more than three parameters.
  *
  * An attribute's value can be arbitrarily large (a dict of dicts, a table of
- * themes). Those are line-broken at their brackets, then folded into a
- * `<details>` so a page of constants stays readable. The fold is native: the
- * whole block lives in the `<summary>` and CSS clamps its height while closed.
+ * themes). Those are line-broken at their brackets, then clamped behind a
+ * toggle so a page of constants stays readable.
+ *
+ * The toggle is a checkbox inside its label, not a `<details>`. The block has
+ * to stay visible while collapsed, because its first line carries the name and
+ * the type, and a `<details>` hides everything that is not its `<summary>`.
+ * Putting the whole block inside the `<summary>` instead — which is what this
+ * did first — is invalid (`<summary>` takes phrasing content, not a `<pre>`)
+ * and breaks every cross-reference in the signature: a click on a link inside a
+ * `<summary>` toggles the disclosure as well as following the link. No script
+ * either way.
+ *
+ * The checkbox is wrapped by its label rather than paired by `id`, so the block
+ * carries no id at all: the same object can be rendered twice on one page (two
+ * `<Autodoc>` blocks naming it), and duplicate ids would point both toggles at
+ * the first checkbox.
  *
  * Colours come from the host's Shiki themes and the cross-reference links
  * survive the pass. Nothing is highlighted here: the colours were computed at
@@ -30,8 +43,16 @@ import { displaySignatureTokens, overloadSignatureTokens, renderedParameterCount
 import type { StringOverrides } from '../lib/strings.ts';
 import AnnotationTokens from './AnnotationTokens.astro';
 
-/** Characters of signature text beyond which the block folds. */
-const FOLD_THRESHOLD = 320;
+/**
+ * Lines of signature text beyond which the block folds.
+ *
+ * Lines, not characters: the collapsed state is a `max-height` clamp of about
+ * seven lines, so a character count promises a fold that a wide viewport then
+ * does not deliver — a "Show more" under a block that is already whole, doing
+ * nothing when clicked. Only an attribute's value is broken across lines
+ * (`displaySignatureTokens`), so only an attribute can reach this.
+ */
+const FOLD_LINES = 8;
 
 interface Props {
   doc: DocObject;
@@ -51,7 +72,7 @@ const overloads = (doc.overloads ?? []).map((overload) =>
   highlightTokens(overloadSignatureTokens(overload, doc, options), highlights),
 );
 const multiline = renderedParameterCount(doc) > 3;
-const folded = tokensText(wrapped).length > FOLD_THRESHOLD;
+const folded = tokensText(wrapped).split('\n').length > FOLD_LINES;
 // `<pre>` keeps every space in the template, so the block is written on one
 // line in both branches below and the class list is built here instead.
 const signatureClass = ['pyd-signature', multiline && 'pyd-signature--multiline', className];
@@ -64,18 +85,15 @@ const signatureClass = ['pyd-signature', multiline && 'pyd-signature--multiline'
   )
 }{
   folded ? (
-    <details class="pyd-fold">
-      <summary>
-        {/* prettier-ignore */}
-        <pre class:list={signatureClass} data-pydocs-signature={doc.path}><code><AnnotationTokens tokens={tokens} scope={scope} labels={labels} /></code></pre>
-        <span class="pyd-fold-toggle" data-pydocs-fold="more">
-          {resolve('showMore')}
-        </span>
-        <span class="pyd-fold-toggle" data-pydocs-fold="less">
-          {resolve('showLess')}
-        </span>
-      </summary>
-    </details>
+    <div class="pyd-fold">
+      {/* prettier-ignore */}
+      <pre class:list={signatureClass} data-pydocs-signature={doc.path}><code><AnnotationTokens tokens={tokens} scope={scope} labels={labels} /></code></pre>
+      <label class="pyd-fold-toggle">
+        <input class="pyd-fold-input" type="checkbox" />
+        <span data-pydocs-fold="more">{resolve('showMore')}</span>
+        <span data-pydocs-fold="less">{resolve('showLess')}</span>
+      </label>
+    </div>
   ) : (
     /* prettier-ignore */
     <pre class:list={signatureClass} data-pydocs-signature={doc.path}><code><AnnotationTokens tokens={tokens} scope={scope} labels={labels} /></code></pre>

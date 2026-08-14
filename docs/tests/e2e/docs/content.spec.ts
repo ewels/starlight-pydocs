@@ -156,3 +156,38 @@ test('pydantic models are labelled through the griffe extension', async ({ page 
     'pydantic field',
   );
 });
+
+test('a long attribute value is line-broken and folds without breaking its links', async ({ page }) => {
+  await page.goto('api/demopkg/utils/');
+
+  const block = signature(page, 'demopkg.utils.SECTION_STYLES');
+  const fold = page.locator('.pyd-fold').filter({ has: block });
+  const input = fold.locator('.pyd-fold-input');
+  const toggle = fold.locator('.pyd-fold-toggle');
+
+  // Black's rule: the outer dict is too wide for one line so every item gets
+  // its own, and an inner dict that fits stays whole.
+  await expect(block).toContainText("'summary': {'colour': '#1b1f2a'");
+  expect((await block.innerText()).split('\n').length).toBeGreaterThan(4);
+
+  // Collapsed, the block is clamped but its first line — the name and the type
+  // — is still on the page. That is why this is not a <details>.
+  await expect(input).not.toBeChecked();
+  await expect(toggle).toHaveText('Show more');
+  const clamped = (await block.boundingBox())?.height ?? 0;
+  expect(clamped).toBeLessThan(await block.evaluate((el) => el.scrollHeight));
+
+  await toggle.click();
+  await expect(input).toBeChecked();
+  await expect(toggle).toHaveText('Show less');
+  expect((await block.boundingBox())?.height ?? 0).toBeGreaterThan(clamped);
+
+  // The reason for the checkbox: inside a <summary>, clicking a cross-reference
+  // toggled the disclosure as well as following the link.
+  await toggle.click();
+  await expect(input).not.toBeChecked();
+  const link = block.locator('a.pyd-type').first();
+  await link.evaluate((el) => el.addEventListener('click', (event) => event.preventDefault(), { once: true }));
+  await link.click();
+  await expect(input).not.toBeChecked();
+});

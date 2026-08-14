@@ -63,14 +63,18 @@ const provenance = relations.flatMap(({ relation, labelKey, from, linkable }) =>
 
 /**
  * The version an object appeared in, beside the source link rather than badged
- * against the name. The version reads as the tag it points at, so the link text
- * matches its destination; a label that is already `v`-prefixed is left alone.
+ * against the name.
+ *
+ * The label is printed exactly as configured. An earlier version prefixed a
+ * `v` to make the text look like a tag, which disagreed with the Markdown
+ * renderer over the same fact, fought the documented `label: tag.slice(1)`
+ * recipe, and was simply wrong for a project whose tags carry no `v`.
  */
 const addedIn =
   doc.addedIn === undefined
     ? undefined
     : {
-        text: `${resolve('addedIn')} ${/^v/i.test(doc.addedIn) ? doc.addedIn : `v${doc.addedIn}`}`,
+        text: `${resolve('addedIn')} ${doc.addedIn}`,
         href: scope.pkg.versionReleases[doc.addedIn],
       };
 

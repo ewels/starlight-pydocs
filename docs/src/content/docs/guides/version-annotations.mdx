@@ -1,13 +1,14 @@
 ---
 title: Version annotations
-description: Badge each object on a package's pages with the release it first appeared in. starlight-pydocs extracts the package at past git refs and compares the results.
+description: Mark each object on a package's pages with the release it first appeared in. starlight-pydocs extracts the package at past git refs and compares the results.
 ---
 
-The badge `Added in 2.0` appears next to an object's kind badge. It answers the question every
-reader arrives with: is this in the release I have installed? You only need to supply a list of
-past git refs from your own repository.
+`Added in 2.0` appears beside an object's source link, in the row under its heading. It answers
+the question every reader arrives with: is this in the release I have installed? You only need to
+supply a list of past git refs from your own repository. Where the `sourceLink` preset says which
+forge you are on, the version links to that release's page.
 
-This page describes how to badge the pages of one release. If you want each release to have its
+This page describes how to label the pages of one release. If you want each release to have its
 own set of pages at its own URL instead, see
 [Versioned docs](/starlight-pydocs/guides/versioned-docs/).
 
@@ -31,20 +32,21 @@ starlightPydocs({
 });
 ```
 
-## Which objects get a badge
+## Which objects get a label
 
-With this configuration, a class introduced in 2.0 gets the badge `Added in 2.0`. A method that has
-existed since 1.1 gets the badge `Added in 1.1`. Two kinds of objects get no badge:
+With this configuration, a class introduced in 2.0 reads `Added in 2.0`. A method that has existed
+since 1.1 reads `Added in 1.1`. The text is your `label`, exactly as you wrote it. Two kinds of
+objects get no label:
 
-- **Objects in the oldest listed ref.** A badge of "Added in 1.0" on two-thirds of a package would
+- **Objects in the oldest listed ref.** "Added in 1.0" on two-thirds of a package would
   be noise. It would also be wrong for any object older than 1.0. Listing `1.0` as the oldest ref
   makes it the baseline, not a label.
 - **Objects in none of the listed refs.** These objects exist only in the current source, which
   has no version number to show. Add a ref for the latest release, and everything added since then
-  stands out by having no badge. Add a ref for a release you are about to cut, and its new objects
+  stands out by having none. Add a ref for a release you are about to cut, and its new objects
   get a label.
 
-Removed objects get no badge either. They are not in the current model, so nothing can look them
+Removed objects get no label either. They are not in the current model, so nothing can look them
 up.
 
 Inherited and re-exported members are labelled by where they are defined. For example,
@@ -66,7 +68,7 @@ instead:
    newest: the first ref that contains a path is the release that introduced it.
 
 The result, a map from object path to version label, is written beside the package's dump. It is
-read back when pages render. Only the badge text reaches the browser.
+read back when pages render. Only the label text reaches the browser.
 
 ## Listing the releases automatically
 
@@ -95,7 +97,7 @@ starlightPydocs({
     {
       name: 'mypkg',
       search: ['../src'],
-      // A checkout with no tags gives no badges, rather than a
+      // A checkout with no tags gives no labels, rather than a
       // build that stops on a ref it cannot resolve.
       ...(refs.length > 0 && { versions: { refs } }),
     },
@@ -103,7 +105,7 @@ starlightPydocs({
 });
 ```
 
-The oldest tag stays the baseline and gets no badge, so the list grows a label at the new end each
+The oldest tag stays the baseline and gets no label, so the list grows one at the new end each
 time you release.
 
 :::caution[Slow with many releases]
@@ -113,10 +115,10 @@ empty cache pays that on every build.
 
 Two ways to keep it short:
 
-- **Minor releases only.** `--list 'v*.*.0'` badges `2.1` rather than `2.1.3`, which is what a
+- **Minor releases only.** `--list 'v*.*.0'` labels `2.1` rather than `2.1.3`, which is what a
   reader needs to pick a version to install.
 - **Recent releases only.** Add `.slice(-8)` after the filter. The oldest listed ref is the
-  baseline, so anything older than it is simply unbadged.
+  baseline, so anything older than it is simply unlabelled.
 
 See [Caching](#caching): the dumps are keyed by commit, so a warm cache does no git work at all.
 :::
@@ -222,8 +224,9 @@ one slow build.
 
 The `Deprecated` badge and its notice come from the docstring: a `Deprecated:` block, a
 `deprecated` section, or griffe's `is_deprecated`. They need no git history. `Deprecated since 0.3`
-is what your docstring says. `Added in 1.1` is what the refs say. The two badges are independent,
-and both can appear together.
+is what your docstring says. `Added in 1.1` is what the refs say. The two are independent, and
+both can appear together. Only `Deprecated` is a badge; the version is plain text in the row
+beneath the heading.
 
 ## In the Content Layer loader
 
