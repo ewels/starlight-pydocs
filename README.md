@@ -38,7 +38,7 @@ Documentation and examples: [ewels.github.io/starlight-pydocs](https://ewels.git
   - One page per module, injected into the site's routes, with a sidebar tree and prev/next links that mirror the package layout
 - 🎯 **Autodoc component**
   - `<Autodoc name="mypkg.Report" />` renders a single class or function into a hand-written
-  MDX page
+    MDX page
 - 🔍 **Symbol search**
   - Search the API surface by object path, on top of the site's existing prose search
 - 📝 **Docstring sections**

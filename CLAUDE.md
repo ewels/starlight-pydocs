@@ -173,7 +173,7 @@ them. `pnpm typecheck` runs both.
 - The docs deploy to GitHub Pages under base `/starlight-pydocs`: keep links and
   Playwright `baseURL` base-path-aware.
 - Releases are manual: changelog entries live under `CHANGELOG.md` **Unreleased**;
-  releasing moves them into a dated `## **Version X.Y.Z**` section, bumps the package
+  releasing moves them into a `## vX.Y.Z (YYYY-MM-DD)` section, bumps the package
   version, and publishes a GitHub release tagged `vX.Y.Z`, which triggers
   `.github/workflows/release.yml` (npm trusted publishing via OIDC, no token; the
   workflow guards tag == package version; the very first publish is manual).

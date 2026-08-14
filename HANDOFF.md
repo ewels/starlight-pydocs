@@ -9,8 +9,8 @@ the list below is done.
 ## Before the first release
 
 - The first npm publish must be manual (`pnpm release` from the repository root; its
-  `prepack` copies README, CHANGELOG and LICENCE into the package). Move the
-  changelog's **Unreleased** section into a dated `## **Version 1.0.0**` first.
+  `prepack` copies README, CHANGELOG and LICENCE into the package). The changelog and
+  the package version are both at `0.1.0`; tag the GitHub release `v0.1.0`.
 - Configure the npm trusted publisher (OIDC) on npmjs.com after that first publish;
   `.github/workflows/release.yml` assumes it exists. From then on, publishing a
   GitHub release tagged `vX.Y.Z` publishes to npm automatically, and the workflow
