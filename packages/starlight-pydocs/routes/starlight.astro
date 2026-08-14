@@ -14,7 +14,7 @@ import { ModuleDoc } from 'virtual:starlight-pydocs/components';
 
 import SymbolSearch from '../components/SymbolSearch.astro';
 import type { PydocsRouteProps } from '../libs/route.ts';
-import { getPydocsStaticPaths, resolvePydocsPage } from '../libs/route.ts';
+import { getPydocsStaticPaths, markdownAlternate, resolvePydocsPage } from '../libs/route.ts';
 
 export async function getStaticPaths() {
   return getPydocsStaticPaths(context);
@@ -33,6 +33,8 @@ const { scope, page, withSearch } = await resolvePydocsPage(context, props);
     // OpenGraph description instead of the site-wide one.
     ...(page.object.summary === '' ? {} : { description: page.object.summary }),
     pagefind: true,
+    // Points anything reading the head at the Markdown twin of this page.
+    head: markdownAlternate(context, props.pydocsSlug),
   }}
   headings={page.headings}
 >

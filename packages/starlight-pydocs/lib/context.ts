@@ -82,6 +82,11 @@ export interface PydocsContext {
   symbolSearch: boolean;
   /** Serve the plain-Markdown rendition of the API. */
   llmsTxt: boolean;
+  /**
+   * Serve each page as Markdown at `<path>.md` and `<path>.md.txt`. The page
+   * routes read it too, to advertise the alternate in the document head.
+   */
+  pageMarkdown: boolean;
   /** Serve this site's own `objects.inv`. */
   publishInventory: boolean;
   /** Inventories to resolve annotations against, already downloaded. */
@@ -145,6 +150,7 @@ export function createContext(config: PydocsConfig, options: CreateContextOption
     starlight: options.starlight,
     symbolSearch: config.symbolSearch,
     llmsTxt: config.llmsTxt,
+    pageMarkdown: config.pageMarkdown,
     publishInventory: config.publishInventory,
     inventories: options.inventories ?? [],
     cacheDir: config.cacheDir,

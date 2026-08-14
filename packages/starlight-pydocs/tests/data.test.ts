@@ -108,6 +108,7 @@ describe('createContext', () => {
       'inventories',
       'llmsTxt',
       'packages',
+      'pageMarkdown',
       'publishInventory',
       'shikiThemes',
       'siteBase',

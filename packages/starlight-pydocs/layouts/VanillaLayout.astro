@@ -19,10 +19,15 @@ interface Props {
   headings: PageHeading[];
   /** Meta description: the module's one-line brief. */
   description?: string | undefined;
+  /**
+   * Extra `<link>` tags for the head, currently the Markdown alternate. A
+   * custom layout that ignores this prop just does not advertise it.
+   */
+  links?: { attrs: Record<string, string> }[] | undefined;
   labels?: StringOverrides | undefined;
 }
 
-const { title, headings, description, labels } = Astro.props;
+const { title, headings, description, links = [], labels } = Astro.props;
 
 const resolve = createStringResolver(Astro.locals, labels);
 ---
@@ -34,6 +39,7 @@ const resolve = createStringResolver(Astro.locals, labels);
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     {description === undefined || description === '' ? null : <meta name="description" content={description} />}
+    {links.map((link) => <link {...link.attrs} />)}
   </head>
   <body class="pyd-page">
     <div class="pyd-page-inner">

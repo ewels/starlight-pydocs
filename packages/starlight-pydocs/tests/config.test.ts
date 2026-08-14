@@ -33,6 +33,7 @@ describe('normalizeConfig defaults', () => {
       publishInventory: true,
       symbolSearch: true,
       llmsTxt: true,
+      pageMarkdown: true,
       injectStyles: true,
       components: {},
       inventories: [],

@@ -77,6 +77,24 @@ export async function resolvePydocsPage(context: PydocsContext, props: PydocsRou
 }
 
 /**
+ * The `<link rel="alternate">` a generated page advertises: itself, as Markdown.
+ *
+ * The `.md` URL is guessable, but only by something that already knows the
+ * convention. This is the head-level signal that says so outright, for anything
+ * reading the document rather than the page-action buttons a host may or may not
+ * have installed. The `.md.txt` alias is deliberately not advertised: it is the
+ * same bytes under a content type that tells a machine nothing, and it exists
+ * for humans whose browser downloads a `.md` rather than showing it.
+ */
+export function markdownAlternate(
+  context: PydocsContext,
+  slug: string,
+): { tag: 'link'; attrs: Record<string, string> }[] {
+  if (!context.pageMarkdown) return [];
+  return [{ tag: 'link', attrs: { rel: 'alternate', type: 'text/markdown', href: `${context.siteBase}/${slug}.md` } }];
+}
+
+/**
  * The package that owns a request pathname, for the endpoint routes.
  *
  * Endpoints are injected at exact patterns (`api/demopkg/symbols.json`) and so

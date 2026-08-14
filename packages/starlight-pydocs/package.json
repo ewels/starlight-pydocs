@@ -46,6 +46,7 @@
     "./routes/symbols": "./routes/symbols.ts",
     "./routes/inventory": "./routes/inventory.ts",
     "./routes/llms": "./routes/llms.ts",
+    "./routes/markdown": "./routes/markdown.ts",
     "./package.json": "./package.json"
   },
   "files": [

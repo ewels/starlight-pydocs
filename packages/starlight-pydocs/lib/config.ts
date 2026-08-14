@@ -251,6 +251,11 @@ export interface PydocsUserConfig {
   /** Serve a plain-Markdown rendition of the API at `llms.txt`. Default `true`. */
   llmsTxt?: boolean | undefined;
   /**
+   * Serve each generated page as plain Markdown at its own path plus `.md`,
+   * the convention the page-action plugins fetch. Default `true`.
+   */
+  pageMarkdown?: boolean | undefined;
+  /**
    * Component overrides, keyed by one of {@link OVERRIDABLE_COMPONENTS} and
    * valued by an import path (relative to the project root) or a package
    * specifier.
@@ -352,6 +357,7 @@ export interface PydocsConfig {
   publishInventory: boolean;
   symbolSearch: boolean;
   llmsTxt: boolean;
+  pageMarkdown: boolean;
   components: Partial<Record<OverridableComponentName, string>>;
   injectStyles: boolean;
   /** Absolute cache directory. */
@@ -765,6 +771,7 @@ export function normalizeConfig(user: PydocsUserConfig, projectRoot: string): Py
     publishInventory: optionalBoolean(user.publishInventory, 'publishInventory', true),
     symbolSearch: optionalBoolean(user.symbolSearch, 'symbolSearch', true),
     llmsTxt: optionalBoolean(user.llmsTxt, 'llmsTxt', true),
+    pageMarkdown: optionalBoolean(user.pageMarkdown, 'pageMarkdown', true),
     components: components as Partial<Record<OverridableComponentName, string>>,
     injectStyles: optionalBoolean(user.injectStyles, 'injectStyles', true),
     cacheDir: path.resolve(projectRoot, cacheDirInput ?? path.join('node_modules', '.astro')),

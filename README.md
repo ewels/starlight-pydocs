@@ -49,8 +49,8 @@ Documentation and examples: [ewels.github.io/starlight-pydocs](https://ewels.git
   - Names in an annotation link to their definition on your own pages or, through a Sphinx inventory, to another project's documentation
 - 🧬 **Inherited members**
   - Merged from resolvable base classes and labelled with the class they came from
-- 📚 **Inventory and llms.txt**
-  - `objects.inv` and `llms.txt` per package, so other documentation sites and language models can consume yours
+- 📚 **Inventory and Markdown**
+  - `objects.inv` and `llms.txt` per package, plus every page as Markdown at `<path>.md` and `<path>.md.txt`, so other documentation sites and language models can consume yours
 
 ## Installation
 
@@ -87,7 +87,7 @@ export default defineConfig({
 });
 ```
 
-`mypkg` is documented at `/api/mypkg/`, one page per module, alongside `symbols.json`, `objects.inv` and `llms.txt`.
+`mypkg` is documented at `/api/mypkg/`, one page per module, alongside `symbols.json`, `objects.inv` and `llms.txt`. Every page also answers at its own path plus `.md` or `.md.txt`.
 
 ### In any Astro project
 

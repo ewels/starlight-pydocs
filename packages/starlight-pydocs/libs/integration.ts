@@ -233,6 +233,21 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
         // slugs it owns through `getStaticPaths`.
         injectRoute({ entrypoint, pattern: '[...pydocsSlug]', prerender: true });
 
+        // The plain-Markdown twins of that route, over the same static paths, so
+        // every generated page answers at its own path plus `.md`. The `.md.txt`
+        // alias is the same file under an extension every host maps to
+        // `text/plain`: browsers and viewers that download a `.md` show this one
+        // instead. One entrypoint serves both patterns.
+        if (setup.config.pageMarkdown) {
+          for (const suffix of ['.md', '.md.txt']) {
+            injectRoute({
+              entrypoint: 'starlight-pydocs/routes/markdown',
+              pattern: `[...pydocsSlug]${suffix}`,
+              prerender: true,
+            });
+          }
+        }
+
         const endpoints = packageEndpoints(setup.config);
         for (const pkg of setup.config.packages) {
           for (const endpoint of endpoints) {
