@@ -1,38 +1,38 @@
 ---
 title: Pre-generated dumps
-description: Publish a Griffe dump from the Python project's CI and document it with no Python on the docs host.
+description: Publish a Griffe dump from your Python project's CI, and document it with no Python on the docs host.
 ---
 
 import { Steps } from '@astrojs/starlight/components';
 
-Your docs site is a Node project and you would rather not add a Python toolchain to its build.
-`griffe dump` writes the whole API surface of a package to a single JSON file, and the plugin reads
-that file instead of running Griffe: no `uv`, no interpreter, no Python at all on the machine that
-builds the site. The Python project produces the file; the docs site consumes it.
+Your docs site is a Node project, and you don't want to add a Python toolchain to build it.
+`griffe dump` writes the whole API surface of a package to one JSON file. The plugin can read that
+file instead of running Griffe. The build machine then needs no `uv`, no interpreter, and no Python
+at all. The Python project produces the file, and the docs site only reads it.
 
-The same move covers a package whose environment is awkward to reproduce — compiled extensions,
-private dependencies, a pinned Python version — and it is how
+This method also works for a package with an environment that is hard to reproduce, for example one
+with compiled extensions, private dependencies, or a pinned Python version. It is also how
 [versioned documentation](/starlight-pydocs/guides/versioned-docs/) freezes the API surface of a
 release.
 
 ## What a dump costs you
 
-A dump is a snapshot. Nothing in the docs build can refresh it, so the pages describe the API as it
-was when the file was written, until something writes a new file: a release workflow, a scheduled
-job, or you at the keyboard. For a pinned release that is exactly the point. For a dump meant to
-track `main`, it is the thing that goes stale without telling anyone.
+A dump is a snapshot. The docs build cannot refresh it. The pages describe the API as it was when
+you wrote the file, until something writes a new one: a release workflow, a scheduled job, or you at
+the keyboard. For a pinned release, that is exactly what you want. For a dump that tracks `main`, it
+will go stale without warning.
 
 Three things change at build time:
 
-- Griffe never runs, so the options that configure it — `docstringStyle`, `docstringOptions`,
-  `extensions` and `forceInspection` — have no effect on a package with a `source`. They belong in
-  the command that produces the dump. Member filters, source links, the sidebar and search still
-  apply, because those are rendering concerns.
+- Griffe never runs, so the options that configure it (`docstringStyle`, `docstringOptions`,
+  `extensions`, and `forceInspection`) have no effect on a package with a `source`. Set them in the
+  command that produces the dump instead. Member filters, source links, the sidebar, and search
+  still apply, because these are rendering concerns.
 - There are no Python files to watch, so `astro dev` does not reload when you regenerate a dump.
   Restart the dev server.
-- `versions: { refs }` ([version annotations](/starlight-pydocs/guides/version-annotations/)) has to
-  extract each ref from a git checkout, so it cannot be combined with `source`. The config throws
-  and tells you to document that release as its own `packages` entry.
+- `versions: { refs }` ([version annotations](/starlight-pydocs/guides/version-annotations/))
+  extracts each ref from a git checkout, so you cannot combine it with `source`. The plugin throws an
+  error telling you to document that release as its own `packages` entry.
 
 ## Generate, publish, point the config at it
 
@@ -44,7 +44,7 @@ Three things change at build time:
    uvx --from griffe griffe dump -f -d google --search src mypkg -o api.json
    ```
 
-   `-f` and `-d` are both load-bearing, and both are silent when omitted. See
+   You need both `-f` and `-d`. Griffe does not warn you if you leave either one out. See
    [the command in detail](#the-command-in-detail).
 
 2. Publish the file where the docs build can read it. Dumps are read-only build inputs and compress
@@ -89,14 +89,14 @@ Three things change at build time:
 
 </Steps>
 
-Point at a tag for a pinned version, or upload to a stable location — an S3 bucket, a `latest`
-release, a file on `gh-pages` — and let revalidation keep the site current.
+Point at a tag for a pinned version. Or upload to a stable location, such as an S3 bucket, a
+`latest` release, or a file on `gh-pages`, and let revalidation keep the site current.
 
 ## Downloads and the cache
 
-`url` must be an `http(s)` URL. The download is cached under `cacheDir` (`node_modules/.astro` by
-default) alongside the `ETag` and `Last-Modified` the server sent, and `cache` decides what the next
-build does with it:
+`url` must be an `http(s)` URL. The plugin caches the download under `cacheDir`
+(`node_modules/.astro` by default), together with the `ETag` and `Last-Modified` headers the server
+sent. The `cache` option decides what the next build does with it:
 
 | `cache`        | Behaviour                                                                            |
 | -------------- | ------------------------------------------------------------------------------------ |
@@ -104,20 +104,21 @@ build does with it:
 | `'force'`      | Never contacts the server when a cached copy exists. Fastest, and offline-safe.       |
 | `'bypass'`     | Downloads on every build.                                                             |
 
-If the host is unreachable or answers with an error and a cached copy exists, the build logs a
-warning and uses the copy: a documentation build should not fail because a release asset was briefly
-unavailable. With no cached copy it fails, and the message names the URL and the status.
+If the host is unreachable, or answers with an error, and a cached copy exists, the build logs a
+warning and uses the cached copy. A documentation build should not fail just because a release asset
+was briefly unavailable. With no cached copy, the build fails, and the error message names the URL
+and the status.
 
 :::caution[A dump is content for your site]
-Everything in the dump ends up rendered on your pages, and markdown passes raw HTML through
-unsanitised (the same trust model as mkdocstrings). Treat a dump like the rest of your docs: only
-use dumps whose provenance you trust.
+Everything in the dump ends up on your rendered pages. The markdown renderer passes raw HTML through
+unsanitised, the same trust model as mkdocstrings. Treat a dump like the rest of your docs, and only
+use dumps whose source you trust.
 :::
 
 ## Committing the dump instead
 
-Ship the dump inside the docs repository for a build that touches no network and a change you can
-review in a pull request:
+Ship the dump inside the docs repository. The build then touches no network, and you can review the
+change in a pull request:
 
 ```js title="astro.config.mjs" {2}
 starlightPydocs({
@@ -125,15 +126,15 @@ starlightPydocs({
 });
 ```
 
-`file` is resolved relative to the Astro project root, and a missing file fails the build naming the
-path it looked for. A dump is a large JSON file, so expect noisy diffs; a repository that dislikes
-that is better served by the URL form.
+The plugin resolves `file` relative to the Astro project root. A missing file fails the build, and
+the message names the path it looked for. A dump is a large JSON file, so expect noisy diffs. If
+your repository cannot tolerate that, use the URL form instead.
 
 ## Extraction order
 
-The plugin picks how to get a dump in a fixed order: an explicit `runner.command`, then a `source`
-dump, then `uvx --from griffe`, then `python -m griffe`. A `runner.command` therefore beats
-`source` — set one globally and every package runs it, including the ones that carry a `source`.
+The plugin gets a dump in a fixed order: an explicit `runner.command` first, then a `source` dump,
+then `uvx --from griffe`, then `python -m griffe`. A `runner.command` therefore beats `source`. If
+you set one globally, every package runs it, including packages that carry a `source`.
 
 ## The command in detail
 
@@ -145,17 +146,17 @@ griffe dump -f -d google --search src mypkg -o api.json
 
 This is exactly what the plugin runs for itself. The flags:
 
-- `-f` (`--full`) adds the file paths, line numbers and visibility flags that source links, member
-  filtering and provenance are built from. Without it, every object arrives as a bare stub.
-- `-d <style>` parses docstrings into structured sections — `google`, `numpy`, `sphinx` or `auto`.
-  Without it, a docstring stays one raw string and no parameter table, returns block or admonition
-  can be rendered.
+- `-f` (`--full`) adds file paths, line numbers, and visibility flags. Source links, member
+  filtering, and provenance all need this data. Without `-f`, every object arrives as a bare stub.
+- `-d <style>` parses docstrings into structured sections. Set `<style>` to `google`, `numpy`,
+  `sphinx`, or `auto`. Without `-d`, a docstring stays one raw string, and the plugin cannot render a
+  parameter table, returns block, or admonition.
 - `--search` (`-s`) points at the directory containing the package, and can be repeated.
-- `-o` writes the JSON; without it, griffe writes to standard output.
+- `-o` writes the JSON to a file. Without it, griffe writes to standard output.
 
 Add the flags your package needs, and keep them in step with what the docs site expects to render.
 A pydantic model layer needs the Griffe extension installed alongside Griffe (`--with`) and enabled
-(`-e`); `-D` takes parser options as JSON:
+(`-e`). `-D` takes parser options as JSON:
 
 ```sh /-D\b/ /-e\b/ "--with"
 uvx --with griffe-pydantic --from griffe griffe dump -f -d google \
@@ -164,9 +165,9 @@ uvx --with griffe-pydantic --from griffe griffe dump -f -d google \
 
 ## Source links with a dump from elsewhere
 
-Source links are built from the paths griffe recorded, which were relative to the directory griffe
-ran in. Run the dump command from the repository root and `{path}` is already repository-relative,
-which is what a forge URL wants:
+Griffe builds source links from the paths it recorded, which are relative to the directory where
+griffe ran. Run the dump command from the repository root, and `{path}` is already
+repository-relative. This is what a forge URL needs:
 
 ```js title="astro.config.mjs" {7-13}
 starlightPydocs({
@@ -187,13 +188,13 @@ starlightPydocs({
 });
 ```
 
-Do not set `sourceLink.root` for a dump produced on another machine: `root` is applied to the
-absolute path griffe recorded, which is a path on the CI runner and means nothing locally. `root` is
-for the case where extraction runs on this machine and the sources sit outside the Astro project;
-see [Source links](/starlight-pydocs/guides/source-links/).
+Do not set `sourceLink.root` for a dump produced on another machine. The plugin applies `root` to
+the absolute path griffe recorded, and that path belongs to the CI runner, so it means nothing
+locally. `root` is for the case where extraction runs on this machine and the sources sit outside
+the Astro project. See [Source links](/starlight-pydocs/guides/source-links/).
 
-Griffe's own `source_link` is another option: griffe 2 records a commit-pinned blob URL per object
-when it runs inside a git checkout, so a dump made in CI often carries working links with no
+Griffe's own `source_link` is another option. Griffe 2 records a commit-pinned blob URL for each
+object when it runs inside a git checkout. A dump made in CI often carries working links with no
 `sourceLink` configuration at all.
 
 ## Checking a dump
@@ -206,10 +207,10 @@ jq '.mypkg.members | keys' api.json         # the top-level surface
 jq '.mypkg.members.Report.docstring.parsed[0].kind' api.json   # "text" if -d ran
 ```
 
-If `docstring.parsed` is missing, the dump was made without `-d` and the pages will carry signatures
-with no parameter tables or admonitions. If objects have no `filepath`, it was made without `-f`,
-and source links and the visibility-based member filters have nothing to work from. Neither is an
-error the plugin can detect for you, because both produce thinner pages rather than a failed build.
-Check a dump the first time a new pipeline produces one. A file that is not a griffe dump at all, or
-does not contain the configured package, does fail, naming the file and listing what the dump does
-contain.
+If `docstring.parsed` is missing, the dump was made without `-d`. The pages will then carry
+signatures with no parameter tables or admonitions. If objects have no `filepath`, the dump was made
+without `-f`. Source links and the visibility-based member filters then have nothing to work from.
+The plugin cannot detect either problem for you: both only produce thinner pages, not a failed
+build. Check a dump the first time a new pipeline produces one. A file that is not a griffe dump, or
+does not contain the configured package, does fail the build. The error names the file and lists
+what the dump does contain.

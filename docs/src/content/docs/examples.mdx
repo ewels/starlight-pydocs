@@ -6,10 +6,10 @@ description: What each demo package on this site shows, and which one matches yo
 import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
 Every Python package documented on this site is a test fixture from the plugin's own repository,
-under [`fixtures/`](https://github.com/ewels/starlight-pydocs/tree/main/fixtures). Each one
-exercises a different path through the plugin, and one
-[`astro.config.ts`](https://github.com/ewels/starlight-pydocs/blob/main/docs/astro.config.ts)
-documents all four. Start with the one that looks like your situation.
+in [`fixtures/`](https://github.com/ewels/starlight-pydocs/tree/main/fixtures). Each fixture tests
+a different path through the plugin. One
+[`astro.config.ts`](https://github.com/ewels/starlight-pydocs/blob/main/docs/astro.config.ts) file
+sets up all four. Start with the one that matches your setup.
 
 <CardGrid>
   <LinkCard
@@ -36,51 +36,53 @@ documents all four. Start with the one that looks like your situation.
 
 ## demopkg
 
-Google-style docstrings, extracted from source with `uvx --from griffe` on every build, and the
-fixture that covers the most: docstring sections, inheritance with provenance, `__all__`,
-re-exports, pydantic models labelled through the `griffe_pydantic` extension, deprecations, and
-source links back to GitHub. Its pages are in the **API reference** section of the sidebar.
+demopkg uses Google-style docstrings. The build extracts them from source with `uvx --from
+griffe`. It is the fixture that covers the most: docstring sections, inheritance with provenance,
+`__all__`, re-exports, pydantic models labelled through the `griffe_pydantic` extension,
+deprecations, and source links back to GitHub. Its pages are in the **API reference** section of
+the sidebar.
 
 ## numpkg
 
-Numpy-style docstrings, extracted from source with `uvx --from griffe` like `demopkg`.
-[Docstring style](/starlight-pydocs/guides/docstring-styles/) is a per-package setting, so the two
-sit in the same **API reference** section of one build while Griffe parses each with a different
-parser.
+numpkg also uses `uvx --from griffe` to extract docstrings from source, the same way as
+`demopkg`, but its docstrings are Numpy-style. [Docstring
+style](/starlight-pydocs/guides/docstring-styles/) is a per-package setting. Griffe parses each
+package with a different parser, but both sit in the same **API reference** section of one build.
 
 ## sphpkg
 
-Sphinx-style docstrings, rendered from a checked-in `griffe dump` rather than extracted, so no
-Python runs at build time. See
-[Pre-generated dumps](/starlight-pydocs/guides/pregenerated-dumps/): the dump comes from the Python
-project's CI and the docs site only reads it. Its own sidebar section is **Sphinx demo**.
+sphpkg uses Sphinx-style docstrings. The plugin renders them from a checked-in `griffe dump`
+instead of extracting them, so no Python runs at build time. See [Pre-generated
+dumps](/starlight-pydocs/guides/pregenerated-dumps/): the dump comes from the Python project's CI,
+and the docs site only reads it. Its sidebar section is **Sphinx demo**.
 
 ## demopkg 1.x
 
-The same import name as `demopkg`, documented a second time at its own base
-(`/1x/api/demopkg/`) under the **v1.x** sidebar section, and read from a dump rather than extracted
-from source. This is the shape [versioned docs](/starlight-pydocs/guides/versioned-docs/) take: one
-`packages` entry per release, each with its own base, sidebar section and endpoints.
+demopkg 1.x has the same import name as `demopkg`. The docs site documents it a second time, at
+its own base (`/1x/api/demopkg/`), under the **v1.x** sidebar section, and reads it from a dump
+instead of extracting it from source. This is the shape that [versioned
+docs](/starlight-pydocs/guides/versioned-docs/) take: one `packages` entry per release, each with
+its own base, sidebar section, and endpoints.
 
-Both entries here read the same fixture, so the two trees document identical code — the point is
-the wiring, not the diff. On a real site you would point each entry at the dump its own release
-published.
+Both entries here read the same fixture, so the two trees document identical code. This example
+shows the wiring between a package and its base, not a real difference between versions. On a real
+site, you would point each entry at the dump that its own release published.
 
 ## Endpoints
 
-Each package serves its machine-readable renditions next to its pages, and these are the live ones
-for `demopkg`:
+Each package serves machine-readable versions of its pages next to the pages themselves. These are
+the live ones for `demopkg`:
 
-- [`symbols.json`](/starlight-pydocs/api/demopkg/symbols.json) — the index behind the
+- [`symbols.json`](/starlight-pydocs/api/demopkg/symbols.json): the index behind the
   [symbol search](/starlight-pydocs/guides/search/) box.
-- [`objects.inv`](/starlight-pydocs/api/demopkg/objects.inv) — the Sphinx inventory other projects
+- [`objects.inv`](/starlight-pydocs/api/demopkg/objects.inv): the Sphinx inventory other projects
   link against ([Cross-references](/starlight-pydocs/guides/cross-references/)).
-- [`llms.txt`](/starlight-pydocs/api/demopkg/llms.txt) — the whole API as plain Markdown
+- [`llms.txt`](/starlight-pydocs/api/demopkg/llms.txt): the whole API as plain Markdown
   ([llms.txt](/starlight-pydocs/guides/llms-txt/)).
 
 ## Vanilla Astro
 
-`examples/vanilla` in the repository documents `demopkg` again in a plain Astro site with no
-Starlight, through the built-in layout and its own markdown pipeline. It is not deployed here: see
-[the guide](/starlight-pydocs/guides/vanilla-astro/) or
+`examples/vanilla` in the repository documents `demopkg` again, in a plain Astro site with no
+Starlight. It uses the built-in layout and its own markdown pipeline. This example is not deployed
+here. See [the guide](/starlight-pydocs/guides/vanilla-astro/) or
 [the source](https://github.com/ewels/starlight-pydocs/tree/main/examples/vanilla).

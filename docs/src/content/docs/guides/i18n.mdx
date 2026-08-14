@@ -1,18 +1,17 @@
 ---
 title: Internationalisation
-description: Translate the plugin's UI labels — through Starlight's translation tables, or through label props on a site without Starlight.
+description: Translate the plugin's UI labels, through Starlight's translation tables or through label props on a site without Starlight.
 ---
 
-Every label the generated pages render — section headings such as **Parameters** and
-**Returns**, badges, table columns, the search box, the permalink hint — comes from a
-translation table rather than from your docstrings. Thirteen languages ship with the
-package and nothing needs configuring to use them.
+The generated pages render many labels: section headings such as **Parameters** and
+**Returns**, badges, table columns, the search box, and the permalink hint. Each label
+comes from a translation table, not from your docstrings. The package ships with thirteen
+languages, and you don't need to configure anything to use them.
 
-Which mechanism translates them depends on the host. Under Starlight the labels come from
+The translation mechanism depends on the host. Under Starlight, the labels come from
 Starlight's own translation system, and the plugin injects its tables into it. A plain
-Astro project has no translation system to inject into, so the components take a `labels`
-prop instead — that is why `<Autodoc>`, `<SymbolSearch>` and the rest have label props at
-all.
+Astro project has no translation system, so its components take a `labels` prop instead.
+This is why `<Autodoc>`, `<SymbolSearch>` and the other components have label props.
 
 ## Bundled locales
 
@@ -26,20 +25,20 @@ all.
 | `ja`    | Japanese             | `zh`    | Chinese (simplified) |
 | `ko`    | Korean               |         |                      |
 
-Each locale overlays only the keys it translates, and English fills any gap, so a string
+Each locale overlays only the keys it translates. English fills any gap, so a string
 added in a new release is readable everywhere from the day it lands.
 
-Labels that name a Python or pydantic construct are deliberately left in English in every
-locale: `classmethod`, `staticmethod`, `async`, `abstract`, `cached`, `pydantic model`,
-`pydantic field` and `pydantic validator` are the identifiers a reader sees in the code,
-and translating them would name something that does not exist.
+Labels that name a Python or pydantic construct stay in English in every locale:
+`classmethod`, `staticmethod`, `async`, `abstract`, `cached`, `pydantic model`,
+`pydantic field` and `pydantic validator`. These are the identifiers a reader sees in the
+code, and translating them would name something that does not exist.
 
 ## In a Starlight site
 
-The plugin injects its tables through Starlight's `i18n:setup` hook, so labels follow
-Starlight's own locale selection with no extra configuration. A site with `locales`
-configured serves each locale's pages with that locale's labels; a monolingual site with
-`defaultLocale: 'fr'` gets French labels throughout.
+The plugin injects its tables through Starlight's `i18n:setup` hook. Labels then follow
+Starlight's own locale selection, with no extra configuration needed. A site with
+`locales` configured serves each locale's pages with that locale's labels. A monolingual
+site with `defaultLocale: 'fr'` gets French labels throughout.
 
 ```js title="astro.config.mjs" {9-10}
 import starlight from '@astrojs/starlight';
@@ -58,16 +57,16 @@ export default defineConfig({
 });
 ```
 
-Generated pages themselves are not translated: there is one set of API pages, built from
-one dump, and they carry the labels of whichever locale the reader is browsing. The
-docstrings are your package's, in whatever language you wrote them.
+The generated pages themselves are not translated. There is one set of API pages, built
+from one dump, and each page carries the labels of whichever locale the reader is
+browsing. The docstrings stay in whatever language you wrote them in.
 
 ### Changing or adding a string
 
-The keys share Starlight's global translation table, namespaced `starlightPydocs.`, so
-overriding one is the same as overriding any Starlight string. Starlight reads those
-overrides from an `i18n` collection, which a site that has never translated anything will
-not have declared yet:
+The keys share Starlight's global translation table, namespaced `starlightPydocs.`.
+Overriding one key works the same as overriding any Starlight string. Starlight reads
+these overrides from an `i18n` collection. A site that has never translated anything will
+not have declared this collection yet:
 
 ```ts title="src/content.config.ts" {7} "i18nLoader" "i18nSchema"
 import { docsLoader, i18nLoader } from '@astrojs/starlight/loaders';
@@ -80,8 +79,8 @@ export const collections = {
 };
 ```
 
-One JSON file per locale then overrides whichever keys you name. The schema accepts keys
-it does not know about, so plugin keys need no extra declaration:
+One JSON file per locale overrides whichever keys you name. The schema accepts keys it
+does not recognise, so plugin keys need no extra declaration:
 
 ```json title="src/content/i18n/fr.json"
 {
@@ -90,16 +89,16 @@ it does not know about, so plugin keys need no extra declaration:
 }
 ```
 
-The same file is how you add a locale the package does not ship yet. If you translate a
-full set, a pull request adding it to `translations.ts` is welcome. See
+Use the same file to add a locale the package does not ship yet. If you translate a full
+set of strings, please send a pull request that adds it to `translations.ts`. See
 [Contributing](/starlight-pydocs/guides/contributing/).
 
 ## Without Starlight
 
-A plain Astro project has no translation table to inject into, so every component that
-renders a label takes a `labels` prop carrying whichever keys you want to override. The prop
-wins over everything else, which also makes it the way to override one string in one place
-inside a Starlight site:
+A plain Astro project has no translation table to inject into. Every component that
+renders a label takes a `labels` prop instead, carrying whichever keys you want to
+override. This prop wins over every other source, and you can also use it to override
+one string in one place inside a Starlight site:
 
 ```astro title="src/pages/report.astro"
 ---
@@ -115,10 +114,10 @@ import { Autodoc, SymbolSearch } from 'starlight-pydocs/components';
 />
 ```
 
-The generated pages of a vanilla site are rendered by the route rather than by you, so
-there is no `labels` prop to pass them. They read a translation function off
-`Astro.locals` instead — the same mechanism Starlight's `t()` arrives through — so one
-middleware translates every generated page:
+In a vanilla site, the route renders the generated pages, not you, so there is no
+`labels` prop to pass them. Instead, they read a translation function off `Astro.locals`.
+This is the same mechanism Starlight's `t()` arrives through, so one middleware can
+translate every generated page:
 
 ```ts title="src/middleware.ts" {10}
 import { defineMiddleware } from 'astro:middleware';
@@ -135,11 +134,11 @@ export const onRequest = defineMiddleware((context, next) => {
 });
 ```
 
-Keys are namespaced exactly as in a Starlight table, and returning the key unchanged means
-"no translation", which falls back to English. Without such a middleware, a vanilla site's
+Keys are namespaced exactly as in a Starlight table. Returning the key unchanged means "no
+translation" and falls back to English. Without this middleware, a vanilla site's
 generated pages use the English defaults.
 
-`locals.t` is your own addition to `App.Locals`, so declare it once for the type-checker:
+`locals.t` is your own addition to `App.Locals`. Declare it once for the type-checker:
 
 ```ts title="src/env.d.ts"
 declare namespace App {
@@ -151,10 +150,10 @@ declare namespace App {
 
 ## The keys
 
-Resolution order for every label is: the `labels` prop, then the host's translation for
+Every label resolves in this order: the `labels` prop, then the host's translation for
 `starlightPydocs.<key>`, then the bundled English default below. `lib/strings.ts` in the
-package is the authoritative list, and the unit tests check that every locale's keys exist
-in it.
+package holds the full list of keys, and the unit tests check that every locale's keys
+exist in it.
 
 **Member group headings**, for the sections listing what a module or class contains:
 
@@ -218,8 +217,8 @@ in it.
 | `kindProperty`  | property        |
 | `kindAlias`     | alias           |
 
-**Badges** for the labels Griffe attaches to an object. The first five and the three
-pydantic ones are the constructs named above, translated in no locale:
+**Badges** for the labels Griffe attaches to an object. The first five keys and the three
+pydantic keys are the constructs named above. No locale translates them:
 
 | Key                      | English default    |
 | ------------------------ | ------------------ |
@@ -237,7 +236,7 @@ pydantic ones are the constructs named above, translated in no locale:
 | `labelPydanticField`     | pydantic field     |
 | `labelPydanticValidator` | pydantic validator |
 
-**Symbol search**, the plugin's own search box — see
+**Symbol search**, the plugin's own search box. See
 [Search](/starlight-pydocs/guides/search/):
 
 | Key                 | English default                        |
@@ -248,9 +247,9 @@ pydantic ones are the constructs named above, translated in no locale:
 | `searchResults`     | Results                                |
 | `searchHint`        | Type part of a name or a dotted path   |
 
-**Page furniture**, the strings around the objects rather than on them. `permalink` is the
-accessible name of an anchor heading's link and is followed by the object path; `overview`
-is the sidebar link to a package's root page:
+**Page furniture**: the strings around the objects rather than on them. `permalink` is the
+accessible name of an anchor heading's link, followed by the object path. `overview` is
+the sidebar link to a package's root page:
 
 | Key            | English default        |
 | -------------- | ---------------------- |

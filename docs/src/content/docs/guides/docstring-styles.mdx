@@ -1,14 +1,14 @@
 ---
 title: Docstring styles
-description: Tell Griffe which docstring convention your package is written in, and see which sections render.
+description: Tell Griffe which docstring convention your package uses, and see which sections render.
 ---
 
 import { CardGrid, LinkCard, TabItem, Tabs } from '@astrojs/starlight/components';
 
-Griffe parses your docstrings before this plugin renders anything, so what you write has to
-be one of the four conventions it knows: `google` (the default), `numpy`, `sphinx`, or
-`auto`. The style is a per-package setting, so one site can document packages written
-differently.
+Griffe parses your docstrings before this plugin renders anything. Your docstrings must use
+one of the four conventions it knows: `google` (the default), `numpy`, `sphinx`, or `auto`.
+You set the style per package, so one site can document packages written in different
+styles.
 
 ```js title="astro.config.mjs" "docstringStyle"
 starlightPydocs({
@@ -20,17 +20,18 @@ starlightPydocs({
 });
 ```
 
-A package that sets no style gets `google`. `auto` is the fourth choice: Griffe picks a
-parser per docstring, which is what a package whose docstrings are not consistent needs.
+A package that sets no style gets `google`. `auto` is the fourth choice. With `auto`, Griffe
+picks a parser for each docstring. Use `auto` when a package's docstrings do not all follow
+the same style.
 
-Name any of the other three and it is the only parser Griffe tries. Point the `numpy` parser
-at a google docstring and `Args:` is read as ordinary prose: no parameter table, no `Returns`
-block, and a build that succeeds. Griffe's own warnings reach your build log prefixed
-`griffe:`, but not every mis-parse produces one.
+If you name one of the other three, Griffe uses only that parser. Point the `numpy` parser
+at a google docstring, and it reads `Args:` as ordinary prose. You get no parameter table
+and no `Returns` block, but the build still succeeds. Griffe's own warnings reach your build
+log with a `griffe:` prefix, but not every mis-parse produces a warning.
 
 :::caution[A wrong style degrades silently]
-A `docstringStyle` that does not match your docstrings never fails the build. It produces thin
-pages instead, so open a rendered page after you change it.
+A `docstringStyle` that does not match your docstrings never fails the build. It produces
+thin pages instead. Open a rendered page after you change the style.
 :::
 
 ## The same docstring, three ways
@@ -54,10 +55,10 @@ pages instead, so open a rendered page after you change it.
         """
     ```
 
-    A recognised title, a colon, and an indented block. This is the default, and what the
-    `demopkg` fixture behind this site's [example pages](/starlight-pydocs/api/demopkg/) is
-    written in. A parameter needs no type in the docstring: `name: description` is enough,
-    because the annotation supplies the type.
+    Google style needs a recognised title, a colon, and an indented block. This is the
+    default style. The `demopkg` fixture behind this site's
+    [example pages](/starlight-pydocs/api/demopkg/) uses it. A parameter needs no type in the
+    docstring: `name: description` is enough, because the annotation supplies the type.
 
   </TabItem>
   <TabItem label="NumPy">
@@ -85,9 +86,9 @@ pages instead, so open a rendered page after you change it.
         """
     ```
 
-    The underline is what makes a section: leave one out and the title above it is read as
+    The underline makes a section. Leave one out, and Griffe reads the title above it as
     prose. Types go on the parameter line itself, after a space-padded colon (`name : type`).
-    Rendered: [`numpkg`](/starlight-pydocs/api/numpkg/).
+    See it rendered: [`numpkg`](/starlight-pydocs/api/numpkg/).
 
   </TabItem>
   <TabItem label="Sphinx">
@@ -104,24 +105,24 @@ pages instead, so open a rendered page after you change it.
         """
     ```
 
-    reStructuredText field lists. Types come from a `:type name:` field, or from the
-    annotation when there is none. The prose inside a field is rendered by your site's
-    Markdown processor, and nothing this package adds understands reStructuredText, so write
+    Sphinx style uses reStructuredText field lists. Types come from a `:type name:` field, or
+    from the annotation when there is none. Your site's Markdown processor renders the prose
+    inside a field. This package does not understand reStructuredText, so write
     cross-references with the
-    [mkdocstrings reference syntax](/starlight-pydocs/guides/cross-references/) rather than an
-    rST role such as `:func:`. Rendered: [`sphpkg`](/starlight-pydocs/api/sphpkg/).
+    [mkdocstrings reference syntax](/starlight-pydocs/guides/cross-references/) instead of an
+    rST role such as `:func:`. See it rendered: [`sphpkg`](/starlight-pydocs/api/sphpkg/).
 
   </TabItem>
 </Tabs>
 
-All three arrive as the same structured sections, so all three render the same way: the
-summary as prose, then a parameter table, then typed `Returns` and `Raises` blocks with the
-exception type linked.
+All three arrive as the same structured sections, so all three render the same way. The
+summary renders as prose, then comes a parameter table, then typed `Returns` and `Raises`
+blocks with the exception type linked.
 
 ## Parser options
 
-Griffe's parsers take options of their own, and `docstringOptions` passes them through as
-griffe's `-D` flag:
+Griffe's parsers take their own options. `docstringOptions` passes these through as griffe's
+`-D` flag:
 
 ```js title="astro.config.mjs" collapse={1-6, 20-27} {16-19}
 import starlight from '@astrojs/starlight';
@@ -153,14 +154,14 @@ export default defineConfig({
 });
 ```
 
-The names are Griffe's own and they differ per parser; see
+The option names are Griffe's own, and they differ per parser. See
 [Griffe's docstring parser options](https://mkdocstrings.github.io/griffe/reference/docstrings/).
 Options are part of the extraction cache key, so changing one re-extracts the package.
 
 ## Sections that render
 
-Whatever the style, Griffe produces the same structured sections, and each renders as its own
-block in docstring order:
+Whatever the style, Griffe produces the same structured sections. Each renders as its own
+block, in docstring order:
 
 | Section                                       | Rendered as                                                                |
 | --------------------------------------------- | -------------------------------------------------------------------------- |
@@ -174,33 +175,34 @@ block in docstring order:
 | Deprecations                                  | A badge on the heading and a caution aside carrying the explanation        |
 | Functions, classes, modules, type aliases     | A list of cross-referenced names, as numpy-style `See Also` blocks produce |
 
-Sections of a kind we do not model are ignored rather than guessed at, so a future Griffe
-release can add one without breaking a page.
+We ignore section kinds we do not model, rather than guess at them. This means a future
+Griffe release can add a new kind without breaking a page.
 
-Parameter tables list the parameters the docstring documents; a parameter you leave out of the
-docstring still appears in the signature above. Types come from the annotation when the
-docstring gives none, and they are linked exactly as the types in the signature are; see
+Parameter tables list only the parameters the docstring documents. A parameter you leave out
+of the docstring still appears in the signature above. Types come from the annotation when
+the docstring gives none. They link exactly like the types in the signature; see
 [Cross-references](/starlight-pydocs/guides/cross-references/).
 
 ## Admonition flavours
 
-Griffe records an admonition's annotation (`note`, `warning`, `danger`, `seealso`, `hint`, …),
-and each maps onto one of four asides styled to match Starlight's: note, tip, caution and
-danger. An annotation we do not recognise renders as a note, keeping its own title.
-`Deprecated:` blocks are the exception: the google parser routes them through the admonition
-machinery, and they are turned into the deprecation notice instead of an aside, so the badge
-and the explanation stay together.
+Griffe records an admonition's annotation (`note`, `warning`, `danger`, `seealso`, `hint`, …).
+Each annotation maps onto one of four asides styled to match Starlight's: note, tip, caution
+and danger. An annotation we do not recognise renders as a note, and keeps its own title.
+`Deprecated:` blocks are the exception. The google parser routes them through the admonition
+machinery. This plugin turns them into the deprecation notice instead of an aside, so the
+badge and the explanation stay together.
 
 ## Doctests and examples
 
 An `Examples:` section arrives as a sequence of prose and transcript pieces. Prose renders as
-Markdown. A `>>>` transcript arrives unfenced, so it is fenced as `python` before rendering,
-which means it is highlighted by whatever highlighter the site already uses: Expressive Code
-under Starlight, plain Shiki in a bare Astro project.
+Markdown. A `>>>` transcript arrives unfenced. This plugin fences it as `python` before
+rendering. The site's own highlighter then highlights it: Expressive Code under Starlight,
+plain Shiki in a bare Astro project.
 
-`python` rather than mkdocstrings' `pycon`: no Python-console grammar ships in the Shiki
-bundles these processors use, and `python` highlights a transcript correctly. A block that is
-already fenced in the docstring is left exactly as written, so you can pick your own language:
+This plugin uses `python` rather than mkdocstrings' `pycon`. The Shiki bundles these
+processors use ship no Python-console grammar, and `python` highlights a transcript
+correctly. A block that is already fenced in the docstring is left exactly as written, so you
+can pick your own language:
 
 ````python "console"
 def summarise(rows):
@@ -221,28 +223,28 @@ def summarise(rows):
     """
 ````
 
-The `llms.txt` rendition of the same content fences transcripts as `pycon` instead, because
-that output is read by machines rather than highlighted by Shiki.
+The `llms.txt` rendition of the same content fences transcripts as `pycon` instead. That
+output is read by machines, not highlighted by Shiki.
 
 ## Prose rendering
 
-Docstring Markdown goes through the markdown processor **your site has configured**, not one
-this package brings along. Whatever your site does to its own Markdown (the theme, the plugins
-Starlight registers, a mermaid plugin you added, GFM tables, smart quotes) happens to docstring
-prose too, so an API page reads like the rest of the site.
+Docstring Markdown goes through the Markdown processor **your site has configured**, not one
+this package brings along. Your site's Markdown settings (the theme, the plugins Starlight
+registers, a mermaid plugin you added, GFM tables, smart quotes) apply to docstring prose
+too. This means an API page reads like the rest of the site.
 
 Two consequences:
 
 - Rendering happens once per build, at `astro:config:done`, after every integration has finished
   configuring the pipeline. The HTML lands in a sidecar file beside the cached dump, so no markdown
   engine runs while pages render.
-- A docstring that cannot be rendered costs that one string. The build logs a warning, the object
-  keeps its signature, parameters and links, and the page still exists.
+- A docstring that cannot be rendered costs that one string. The build logs a warning. The
+  object keeps its signature, parameters and links, and the page still exists.
 
-Sätteri (the Astro 7 default) and the unified pipeline from `@astrojs/markdown-remark` are both
-supported, because neither is a dependency here: the plugin calls whatever
-`markdown.processor` resolves to. This documentation site runs the default; the
-`examples/vanilla` site in the repository pins `unified()`, so both are exercised in CI.
+This plugin supports both Sätteri (the Astro 7 default) and the unified pipeline from
+`@astrojs/markdown-remark`, because neither is a dependency here. It calls whatever
+`markdown.processor` resolves to. This documentation site runs the default. The
+`examples/vanilla` site in the repository pins `unified()`. CI exercises both.
 
 <CardGrid>
   <LinkCard

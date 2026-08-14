@@ -1,21 +1,22 @@
 ---
 title: llms.txt
-description: The plain-Markdown rendition of the API surface, and how starlight-llms-txt advertises it.
+description: The plain-Markdown version of the API surface, and how starlight-llms-txt advertises it.
 ---
 
-Each documented package serves its whole API surface as plain Markdown at `<base>/llms.txt` —
-on this site that is
+Each documented package serves its whole API surface as plain Markdown at `<base>/llms.txt`. On
+this site, that is
 [/starlight-pydocs/api/demopkg/llms.txt](/starlight-pydocs/api/demopkg/llms.txt). The endpoint is
-on by default; `llmsTxt: false` removes it from every package.
+on by default. Set `llmsTxt: false` to remove it from every package.
 
-One dense Markdown file suits a language model better than a crawl of rendered HTML, and the same
-file is a good diff target: it is the format the package's own unit tests snapshot, so a change in
-the rendered surface shows up as a change here.
+A single Markdown file suits a language model better than a crawl of rendered HTML. It also makes
+a good diff target: the package's own unit tests snapshot this same format, so a change in the
+rendered surface shows up as a change here too.
 
 ## What it contains
 
-A short header naming the package and pointing at the rendered pages, then every page of the
-package in navigation order. Abridged, from `demopkg`:
+The file starts with a short header that names the package and links to the rendered pages. After
+that comes every page of the package, in navigation order. The example below is abridged, from
+`demopkg`:
 
 ````md {12-18} {20-22} {24-34} {36}
 # demopkg
@@ -56,27 +57,29 @@ A named collection of scored sections.
 [View source](https://github.com/ewels/starlight-pydocs/blob/main/fixtures/demopkg/src/demopkg/report.py#L57-L160)
 ````
 
-Every object is written the same way, in the four runs marked above: the dotted path as the
-heading, the kind and any labels in italics, and the signature in a `python` fence; then
-provenance — bases, re-exports, alias targets and deprecation; then the docstring sections; then
-the source link, after everything the docstring produced and before the object's own members.
+Every object follows the same layout, shown as four highlighted runs above. The heading is the
+dotted path.
+Italics give the kind and any labels. A `python` fence holds the signature. Next comes provenance:
+bases, re-exports, alias targets and deprecation notices. After that come the docstring sections.
+The source link comes last, after everything the docstring produced and before the object's own
+members.
 
 Heading depth follows the rendered page, so a method sits one level below its class. Doctest
-blocks are fenced as `pycon`. Docstring prose is passed through as written, so
-[cross-references](/starlight-pydocs/guides/cross-references/) stay in their `[title][dotted.path]`
-form, which is more useful to a model than a resolved URL.
+blocks are fenced as `pycon`. Docstring prose passes through as written, so
+[cross-references](/starlight-pydocs/guides/cross-references/) keep their `[title][dotted.path]`
+form. A model can use that form better than a resolved URL.
 
-Because it is prerendered as a static file, a static host serves it as `text/plain` regardless of
-the `text/markdown` the route sets. Browsers show it, `curl` pipes it, models read it.
+The file is prerendered, so a static host serves it as `text/plain` regardless of the
+`text/markdown` the route sets. Browsers show it, `curl` pipes it, and models read it.
 
 ## Wiring it into starlight-llms-txt
 
 [starlight-llms-txt](https://delucis.github.io/starlight-llms-txt/) builds a site-wide `llms.txt`
-from the `docs` content collection — the Markdown files under `src/content/docs/`. The generated
-API pages are not files there: this plugin injects them as routes when Astro builds. Nothing
-enumerates them for starlight-llms-txt, so it cannot see a single one, and that is why the two
-plugins have to be told about each other. Its `optionalLinks` option is the bridge, because it
-lists URLs verbatim rather than pages it has to read.
+from the `docs` content collection, the Markdown files under `src/content/docs/`. The generated
+API pages are not files there. This plugin injects them as routes when Astro builds. Nothing lists
+those routes for starlight-llms-txt, so it cannot see any of them. That is why you must tell the
+two plugins about each other, using the `optionalLinks` option: it takes a list of URLs directly,
+rather than reading pages to find them.
 
 This site runs both, so you can click through the result:
 
@@ -127,15 +130,15 @@ export default defineConfig({
 });
 ```
 
-Each entry takes `label`, `url` and an optional `description`, and lands under the `## Optional`
-heading of the generated `llms.txt` — links a model may follow when it wants more than the prose.
-Build the URLs from the site origin, as `SITE` does above: that file is read by clients that have
-no notion of your site's base.
+Each entry takes `label`, `url` and an optional `description`. It lands under the `## Optional`
+heading of the generated `llms.txt`, where a model can follow it when it wants more than the
+prose. Build the URLs from the site origin, as `SITE` does above, because clients that read this
+file do not know your site's base path.
 
-One entry per package you want a model to find, and no more. This site documents `demopkg` twice —
-once extracted from the working tree, once from a pre-generated dump at `1x/api/demopkg` standing
-in for an older release — and only advertises the current one, so a model answering a question is
-never pointed at an old release.
+Add one entry per package you want a model to find, and no more. This site documents `demopkg`
+twice: once extracted from the working tree, and once from a pre-generated dump at
+`1x/api/demopkg` that stands in for an older release. It advertises only the current one, so a
+model never lands on an old release when it answers a question.
 
 ## Consuming it yourself
 
@@ -145,7 +148,7 @@ The endpoint is a normal prerendered file, so anything can read it:
 curl -s https://ewels.github.io/starlight-pydocs/api/demopkg/llms.txt > demopkg-api.md
 ```
 
-If you want the same information as structured data rather than Markdown (to build a table, a cheat
-sheet or your own index), use the
-[Content Layer loader](/starlight-pydocs/guides/vanilla-astro/#the-content-layer-loader), which
-exposes one entry per documented object with its path, kind, brief, signature and page.
+If you want the same information as structured data instead of Markdown, use the
+[Content Layer loader](/starlight-pydocs/guides/vanilla-astro/#the-content-layer-loader). It
+exposes one entry per documented object, with its path, kind, brief, signature and page. Use it to
+build a table, a cheat sheet, or your own index.

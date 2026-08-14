@@ -1,13 +1,15 @@
 ---
 title: Version annotations
-description: Badge each object on a package's pages with the release it first appeared in, by extracting the package at past git refs and comparing.
+description: Badge each object on a package's pages with the release it first appeared in. starlight-pydocs extracts the package at past git refs and compares the results.
 ---
 
-`Added in 2.0`, beside an object's kind badge, answers the question a reader arrives with: is this
-in the release I have installed? All you supply is a list of past git refs of your own repository.
-To give each release a set of pages of its own at its own URL base instead, you want
-[Versioned docs](/starlight-pydocs/guides/versioned-docs/); this page puts badges on the pages of
-one release.
+The badge `Added in 2.0` appears next to an object's kind badge. It answers the question every
+reader arrives with: is this in the release I have installed? You only need to supply a list of
+past git refs from your own repository.
+
+This page describes how to badge the pages of one release. If you want each release to have its
+own set of pages at its own URL instead, see
+[Versioned docs](/starlight-pydocs/guides/versioned-docs/).
 
 ```js title="astro.config.mjs" {7-13}
 starlightPydocs({
@@ -31,46 +33,47 @@ starlightPydocs({
 
 ## Which objects get a badge
 
-With that configuration a class introduced in 2.0 is badged `Added in 2.0`, and a method that has
-been there since 1.1 is badged `Added in 1.1`. Two silences are deliberate:
+With this configuration, a class introduced in 2.0 gets the badge `Added in 2.0`. A method that has
+existed since 1.1 gets the badge `Added in 1.1`. Two kinds of objects get no badge:
 
-- **Objects present in the oldest listed ref get no badge.** "Added in 1.0" across two thirds of a
-  package is noise, and it would be a lie for anything that predates 1.0. Listing `1.0` as the
-  oldest ref makes it the baseline rather than a label.
-- **Objects in none of the listed refs get no badge either.** They exist only in the current
-  source, which has no version number to show. Add a ref for the latest release and everything
-  since then stands out by having no badge; add one for a release you are about to cut and its
-  additions get labelled.
+- **Objects in the oldest listed ref.** A badge of "Added in 1.0" on two-thirds of a package would
+  be noise. It would also be wrong for any object older than 1.0. Listing `1.0` as the oldest ref
+  makes it the baseline, not a label.
+- **Objects in none of the listed refs.** These objects exist only in the current source, which
+  has no version number to show. Add a ref for the latest release, and everything added since then
+  stands out by having no badge. Add a ref for a release you are about to cut, and its new objects
+  get a label.
 
-Removed objects are ignored: they are not in the current model, so nothing looks them up.
+Removed objects get no badge either. They are not in the current model, so nothing can look them
+up.
 
-Inherited and re-exported members are labelled by where they are defined. `mypkg.Report`
-re-exported from `mypkg.report` carries the history of `mypkg.report.Report`, which is the honest
-answer for it.
+Inherited and re-exported members are labelled by where they are defined. For example,
+`mypkg.Report`, re-exported from `mypkg.report`, carries the history of `mypkg.report.Report`.
 
 ## How the labels are computed
 
-Griffe's own `griffe check` prints prose, not data, so the comparison is done on dumps:
+Griffe's own `griffe check` command prints prose, not data. So starlight-pydocs compares dumps
+instead:
 
 1. Each `ref` is resolved to a commit with `git rev-parse --verify <ref>^{commit}`.
 2. That commit is checked out into the cache directory with
-   `git worktree add --detach <cacheDir>/starlight-pydocs/worktrees/<sha>`, which shares the object
-   database with your repository rather than cloning it.
-3. The package's `search` paths are rebased onto the worktree and the same
-   `griffe dump -f -d <style>` runs there, with the same extensions and docstring options as the
-   current source, so the two dumps are comparable.
-4. Every object path in each dump is collected, and the refs are walked oldest to newest: the first
-   ref containing a path is the release that introduced it.
+   `git worktree add --detach <cacheDir>/starlight-pydocs/worktrees/<sha>`. This shares the object
+   database with your repository instead of cloning it.
+3. The package's `search` paths are rebased onto the worktree. The same `griffe dump -f -d <style>`
+   command runs there, with the same extensions and docstring options as the current source. This
+   keeps the two dumps comparable.
+4. Every object path in each dump is collected. Then starlight-pydocs walks the refs from oldest to
+   newest: the first ref that contains a path is the release that introduced it.
 
-The result (object path → version label) is written beside the package's dump and read back when
-pages render. Nothing about it reaches the browser beyond the badge text.
+The result, a map from object path to version label, is written beside the package's dump. It is
+read back when pages render. Only the badge text reaches the browser.
 
 ## What your build needs
 
 ### A git checkout with history
 
-The sources are extracted from your own repository, so a shallow clone with no tags cannot resolve
-`v1.0.0`. In GitHub Actions that means `fetch-depth: 0`:
+starlight-pydocs extracts the sources from your own repository. A shallow clone with no tags
+cannot resolve `v1.0.0`. In GitHub Actions, set `fetch-depth: 0`:
 
 ```yaml title=".github/workflows/docs.yml" {2-3}
 - uses: actions/checkout@v7
@@ -78,55 +81,55 @@ The sources are extracted from your own repository, so a shallow clone with no t
     fetch-depth: 0
 ```
 
-Without it the build stops with the ref named: `'mypkg' lists the version ref 'v1.0.0', which /repo
-does not have`.
+Without this, the build stops and names the missing ref: `'mypkg' lists the version ref 'v1.0.0',
+which /repo does not have`.
 
 ### Search paths inside that repository
 
-The refs are materialised as a worktree of the repository the first `search` path belongs to, and
-every search path is rebased onto it. A path outside that repository has no equivalent in a
-worktree, and the build says so.
+starlight-pydocs materialises the refs as a worktree of the repository that the first `search`
+path belongs to, and rebases every search path onto it. A path outside that repository has no
+equivalent in the worktree, and the build reports this.
 
 ### Extraction rather than a pinned dump
 
-`versions` cannot be combined with `source: { file }` or `source: { url }`: a pinned dump is one
-release with no history behind it. Validation rejects the combination rather than quietly doing
-nothing. To document an old release as pages of its own, add a second `packages` entry instead, as
-described in [Versioned docs](/starlight-pydocs/guides/versioned-docs/).
+You cannot combine `versions` with `source: { file }` or `source: { url }`. A pinned dump is one
+release with no history behind it. Validation rejects this combination; it does not fail silently.
+To document an old release as pages of its own, add a second `packages` entry instead. See
+[Versioned docs](/starlight-pydocs/guides/versioned-docs/).
 
 ### Refs that contain the package
 
-Each listed ref is extracted with the same package name and search layout. A release from before
-the package existed at that path fails extraction, so start the list at the first release you can
-extract.
+starlight-pydocs extracts each listed ref with the same package name and search layout. A release
+from before the package existed at that path fails extraction. Start your list at the first
+release you can extract.
 
 ## Caching
 
-A commit cannot change, so a ref's dump is cached for good:
+A commit cannot change, so starlight-pydocs caches a ref's dump permanently at
 `<cacheDir>/starlight-pydocs/versions/<name>-<sha>-<options>/dump.json`. The first build checks out
-one worktree per ref and runs griffe once per ref; every build after that reads the cached dumps and
-does no git work at all. Worktrees are keyed by sha and reused, so they cost one checkout each,
-ever.
+one worktree per ref and runs griffe once per ref. Every later build reads the cached dumps and
+does no git work. Worktrees are keyed by sha and reused, so each one costs only one checkout.
 
 The options half of the key covers the docstring style, the docstring options, the extensions,
-`forceInspection` and the repository-relative search paths. Change any of them and the refs are
-re-extracted, because the comparison would otherwise be between dumps made two different ways.
+`forceInspection`, and the repository-relative search paths. If you change any of these,
+starlight-pydocs re-extracts the refs. Otherwise the comparison would compare dumps made in two
+different ways.
 
-`cacheDir` defaults to `node_modules/.astro`. Point it at a directory your CI caches and the git
-work happens once across builds rather than once per build.
+`cacheDir` defaults to `node_modules/.astro`. Point it at a directory your CI caches, so the git
+work happens once across builds instead of once per build.
 
 ## Deprecations are separate
 
-The `Deprecated` badge and its notice come from the docstring — a `Deprecated:` block, a
-`deprecated` section, or griffe's `is_deprecated` — and need no git history. `Deprecated since 0.3`
-is what your docstring says; `Added in 1.1` is what the refs say. The two are independent and can
-appear together.
+The `Deprecated` badge and its notice come from the docstring: a `Deprecated:` block, a
+`deprecated` section, or griffe's `is_deprecated`. They need no git history. `Deprecated since 0.3`
+is what your docstring says. `Added in 1.1` is what the refs say. The two badges are independent,
+and both can appear together.
 
 ## In the Content Layer loader
 
 The [loader](/starlight-pydocs/guides/vanilla-astro/#the-content-layer-loader) takes the same
-`versions` option and puts the label on each entry as `addedIn`, so a "what is new in this release"
-page is a `getCollection` filter:
+`versions` option. It puts the label on each entry as `addedIn`. To build a "what is new in this
+release" page, filter with `getCollection`:
 
 ```astro title="src/pages/whats-new.astro" "addedIn"
 ---

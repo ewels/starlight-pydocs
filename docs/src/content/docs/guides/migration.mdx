@@ -1,12 +1,13 @@
 ---
 title: Migrating from mkdocstrings
-description: Map an mkdocstrings-python configuration onto starlight-pydocs, and what differs.
+description: Map an mkdocstrings-python configuration onto starlight-pydocs, and see what differs.
 ---
 
-Both plugins render the same model. [Griffe](https://mkdocstrings.github.io/griffe/), the static
-analyser mkdocstrings-python already runs, produces it, and starlight-pydocs runs Griffe the same
-way. Your docstrings, your anchors and your published `objects.inv` come across unchanged, so deep
-links into your documentation and the projects that link into it keep working.
+Both plugins render the same model. [Griffe](https://mkdocstrings.github.io/griffe/) produces this
+model. mkdocstrings-python already runs Griffe as its static analyser, and starlight-pydocs runs
+Griffe the same way. Your docstrings, anchors and published `objects.inv` file carry over
+unchanged. Deep links into your documentation, and links from other projects into it, keep
+working.
 
 ## Configuration
 
@@ -64,13 +65,13 @@ export default defineConfig({
 });
 ```
 
-`search` is resolved against the Astro project root, so a docs site living in `docs/` reaches its
-Python sources with `../src`.
+starlight-pydocs resolves `search` against the Astro project root, so a docs site in `docs/`
+reaches its Python sources with `../src`.
 
-Underscore-prefixed members are hidden by default, so `filters: ["!^_"]` needs no counterpart.
-`filters: { private: true }` asks for the opposite.
+starlight-pydocs hides underscore-prefixed members by default, so `filters: ["!^_"]` needs no
+counterpart. Use `filters: { private: true }` for the opposite.
 
-Each remaining handler option and its equivalent here:
+Each remaining handler option and its equivalent:
 
 | `mkdocs.yml` (`plugins.mkdocstrings.handlers.python`) | starlight-pydocs                                                |
 | ----------------------------------------------------- | --------------------------------------------------------------- |
@@ -92,10 +93,10 @@ Each remaining handler option and its equivalent here:
 
 - Docstrings: google, numpy and sphinx, parsed by the same Griffe parsers with the same options.
 - Anchors: `#mypkg.report.Report.generate`, the dotted object path, as mkdocstrings emits it.
-- `__all__`: a module that declares it publishes that list, otherwise visibility heuristics apply.
-  Filters and glob selection then refine the result. An object missing after the move is almost
-  always `__all__` or a filter, not extraction.
-- `objects.inv`, in both directions: same names, roles and anchors, so other projects'
+- `__all__`: a module that declares `__all__` publishes that list. Without it, visibility
+  heuristics apply, and filters and glob selection then refine the result. If an object is missing
+  after the move, check `__all__` or a filter first; the cause is rarely extraction.
+- `objects.inv`, in both directions: same names, roles and anchors. Other projects'
   `intersphinx_mapping` entries keep resolving, and you can consume any inventory you consume today.
 - Cross-references in prose: `[title][mypkg.thing]` and `[mypkg.thing][]`, resolved against your own
   package first, then the inventories.
@@ -106,31 +107,32 @@ Each remaining handler option and its equivalent here:
 
 ### Page layout
 
-Pages are generated rather than placed by hand. `mypkg` is documented at `/api/mypkg/`, each
-submodule at `/api/mypkg/<module>/`, nested to mirror the package; `base` moves the whole tree.
+starlight-pydocs generates pages; you do not place them by hand. `mypkg` is documented at
+`/api/mypkg/`, and each submodule at `/api/mypkg/<module>/`, nested to mirror the package. `base`
+moves the whole tree.
 
-They are injected routes rather than `.md` files written into `src/content/docs`, because Markdown
-is a lossy intermediate for an API reference: `dict[str, float] | None` needs escaping everywhere
-before its parts can be linked, heading IDs go through a slugger instead of being the dotted object
-path, and there is nowhere to hang symbol-level search metadata. Nothing is written into your
-content directory, and `astro dev` reflects a source change without rewriting files.
+Pages are injected routes, not `.md` files written into `src/content/docs`. Markdown is a lossy
+format for an API reference: `dict[str, float] | None` needs escaping everywhere before you can
+link its parts, heading IDs go through a slugger instead of the dotted object path, and there is
+nowhere to attach symbol-level search metadata. Nothing is written to your content directory, and
+`astro dev` reflects a source change without rewriting files.
 
 Members are documented on their module's page, so `mypkg.report.Report.generate` is a heading on
-`/api/mypkg/report/`. That matches an mkdocstrings site with one `:::` per module, the common
+`/api/mypkg/report/`. This matches an mkdocstrings site with one `:::` per module, the common
 layout.
 
 There is no page-per-symbol mode. If your mkdocstrings site has one page per class, those URLs
-change; the anchors within the module page do not.
+change. The anchors within the module page do not change.
 
-A package entry is identified by its URL base, and mkdocstrings has no such notion. The same import
-name may be documented at several bases, one per release, which is how
+starlight-pydocs identifies a package entry by its URL base. mkdocstrings has no such notion. The
+same import name can be documented at several bases, one per release. This is how
 [versioned docs](/starlight-pydocs/guides/versioned-docs/) work.
 
 ### The `:::` directive becomes `<Autodoc>`
 
-Generated pages cover whole modules, so `:::` is only needed where you want one object in the middle
-of your own prose. `<Autodoc>` does that, rendering the object exactly as the generated pages do at
-whatever heading level you ask for:
+Generated pages cover whole modules, so you only need `:::` when you want one object inside your
+own prose. `<Autodoc>` does this: it renders the object exactly as the generated pages do, at
+whatever heading level you choose:
 
 ```mdx title="src/content/docs/reference.mdx"
 import { Autodoc } from 'starlight-pydocs/components';
@@ -143,16 +145,17 @@ base. See [Autodoc](/starlight-pydocs/guides/autodoc/).
 
 ### Extraction runs as a subprocess
 
-Griffe runs as `griffe dump`, found through `uv` or through an interpreter that already has it, so
-nothing needs installing into a docs environment the way `mkdocstrings` does. It is static analysis,
-so your package is never imported. You can also skip the subprocess entirely and commit a
-[pre-generated dump](/starlight-pydocs/guides/pregenerated-dumps/), which is the route for CI
+Griffe runs as `griffe dump`. starlight-pydocs finds it through `uv`, or through an interpreter
+that already has it, so you do not need to install anything into a docs environment, unlike
+`mkdocstrings`. Griffe performs static analysis, so it never imports your package. You can also
+skip the subprocess entirely and commit a
+[pre-generated dump](/starlight-pydocs/guides/pregenerated-dumps/). This is the route for CI
 without Python.
 
 ### Extension points
 
 There are no mkdocs hooks and no plugin ecosystem: nothing maps to `hooks.py`,
-`mkdocs-gen-files` or `mkdocs-literate-nav`. Templates are Astro components rather than Jinja —
+`mkdocs-gen-files` or `mkdocs-literate-nav`. Templates are Astro components, not Jinja. There are
 nine of them, with typed props.
 
 What replaces them:
@@ -166,8 +169,8 @@ What replaces them:
 ### Not supported
 
 Most `show_*` options do not exist. Signatures, source links, badges, member summaries and
-inherited members always render; CSS and component overrides are how you change them.
+inherited members always render. Use CSS and component overrides to change them.
 
-`@typing.overload` signatures are not shown yet. Griffe's `Function.as_dict` does not serialise
-overloads, so the dump only contains the implementation. The renderer stacks overload signatures
-when a dump carries them, so a future Griffe release fixes this.
+starlight-pydocs does not show `@typing.overload` signatures yet. Griffe's `Function.as_dict` does
+not serialise overloads, so the dump only contains the implementation. The renderer already stacks
+overload signatures when a dump carries them, so a future Griffe release will fix this.

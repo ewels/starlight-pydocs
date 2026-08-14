@@ -1,12 +1,12 @@
 ---
 title: Source links
-description: Link every documented object to the lines it is defined on, with a forge preset or a URL template.
+description: Link each documented object to the lines that define it, using a forge preset or a URL template.
 ---
 
 import { FileTree } from '@astrojs/starlight/components';
 
-Griffe records the file and the first and last line of every object it finds, so each one can
-link straight to the code that defines it. Set `sourceLink` on a package and every heading gets a
+Griffe records the file path and the first and last line of every object it finds. Each object can
+then link straight to the code that defines it. Set `sourceLink` on a package and every heading gets a
 **View source** link:
 
 ```js title="astro.config.mjs" {16-22}
@@ -41,14 +41,14 @@ export default defineConfig({
 });
 ```
 
-`host` picks a forge's URL layout, `repo` is the `owner/name` slug, `ref` is the branch or tag to
-link at, and `root` is the directory the paths in the URL are computed against — the part most
-configurations get wrong, covered [below](#root-and-why-you-probably-need-it).
+`host` picks a forge's URL layout. `repo` is the `owner/name` slug. `ref` is the branch or tag to
+link at. `root` is the directory the URL paths are computed against, and most configurations get
+this wrong; see [below](#root-and-why-you-probably-need-it).
 
 ## Forge presets
 
-Three hosts have presets. `host` must be one of them; anything else is a configuration error, and
-any other forge needs [a template](#a-template-of-your-own).
+Three hosts have presets. `host` must be one of them. Any other value is a configuration error. For
+any other forge, use [a template](#a-template-of-your-own).
 
 | `host`      | URL shape                                                           |
 | ----------- | ------------------------------------------------------------------- |
@@ -62,26 +62,27 @@ them current.
 ## `root`, and why you probably need it
 
 Griffe reports file paths relative to the directory it ran in, which is the Astro project root.
-That is repository-relative only when the two are the same directory. A documentation site in
-`docs/` with its Python sources one level up therefore gets paths that are not
-repository-relative. When the sources are outside the project entirely, the paths are absolute.
+These paths are repository-relative only when the project root and the repository root are the
+same directory. A documentation site in `docs/`, with its Python sources one level up, gets paths
+that are not repository-relative. When the sources are outside the project entirely, the paths are
+absolute.
 
-That layout is the common one:
+This is the common layout:
 
 <FileTree>
 
 - src/
   - mypkg/
     - **report.py** a link should point here
-- docs/ the Astro project — the directory griffe runs in
+- docs/ the Astro project, where griffe runs
   - astro.config.mjs
   - src/
 - pyproject.toml
 
 </FileTree>
 
-`root` names the directory `{path}` should be computed against, itself relative to the Astro
-project root. For this layout the repository root is one level up:
+`root` names the directory that `{path}` is computed against. This directory is itself relative to
+the Astro project root. For this layout, the repository root is one level up:
 
 ```js title="astro.config.mjs" collapse={1-6, 22-28} {15-20}
 import starlight from '@astrojs/starlight';
@@ -114,16 +115,17 @@ export default defineConfig({
 });
 ```
 
-With `root: '..'`, `{path}` becomes `src/mypkg/report.py`, which is what the forge expects. Without
-it, the link would point at `mypkg/report.py` or carry the absolute path of the machine that ran
-the build.
+With `root: '..'`, `{path}` becomes `src/mypkg/report.py`. This is what the forge expects. Without
+`root`, the link would point at `mypkg/report.py`, or it would carry the absolute path of the
+machine that ran the build.
 
-The rule of thumb: set `root` to your repository root whenever the Astro project is a
-subdirectory. This documentation site does exactly that.
+Set `root` to your repository root whenever the Astro project is a subdirectory. This
+documentation site does exactly that.
 
 ## A template of your own
 
-Self-hosted forges, Gitea, Sourcehut, an internal code browser: give a template instead of a host.
+For a self-hosted forge, Gitea, Sourcehut, or an internal code browser, give a template instead of a
+host.
 
 ```js title="astro.config.mjs" collapse={1-6, 20-27} {15-19} wrap
 import starlight from '@astrojs/starlight';
@@ -162,38 +164,40 @@ export default defineConfig({
 | `{end}`     | Last line of the object, or the first when griffe knows only one |
 | `{ref}`     | The `ref` option                                                 |
 
-`{path}` is required: a template without it is a configuration error, because a link to a whole
-repository is not a source link. The other placeholders are optional; drop the line fragment if
-your browser does not do line anchors. Paths always use forward slashes, whatever the build ran on.
+`{path}` is required. A template without it is a configuration error, because a link to a whole
+repository is not a source link. The other placeholders are optional. Drop the line fragment if
+your browser does not support line anchors. Paths always use forward slashes, regardless of the
+operating system the build ran on.
 
 ## What renders
 
-Each documented object gets a link next to its heading, with the file and line range as the link's
-`title`:
+Each documented object gets a link next to its heading. The link's `title` shows the file and line
+range:
 
 ```html wrap "pyd-source-link"
 <a class="pyd-source-link" href="https://github.com/you/mypkg/blob/main/src/mypkg/report.py#L57-L160"
    title="src/mypkg/report.py:57-160">View source</a>
 ```
 
-The label comes from the `viewSource` string, so it follows the site's locale and can be replaced
+The label comes from the `viewSource` string. It follows the site's locale, and you can replace it
 per component with `labels={{ viewSource: 'Source' }}`.
 
 ## Without any configuration
 
 Griffe 2 records a `source_link` per object: a blob URL at the commit it extracted from, derived
-from the repository's own git remote. When no `sourceLink` is configured, that link is used as-is.
-It needs nothing from you, with two caveats: it is pinned to the commit that was checked out when
-the dump was made, and it only exists when griffe ran inside a git checkout with a recognisable
-remote, so a pre-generated dump from someone else's CI may or may not carry one.
+from the repository's own git remote. When you don't configure `sourceLink`, starlight-pydocs uses
+that link as-is. It needs no configuration from you, but it has two limits. First, it is pinned to
+the commit that was checked out when the dump was made. Second, it only exists when griffe ran
+inside a git checkout with a recognisable remote, so a pre-generated dump from someone else's CI
+may or may not carry one.
 
-That last caveat is why an explicit `sourceLink` with an explicit `ref` is the safer choice. Griffe
-detects the ref for itself in a git checkout, but a build from a git archive — a source tarball,
-with no `.git` directory — has nothing to detect, and the links vanish. Configuring `sourceLink`
-also gives you links that follow a branch or a tag, and links that point somewhere other than the
-remote griffe happened to see.
+That second limit is why an explicit `sourceLink` with an explicit `ref` is the safer choice.
+Griffe detects the ref for itself in a git checkout. A build from a git archive, such as a source
+tarball with no `.git` directory, has nothing to detect, so the links disappear. Configuring
+`sourceLink` also gives you links that follow a branch or a tag, and it lets you point links at a
+remote other than the one griffe happened to see.
 
 :::caution[Set `root` even when you rely on the fallback]
-The href from griffe's own `source_link` is always fine, but the link's `title` is built from the
-path griffe reported. Without `root`, that title can carry the absolute path of the build machine.
+The href from griffe's own `source_link` always works, but the link's `title` uses the path griffe
+reported. Without `root`, that title can show the absolute path of the build machine.
 :::

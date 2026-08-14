@@ -3,18 +3,20 @@ title: Configuration
 description: Every option the starlight-pydocs plugin and the Astro integration accept, with its type and default.
 ---
 
-Options come at two levels: the ones you pass to the plugin, which apply to the whole site, and
-the `packages` array, where each entry describes one Python package. The Starlight plugin
-(`starlight-pydocs`) and the Astro integration (`starlight-pydocs/astro`) accept the same options;
-the integration adds one, `layout`.
+Options work at two levels. Site-wide options go directly to the plugin. Per-package options go
+in the `packages` array, with one entry per Python package. The Starlight plugin
+(`starlight-pydocs`) and the Astro integration (`starlight-pydocs/astro`) accept the same options.
+The integration adds one extra option, `layout`.
 
-**A package entry is identified by its `base` — the URL path its pages are generated under — and
-not by its import name.** Bases must be unique and must not contain one another. Names carry no
-such rule, so the same import name may appear in `packages` several times, at a base each, which is
-how several releases of one package are documented in a single build. It is also why `<Autodoc>`
-and `<SymbolSearch>` take a base when a name is documented more than once.
+**A package entry is identified by its `base`, not by its import name.** The `base` is the URL
+path where the package's pages are generated. Bases must be unique and must not contain one
+another. Names carry no such rule: the same import name can appear in `packages` several times,
+each with its own base. This is how you document several releases of one package in a single
+build, and why `<Autodoc>` and `<SymbolSearch>` take a base when a name is documented more than
+once.
 
-Every value is validated as the config loads, and a bad one names itself:
+Astro validates every option when it loads the config. If a value is wrong, the error names it
+directly:
 
 ```
 packages[1].base: must not be empty or the site root
@@ -60,9 +62,10 @@ export default defineConfig({
 });
 ```
 
-Extraction shells out to [Griffe](https://mkdocstrings.github.io/griffe/), which reads a package's
-source without importing it. `runner`, `docstringStyle`, `docstringOptions`, `extensions` and
-`source` all steer that step; the rest control what is documented and how the pages look.
+Extraction runs [Griffe](https://mkdocstrings.github.io/griffe/) as a separate process. Griffe
+reads a package's source without importing it. The options `runner`, `docstringStyle`,
+`docstringOptions`, `extensions` and `source` control this step. The other options control what
+gets documented and how the pages look.
 
 ## Top-level options
 
@@ -79,21 +82,21 @@ source without importing it. `runner`, `docstringStyle`, `docstringOptions`, `ex
 | `cacheDir`         | `string`                              | `node_modules/.astro` | Directory for cached dumps, inventories and rendered prose.     |
 | `layout`           | `string`                              | built-in layout       | Integration only: the component that wraps generated pages.     |
 
-`injectStyles` has nothing to append to in a plain Astro project, so the integration ignores it;
-import `starlight-pydocs/styles` from your own layout instead. `layout` names that layout, as an
-import specifier or a path relative to the project root: the component receives `title`, `headings`
-and `description` props and renders the page body in its default slot (see
+A plain Astro project has no Starlight `customCss` to append to, so the integration ignores
+`injectStyles`. Import `starlight-pydocs/styles` from your own layout instead. `layout` names that
+layout, as an import specifier or a path relative to the project root. The component receives
+`title`, `headings` and `description` props, and renders the page body in its default slot (see
 [Vanilla Astro](/starlight-pydocs/guides/vanilla-astro/)).
 
-Turning `symbolSearch` off removes both the `symbols.json` endpoint and every rendered search box,
-including a hand-placed `<SymbolSearch />`, which renders nothing rather than a box that cannot
-search.
+Turning `symbolSearch` off removes the `symbols.json` endpoint and every rendered search box,
+including a hand-placed `<SymbolSearch />`. Rather than show a search box that cannot search, it
+renders nothing.
 
 ### Inventories
 
-A Sphinx inventory is the `objects.inv` file a documentation site publishes to say which URL
-documents which object. Each entry of `inventories` is either the `'python'` preset (CPython's
-inventory, based at `https://docs.python.org/3/`) or an object:
+A Sphinx inventory is the `objects.inv` file that a documentation site publishes. It maps each
+object to the URL that documents it. Each entry of `inventories` is either the `'python'` preset
+(CPython's inventory, based at `https://docs.python.org/3/`) or an object:
 
 | Field   | Type                                  | Default                        | What it does                                              |
 | ------- | ------------------------------------- | ------------------------------ | --------------------------------------------------------- |
@@ -135,15 +138,16 @@ Each entry of `packages` describes one Python package.
 | `sidebar`           | `{ label?, collapsed?, group? }`       | `{}`           | Sidebar presentation, Starlight only. See [Multiple packages](/starlight-pydocs/guides/multiple-packages/). |
 | `versions`          | `{ refs: { ref, label }[] }`           | none           | Badge objects with the release they appeared in. See [Version annotations](/starlight-pydocs/guides/version-annotations/). |
 
-`versions` extracts the package at past git refs, so it needs a checkout with history and is
-rejected alongside `source`: a pinned dump describes one release and carries no history to compare
-against. Document that release as its own `packages` entry instead.
+`versions` extracts the package at past git refs, so it needs a checkout with history. You cannot
+use it together with `source`, because a pinned dump describes one release and has no history to
+compare against. Document that release as its own `packages` entry instead.
 
 ### Search paths
 
-`search` points at the _parent_ of the package directory: `../src` for `../src/mypkg`. Paths are
-resolved against the Astro project root and may point outside it, which is what a `docs/`
-subdirectory needs. Leave the option unset only when the package sits in the project root.
+`search` points at the _parent_ of the package directory: use `../src` for `../src/mypkg`. Astro
+resolves these paths against the project root, and they may point outside it. This is what a
+`docs/` subdirectory needs. Leave the option unset only when the package sits in the project
+root.
 
 ```js title="astro.config.mjs" {2}
 packages: [
@@ -151,35 +155,35 @@ packages: [
 ];
 ```
 
-Each path becomes its own `-s` argument, so split sources need no other configuration. Everything
-under a search path is scanned to build the cache key, so a path pointing at unrelated code makes
-rebuild detection noisier than it needs to be.
+Each path becomes its own `-s` argument, so split sources need no other configuration. Building
+the cache key scans everything under a search path, so a path pointing at unrelated code can
+trigger unneeded rebuilds.
 
 ### Bases
 
-`base` may not be empty, may not be the site root, and may not overlap another package's base;
-`api/mypkg` and `api` together are rejected, because one would swallow the other's pages. Query
-strings, fragments and whitespace are rejected too. Names need not be unique: the same import name
-may be documented at several bases, one per release, as
-[Versioned docs](/starlight-pydocs/guides/versioned-docs/) describes.
+`base` cannot be empty, cannot be the site root, and cannot overlap another package's base. For
+example, `api/mypkg` and `api` together are rejected, because one would swallow the other's
+pages. `base` also cannot contain query strings, fragments or whitespace. Names need not be
+unique: the same import name can be documented at several bases, one per release.
+[Versioned docs](/starlight-pydocs/guides/versioned-docs/) describes this.
 
 ### Member selection
 
 `filters` defaults to `{ special: false, private: false, imported: false, inherited: true }`, and
 runs before `members`:
 
-- `special` documents dunder members such as `__init__` in their own right (its parameters are
+- `special` documents dunder members such as `__init__` as separate entries (their parameters are
   merged into the class signature either way).
 - `private` documents underscore-prefixed members.
-- `imported` documents members that are imports rather than definitions. Submodules are exempt:
-  they are navigation, so they get pages whether or not they are exported.
+- `imported` documents members that are imports rather than definitions. Submodules are an
+  exception: they act as navigation, so they get pages whether or not they are exported.
 - `inherited` merges the public members of resolvable base classes into a class, badged with the
   class they came from.
 
 A module that declares `__all__` overrides all of this for its own members, exactly as
-mkdocstrings does: the list _is_ the documented surface. `members.include` and `members.exclude`
-then apply on top, matching dotted paths with a small glob dialect where `*` matches inside one
-segment and `**` matches across segments:
+mkdocstrings does: the list defines the documented surface. `members.include` and
+`members.exclude` then apply on top. They match dotted paths with a small glob dialect: `*`
+matches inside one segment, and `**` matches across segments.
 
 ```js title="astro.config.mjs" {5-6}
 packages: [
@@ -192,15 +196,15 @@ packages: [
 ];
 ```
 
-`include`, when non-empty, is an allow-list: only matching objects are documented, plus the
-containers on the way to them.
+When `include` is non-empty, it acts as an allow-list. Only matching objects are documented, plus
+the containers on the way to them.
 
 ## How extraction is resolved
 
 Extraction picks the first strategy that applies, per package:
 
-1. `runner.command`: a full argv array. The dump arguments and `-o <file>` are appended, so pass
-   only the executable and its own arguments, for example
+1. `runner.command`: a full argv array. starlight-pydocs appends the dump arguments and
+   `-o <file>`, so pass only the executable and its own arguments, for example
    `['micromamba', 'run', '-n', 'docs', 'griffe']`.
 2. `source: { file }`: a dump already on disk. Nothing runs.
 3. `source: { url }`: a dump downloaded and cached.
@@ -209,30 +213,31 @@ Extraction picks the first strategy that applies, per package:
 5. `<interpreter> -m griffe`, for the first of `python3`, `python` (or `runner.python`) that can
    `import griffe`.
 
-When nothing works, the error lists every probe and its reason, along with the three ways to fix
-it: install `uv`, install griffe into the interpreter that runs the build, or point at a
-pre-generated dump.
+If nothing works, the error message lists every probe it tried and why each one failed. It also
+lists three ways to fix this: install `uv`, install griffe into the interpreter that runs the
+build, or point at a pre-generated dump.
 
-Whatever strategy runs, griffe is always invoked as `griffe dump -f -d <style>` with `-s` per
-search path. Both flags matter: without `-f` there are no file paths or visibility flags, and
-without `-d` docstrings arrive as unparsed text.
+Whatever strategy runs, starlight-pydocs always invokes griffe as `griffe dump -f -d <style>`,
+with `-s` per search path. Both flags matter. Without `-f`, griffe omits file paths and visibility
+flags. Without `-d`, docstrings arrive as unparsed text.
 
 ## Cache behaviour
 
-Dumps are written to `<cacheDir>/starlight-pydocs/<name>-<hash>/dump.json`. The hash covers
-everything that can change the output: the resolved argv, the docstring style and options, the
-extensions, and the path, size and mtime of every `.py` and `.pyi` file under the search paths
-(skipping `__pycache__`, `node_modules`, dot-directories and virtualenvs). Change any of them and
-the key changes, so a stale dump is never reused and there is nothing to invalidate by hand.
-Rebuilds that change nothing skip extraction entirely.
+starlight-pydocs writes dumps to `<cacheDir>/starlight-pydocs/<name>-<hash>/dump.json`. The hash
+covers everything that can change the output: the resolved argv, the docstring style and options,
+the extensions, and the path, size and mtime of every `.py` and `.pyi` file under the search paths
+(skipping `__pycache__`, `node_modules`, dot-directories and virtualenvs). If any of these change,
+the hash changes too, so a stale dump is never reused and you never need to invalidate the cache
+by hand. A rebuild that changes nothing skips extraction entirely.
 
-Dumps are never sent to the browser and never inlined into a virtual module: they are megabytes,
-and the only pydocs JSON a browser fetches is the small `symbols.json` index. The virtual module
-carries the validated configuration and the dump paths; the JSON is read from disk, server-side,
-once per process.
+Dumps are never sent to the browser, and never inlined into a virtual module, because they can be
+megabytes in size. The only pydocs JSON a browser fetches is the small `symbols.json` index. The
+virtual module carries the validated configuration and the dump paths. starlight-pydocs reads the
+dump JSON from disk, server-side, once per process.
 
-Remote artefacts (`source: { url }` and `inventories[].url`) are cached beside the dumps with
-their `ETag` and `Last-Modified`, and the `cache` option controls how they are revalidated:
+starlight-pydocs caches remote artefacts (`source: { url }` and `inventories[].url`) beside the
+dumps, along with their `ETag` and `Last-Modified` headers. The `cache` option controls how it
+revalidates them:
 
 | `cache`        | Behaviour                                                            |
 | -------------- | -------------------------------------------------------------------- |
@@ -240,17 +245,18 @@ their `ETag` and `Last-Modified`, and the `cache` option controls how they are r
 | `'force'`      | Uses any cached copy without contacting the server.                   |
 | `'bypass'`     | Always downloads.                                                     |
 
-If the network fails or the server answers with an error and a cached copy exists, the copy is
-used and a warning is logged: a docs build should not fail because a CDN blinked.
+If the network fails, or the server returns an error, and a cached copy exists, starlight-pydocs
+uses the cached copy and logs a warning. A docs build should not fail just because a CDN had a
+brief outage.
 
 `cacheDir` defaults to `node_modules/.astro`, which is where Astro keeps its own cache. Point it
 somewhere persistent if your CI caches a different directory. Pre-rendered docstring HTML lives
-beside the dump it belongs to, or under `<cacheDir>/starlight-pydocs/rendered/` when the dump is a
-file you own and we must not write next to. Dumps of configured
-[version refs](/starlight-pydocs/guides/version-annotations/) live under
+beside the dump it belongs to. If the dump is a file you own, starlight-pydocs cannot write next
+to it, so the HTML lives under `<cacheDir>/starlight-pydocs/rendered/` instead. Dumps of
+configured [version refs](/starlight-pydocs/guides/version-annotations/) live under
 `<cacheDir>/starlight-pydocs/versions/`, keyed by commit, and their worktrees under
 `<cacheDir>/starlight-pydocs/worktrees/`.
 
-In `astro dev`, the search paths are watched: saving a `.py` file re-extracts, re-renders the
-prose and triggers a reload. Packages configured with `source` are not watched, because nothing
-would be re-extracted.
+In `astro dev`, starlight-pydocs watches the search paths. Saving a `.py` file re-extracts the
+package, re-renders the prose, and triggers a reload. Packages configured with `source` are not
+watched, because there is nothing to re-extract.

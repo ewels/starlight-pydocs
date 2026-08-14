@@ -6,19 +6,19 @@ description: Render one Python class, function or module inside a page you wrote
 import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 import { Autodoc, SymbolSearch } from 'starlight-pydocs/components';
 
-Generated pages document a whole package, and they are the default. `<Autodoc>` covers the other
-case: a page you wrote yourself that needs one class or function in the middle of the prose,
-rendered exactly as the generated pages render it. It is mkdocstrings'
-`::: demopkg.generate_report` as a component, and
-[Migrating from mkdocstrings](/starlight-pydocs/guides/migration/) maps the rest of the directive
-onto props.
+Generated pages document a whole package. This is the default way to show your API reference.
+`<Autodoc>` covers a different case: a page you write by hand that needs one class or function in
+the middle of the text, rendered exactly as the generated pages render it. It is the component form
+of mkdocstrings' `::: demopkg.generate_report` directive.
+[Migrating from mkdocstrings](/starlight-pydocs/guides/migration/) maps the rest of the directive's
+options onto props.
 
 ## Put a block in a page
 
-The page has to be `.mdx`. A `.md` page cannot import a component, and that is the first thing
-that goes wrong; Starlight brings the MDX integration with it, so renaming the file is enough. A
-plain Astro project installs `@astrojs/mdx`, or writes the page as `.astro` and puts the import in
-the frontmatter fence.
+The page must be `.mdx`. A `.md` page cannot import a component. This is usually the first problem
+you hit. Starlight includes the MDX integration, so renaming the file is enough to fix it. A plain
+Astro project needs to install `@astrojs/mdx`. Alternatively, write the page as `.astro` and put
+the import in the frontmatter fence.
 
 ```mdx title="src/content/docs/reporting.mdx" {5-6,10-11}
 ---
@@ -36,12 +36,13 @@ The helper that writes one for you:
 Pass `fmt` when you want something other than Markdown.
 ```
 
-`name` takes either the path an object is documented at or the canonical path Griffe found the
-definition at; both reach the same object. `package` says which configured entry to read it from.
+`name` takes either the path an object is documented at, or the canonical path Griffe found the
+definition at. Both paths reach the same object. `package` says which configured entry to read it
+from.
 
-That same line sits on this page. Everything in the box below is what it renders — the heading, the
-signature, the parameter table and the return value all come from the function's own docstring, not
-from anything written here.
+That same line sits on this page. Everything in the box below is what it renders. The heading, the
+signature, the parameter table and the return value all come from the function's own docstring.
+None of it comes from anything written here.
 
 :::tip[Rendered output]
 
@@ -58,12 +59,12 @@ from anything written here.
 | `headingLevel` | `number`          | `2`                  | Heading depth for the object; members go deeper |
 | `labels`       | `StringOverrides` | site translations    | UI label overrides for this block alone         |
 
-A class or function brings its members with it, and naming a module renders the whole module the
-way a generated module page does, member summary and submodule list included. A module has no
-heading of its own there, so for a module `headingLevel` is the depth of its members.
+A class or function brings its members with it. Naming a module renders the whole module, the same
+way a generated module page does, including the member summary and submodule list. A module has no
+heading of its own here, so for a module, `headingLevel` sets the depth of its members.
 
-`labels` is how a page in a plain Astro site translates a block, and how a Starlight site changes
-one string in one place — see
+`labels` lets a page in a plain Astro site translate a block. It also lets a Starlight site change
+one string in one place. See
 [Internationalisation](/starlight-pydocs/guides/i18n/#without-starlight).
 
 ## Choosing the package
@@ -85,11 +86,11 @@ candidates listed:
 starlight-pydocs: <Autodoc name="demopkg.report.Report"> is ambiguous: 'demopkg' is documented at 2 bases. Set the package prop to one of these bases: 'api/demopkg', '1x/api/demopkg'.
 ```
 
-`package` also accepts a plain import name where that is unambiguous, and a base always wins over
+`package` also accepts a plain import name where that name is unambiguous. A base always wins over
 a name when both would match.
 
-A name that resolves to a package but not to an object in it fails the same way, which is usually
-a typo or a `members`/`filters` setting excluding the object from that entry:
+A name that resolves to a package, but not to an object in it, fails the same way. This is usually
+a typo, or a `members`/`filters` setting that excludes the object from that entry:
 
 ```text wrap
 starlight-pydocs: <Autodoc name="demopkg.report.Reprot"> is not documented at '/api/demopkg'. Check the spelling, or the members/filters options that may be excluding it.
@@ -97,8 +98,8 @@ starlight-pydocs: <Autodoc name="demopkg.report.Reprot"> is not documented at '/
 
 ## Heading levels
 
-`headingLevel` sets the depth of the object's own heading; its members go one level deeper. Use it
-to slot a block under a section of your own without breaking the document outline:
+`headingLevel` sets the depth of the object's own heading. Its members go one level deeper. Use it
+to place a block under a section of your own, without breaking the document outline:
 
 ```mdx title="src/content/docs/reporting.mdx" {5}
 ## Building a report
@@ -109,8 +110,8 @@ The helper that wires one together for you:
 ```
 
 Below is the same function as the block further up this page, rendered again at `headingLevel={5}`.
-Its heading is an `h5` rather than an `h2`, and its parameters sit at `h6` — everything else about
-the two blocks is identical.
+Its heading is an `h5` instead of an `h2`, and its parameters sit at `h6`. Everything else about the
+two blocks is identical.
 
 :::tip[Rendered output]
 
@@ -120,25 +121,26 @@ the two blocks is identical.
 
 ## Anchors and the table of contents
 
-Every heading a block emits has the dotted object path as its `id`, the same anchor scheme the
-generated pages and mkdocstrings use, so `#demopkg.generate_report` above is a working permalink.
+Every heading a block emits has the dotted object path as its `id`. This is the same anchor scheme
+the generated pages and mkdocstrings use, so `#demopkg.generate_report` above is a working
+permalink.
 
-Those headings do not reach Starlight's **On this page** panel: it is built from the Markdown
-headings of the page itself, and a component's output is not one of them. The panel beside this
-guide proves it — it lists `Heading levels`, not `demopkg.generate_report`. Add your own `##`
-heading above a block when you want a table of contents entry for it.
+Those headings do not reach Starlight's **On this page** panel. The panel is built from the
+Markdown headings of the page itself, and a component's output is not one of them. The panel
+beside this guide proves it: it lists `Heading levels`, not `demopkg.generate_report`. Add your own
+`##` heading above a block when you want a table of contents entry for it.
 
 The generated pages stay an object's canonical home either way.
 [Cross-references](/starlight-pydocs/guides/cross-references/) and the published `objects.inv` are
-built from the page plan, so `[Report][demopkg.report.Report]` in a docstring resolves to the
+built from the page plan. So `[Report][demopkg.report.Report]` in a docstring resolves to the
 generated `demopkg.report` page, never to a hand-placed copy of the same object.
 
 ## Symbol search
 
-`<SymbolSearch />` searches one package's API surface by name, client-side, from the `symbols.json`
-index the plugin publishes. It is on the generated package pages already; this is the same
-component placed by hand. It takes the same `package` prop — a base, or an unambiguous import
-name — and defaults to the first configured entry. [Search](/starlight-pydocs/guides/search/)
+`<SymbolSearch />` searches one package's API surface by name. It runs client-side, using the
+`symbols.json` index the plugin publishes. It is already on the generated package pages; this is
+the same component placed by hand. It takes the same `package` prop, a base or an unambiguous
+import name, and defaults to the first configured entry. [Search](/starlight-pydocs/guides/search/)
 covers the index, the ranking and the rest of its props.
 
 The box below searches `demopkg`. Type `generate`:

@@ -5,21 +5,19 @@ description: The --pyd-* custom properties, the cascade layer that lets your own
 
 import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-Every colour, corner radius and font on the generated pages goes through a `--pyd-*` custom
-property, so retinting the pages is a handful of property declarations. Anything the tokens do not
-cover is a normal CSS rule, and your rules win by default — see
-[Overriding rules](#overriding-rules).
+Every colour, corner radius and font on the generated pages uses a `--pyd-*` custom property. To
+retint the pages, set a handful of these properties. Anything the tokens do not cover is a normal
+CSS rule, and your rules win by default. See [Overriding rules](#overriding-rules).
 
-Swapping a whole renderer, so that signature blocks or member tables are built by an Astro
-component of your own, is a different mechanism:
-[Component overrides](/starlight-pydocs/guides/component-overrides/).
+To replace a whole renderer, for example to build signature blocks or member tables with your own
+Astro component, see [Component overrides](/starlight-pydocs/guides/component-overrides/) instead.
 
 ## Loading your stylesheet
 
-The plugin's stylesheet is `starlight-pydocs/styles`. Under Starlight the plugin appends it to
-Starlight's `customCss` for you; pass `injectStyles: false` if you would rather import it yourself.
+The plugin's stylesheet is `starlight-pydocs/styles`. Under Starlight, the plugin appends it to
+Starlight's `customCss` for you. Pass `injectStyles: false` if you want to import it yourself.
 
-Your own CSS goes in that same list, registered like any other Starlight custom stylesheet:
+Add your own CSS to that same list. Register it like any other Starlight custom stylesheet:
 
 ```js title="astro.config.mjs" {4}
 starlight({
@@ -29,7 +27,7 @@ starlight({
 });
 ```
 
-Both kinds of change live in that file. Retint by setting tokens; override by writing a rule:
+Both kinds of change go in that file. To retint, set tokens. To override, write a rule:
 
 ```css title="src/styles/custom.css" {5-10}
 :root {
@@ -57,18 +55,18 @@ import 'starlight-pydocs/styles';
 
 ## Overriding rules
 
-Every rule in the stylesheet is wrapped in `@layer starlight-pydocs`. Unlayered rules beat layered
-ones whatever their specificity, so a plain selector in your own stylesheet wins with no specificity
-fight and no `!important`. That is the whole trick, and it is worth knowing before you start
-escalating selectors that were already going to work.
+Every rule in the stylesheet is wrapped in `@layer starlight-pydocs`. An unlayered rule always beats
+a layered rule, whatever its specificity. So a plain selector in your own stylesheet wins, with no
+specificity fight and no `!important`. You do not need to increase selector specificity to override
+the plugin's styles.
 
-Keep your overrides unlayered and that holds however you load them. If you put your own rules in a
-cascade layer, the comparison changes: the plugin appends its stylesheet after your `customCss`
-entries, so its layer is declared last and later-declared layers win.
+Keep your overrides unlayered, and this holds however you load them. If you put your own rules in a
+cascade layer, the comparison changes. The plugin appends its stylesheet after your `customCss`
+entries, so its layer is declared last, and later-declared layers win.
 
-The one place it does not hold is inside Starlight's own `.sl-markdown-content`, where Starlight's
-unlayered rules apply too. There, give your rule enough specificity to beat Starlight's, exactly as
-the plugin's stylesheet does in the few places it must.
+One exception: inside Starlight's own `.sl-markdown-content`, Starlight's unlayered rules apply too.
+There, give your rule enough specificity to beat Starlight's. The plugin's stylesheet does the same
+in the few places it must.
 
 Class hooks are stable and prefixed `pyd-`. The ones worth knowing:
 
@@ -88,15 +86,16 @@ Class hooks are stable and prefixed `pyd-`. The ones worth knowing:
 | `.pyd-search…`                        | The symbol search element and its results                |
 | `.pyd-page`, `.pyd-toc`               | The built-in vanilla layout and its table of contents    |
 
-For anything selective, reach for the data attributes instead: they carry the model's own
-vocabulary, so `[data-pydocs-kind="class"]`, `[data-pydocs-path="mypkg.Report"]`,
+For anything more selective, use the data attributes instead. They use the model's own vocabulary:
+`[data-pydocs-kind="class"]`, `[data-pydocs-path="mypkg.Report"]`,
 `[data-pydocs-group="methods"]`, `[data-pydocs-section="parameters"]`,
-`[data-pydocs-badge="deprecated"]` and `[data-pydocs-aside="note"]` all say what they mean.
+`[data-pydocs-badge="deprecated"]` and `[data-pydocs-aside="note"]`.
 
 ## Tokens
 
 Set any of these on `:root`, or on a narrower selector to retint one part of the site. The values
-shown are the defaults: Starlight's token first, then a static fallback for sites without Starlight.
+shown are the defaults. Each uses Starlight's token first, then a static fallback for sites without
+Starlight.
 
 | Token               | Default                                   | Used for                                         |
 | ------------------- | ----------------------------------------- | ------------------------------------------------ |
@@ -119,33 +118,34 @@ shown are the defaults: Starlight's token first, then a static fallback for site
 | `--pyd-radius`      | `0.375rem`                                | Corner radius on signatures and inputs           |
 | `--pyd-mono`        | `var(--sl-font-mono, …)`                  | Every monospaced string                          |
 
-Because the defaults reference Starlight's tokens, a Starlight site that changes its accent colour
-changes the API pages with it. Retint one thing at a time when you do want to differ.
+Because the defaults reference Starlight's tokens, changing your site's accent colour also changes
+the API pages. To make the API pages differ, retint one token at a time.
 
 :::caution[Starlight's colour tokens are contrast tokens]
-`--sl-color-white` is _dark_ in light mode: the names describe contrast, not literal colours. That
-is why text on an accent background here is `--pyd-text-invert`, which defaults to Starlight's
-`--sl-color-black`, following the same pattern as Starlight's own LinkButton. Substituting a literal
-white breaks light mode.
+`--sl-color-white` is _dark_ in light mode: the token names describe contrast, not a literal colour.
+This is why text on an accent background here uses `--pyd-text-invert`, which defaults to
+Starlight's `--sl-color-black`. This follows the same pattern as Starlight's own LinkButton. If you
+substitute a literal white, light mode breaks.
 :::
 
 ## Dark mode
 
-Under Starlight there is nothing to do: the tokens follow `--sl-*`, which Starlight flips.
+Under Starlight, there is nothing to do. The tokens follow `--sl-*`, and Starlight flips those.
 
 Without Starlight, the stylesheet defines a dark palette twice, so both ways of choosing a theme
-work: under `@media (prefers-color-scheme: dark)` guarded by `:root:not([data-theme='light'])`, and
-under `:root[data-theme='dark']`. Set `data-theme="dark"` or `data-theme="light"` on `<html>` from
-your own theme toggle and the API pages follow; leave it unset and they follow the operating system.
+work: once under `@media (prefers-color-scheme: dark)`, guarded by
+`:root:not([data-theme='light'])`, and once under `:root[data-theme='dark']`. Set
+`data-theme="dark"` or `data-theme="light"` on `<html>` from your own theme toggle, and the API
+pages follow it. Leave it unset, and they follow the operating system.
 
 ## Code inside docstrings
 
-Fenced blocks and doctest transcripts in a docstring are highlighted by the site's own pipeline,
-because docstring prose renders through the Markdown processor your project configured. There is no
+The site's own pipeline highlights fenced blocks and doctest transcripts in a docstring, because
+docstring prose renders through the Markdown processor your project configured. There is no
 separate Shiki configuration here, and nothing to keep in sync.
 
-Under Starlight that means Expressive Code, so a docstring's code block gets the same frame, copy
-button and themes as a code block in a hand-written page. In a plain Astro project it is Shiki's
+Under Starlight, that means Expressive Code. A docstring's code block gets the same frame, copy
+button and themes as a code block in a hand-written page. In a plain Astro project, it is Shiki's
 `.astro-code` output, configured by `markdown.shikiConfig`:
 
 ```js title="astro.config.mjs" {4-5}
@@ -159,12 +159,12 @@ export default defineConfig({
 });
 ```
 
-Two themes with `defaultColor: false` emit both palettes as custom properties, which is what makes a
-single stylesheet work in light and dark. This site uses exactly that configuration.
+Two themes with `defaultColor: false` emit both palettes as custom properties. This is what lets a
+single stylesheet work in both light and dark. This site uses that configuration.
 
-Signatures are not Shiki output. They are built from the model so that every type can be a link, and
-they are styled with `.pyd-signature` and `.pyd-type` rather than syntax-highlighted. The trade is
-deliberate: a linked `dict[str, Report]` is worth more on an API page than token colours.
+Signatures are not Shiki output. The model builds them, so every type can be a link. They use
+`.pyd-signature` and `.pyd-type` styling instead of syntax highlighting. On an API page, a linked
+`dict[str, Report]` is more useful than coloured tokens.
 
 <CardGrid>
   <LinkCard

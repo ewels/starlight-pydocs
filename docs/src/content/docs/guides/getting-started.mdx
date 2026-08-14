@@ -5,12 +5,13 @@ description: Install starlight-pydocs and generate an API reference page for eve
 
 import { CardGrid, LinkCard, Steps, TabItem, Tabs } from '@astrojs/starlight/components';
 
-Name a Python package and the plugin generates an API reference page for each of its
-modules, wired into the Starlight sidebar as a tree mirroring the package layout and
-indexed by the site's own search like any other page. Extraction is done by
-[Griffe](https://mkdocstrings.github.io/griffe/), which reads the package's source files
-statically and never imports them, so the machine building your docs needs no working
-install of the package it documents.
+Name a Python package. The plugin generates an API reference page for each of its
+modules. The pages appear in the Starlight sidebar as a tree that mirrors the package
+layout, and the site's own search indexes them like any other page.
+
+[Griffe](https://mkdocstrings.github.io/griffe/) extracts the API. It reads the
+package's source files directly and never imports them. So the machine that builds
+your docs does not need a working install of the package it documents.
 
 ## Setup
 
@@ -44,13 +45,13 @@ install of the package it documents.
 
 2. Check that the build process can run Griffe.
 
-   By default, the plugin runs Griffe at site build time to understand your package.
-   The recommended method is to use [uv](https://docs.astral.sh/uv/):
-   the plugin will automatically use `uv` when it is available on your `PATH`, otherwise
-   falls back to running `python -m griffe`.
+   By default, the plugin runs Griffe at site build time to read your package.
+   We recommend [uv](https://docs.astral.sh/uv/) for this. The plugin uses `uv`
+   automatically when it is on your `PATH`. Otherwise, it falls back to
+   `python -m griffe`.
 
-   If you prefer, Griffe can be run separately and the plugin pointed at the JSON file
-   it writes. See [Without Python](#without-python) for more information.
+   You can also run Griffe separately and point the plugin at the JSON file it
+   writes. See [Without Python](#without-python) for more information.
 
    ```sh
    # Check if uv is available
@@ -88,14 +89,15 @@ install of the package it documents.
    });
    ```
 
-   Starlight reads its sidebar out of your config before the plugin has parsed a
-   package and knows what pages exist. `pydocsSidebarGroup` is an empty group that holds a
-   position in that tree; route middleware replaces it with the generated links as each
-   page renders. Put it wherever the API reference belongs.
+   Starlight reads the sidebar from your config before the plugin parses the package.
+   At that point, Starlight does not yet know what pages exist. `pydocsSidebarGroup` is
+   an empty group that holds a place in the tree. Route middleware replaces it with the
+   generated links when each page renders. Put it wherever you want the API reference
+   to appear.
 
-   `search` is the list of directories passed to `griffe --search`, relative to the Astro
-   project root. Point them at the _parent_ of the package directory: `../src` for
-   `../src/mypkg`.
+   `search` is the list of directories passed to `griffe --search`. It is relative to
+   the Astro project root. Point it at the _parent_ of the package directory: use
+   `../src` for `../src/mypkg`.
 
 4. Start the dev server.
 
@@ -103,24 +105,28 @@ install of the package it documents.
    npm run dev
    ```
 
-   `/api/mypkg/` now exists — the package's top-level module — with one page per submodule
-   below it, and the **API reference** group in the sidebar filled in. Every class,
-   function and attribute has an anchor named after its dotted path, so
-   `/api/mypkg/report/#mypkg.report.Report.generate` links straight at one method.
+   `/api/mypkg/` now exists. This page documents the package's top-level module, and
+   the plugin creates one page per submodule below it. The **API reference** group in
+   the sidebar is now filled in.
+
+   Every class, function and attribute has an anchor named after its dotted path. For
+   example, `/api/mypkg/report/#mypkg.report.Report.generate` links straight to one
+   method.
 
 </Steps>
 
-Each package also gets three files served next to its pages: `symbols.json` (the index
-behind [symbol search](/starlight-pydocs/guides/search/)), `objects.inv` (a Sphinx
-inventory, so [other projects can link into
-yours](/starlight-pydocs/guides/cross-references/)) and
-[`llms.txt`](/starlight-pydocs/guides/llms-txt/) (the whole surface as plain Markdown).
+Each package also gets three files, served next to its pages. `symbols.json` is the
+index behind [symbol search](/starlight-pydocs/guides/search/). `objects.inv` is a
+Sphinx inventory: it lets [other projects link into
+yours](/starlight-pydocs/guides/cross-references/). And
+[`llms.txt`](/starlight-pydocs/guides/llms-txt/) is the whole surface as plain
+Markdown.
 
 ## Docstring style
 
-Set this now if your docstrings are not google style — griffe parses one flavour per
-package and guesses nothing, so the wrong style leaves parameters and return values as
-undifferentiated prose.
+Set this now if your docstrings are not google style. Griffe parses one flavour per
+package and does not guess. The wrong style leaves parameters and return values as
+plain, undifferentiated prose.
 
 ```js title="astro.config.mjs" collapse={1-8, 18-23} "docstringStyle: 'numpy'"
 import starlight from '@astrojs/starlight';
@@ -148,17 +154,18 @@ export default defineConfig({
 });
 ```
 
-The default is `google`. `numpy` and `sphinx` are the alternatives, plus `auto`, which lets
-griffe guess per docstring — useful for a package whose docstrings disagree with each
-other. Which sections each style recognises is covered in
-[Docstring styles](/starlight-pydocs/guides/docstring-styles/).
+The default is `google`. `numpy` and `sphinx` are the alternatives. `auto` lets griffe
+guess the style per docstring: use it for a package whose docstrings disagree with
+each other. [Docstring styles](/starlight-pydocs/guides/docstring-styles/) covers
+which sections each style recognises.
 
 ## Linking to other projects
 
-Worth adding once the pages exist: type annotations that name something outside your
-package — `pathlib.Path`, a pandas `DataFrame` — render as plain text until you give the
-plugin a Sphinx inventory to resolve them against. An inventory is the `objects.inv` file
-most Python documentation sites publish, mapping object paths to page URLs.
+Add this once the pages exist. Type annotations that name something outside your
+package, such as `pathlib.Path` or a pandas `DataFrame`, render as plain text. To link
+them, give the plugin a Sphinx inventory to resolve them against. An inventory is the
+`objects.inv` file that most Python documentation sites publish. It maps object paths
+to page URLs.
 
 ```js title="astro.config.mjs" collapse={1-8, 17-22} {12-16}
 import starlight from '@astrojs/starlight';
@@ -185,15 +192,18 @@ export default defineConfig({
 });
 ```
 
-`inventories` is a top-level option, shared by every package. `'python'` is a preset for
-the CPython standard library; any other project that publishes an `objects.inv` works too,
-by URL or as a local file. `base` is the URL the inventory's relative links resolve
-against, and defaults to the `objects.inv` URL with its last segment removed — set it
-explicitly for a local file, which has no URL to derive it from.
+`inventories` is a top-level option, shared by every package. `'python'` is a preset
+for the CPython standard library. Any other project that publishes an `objects.inv`
+file works too, by URL or as a local file.
+
+`base` is the URL that the inventory's relative links resolve against. It defaults to
+the `objects.inv` URL with its last segment removed. Set it explicitly for a local
+file, because a local file has no URL to derive it from.
 
 ## Source links
 
-Give the plugin your forge and every documented object links to the lines it is defined on.
+Give the plugin your forge. Then every documented object links to the lines where it
+is defined.
 
 ```js title="astro.config.mjs" collapse={1-8, 23-28} {15-20}
 import starlight from '@astrojs/starlight';
@@ -226,24 +236,25 @@ export default defineConfig({
 });
 ```
 
-`host` is `github`, `gitlab` or `bitbucket`. `root` is the directory the paths in the URL
-are relative to: set it to your repository root when the Astro project is a subdirectory,
-as it is for a `docs/` site. A URL template covers forges without a preset — see
-[Source links](/starlight-pydocs/guides/source-links/).
+`host` is `github`, `gitlab` or `bitbucket`. `root` is the directory that the paths in
+the URL are relative to. Set it to your repository root when the Astro project is a
+subdirectory, as it is for a `docs/` site. For forges without a preset, use a URL
+template instead. See [Source links](/starlight-pydocs/guides/source-links/).
 
 ## Without Python
 
-If the build machine has no Python at all, or you would rather not run extraction on every
-docs build, generate the dump where the package already lives. Run in the Python project,
-this writes exactly the JSON the plugin would have produced for itself:
+If the build machine has no Python, or you would rather not run extraction on every
+docs build, generate the dump where the package already lives. Run this in the Python
+project. It writes exactly the JSON that the plugin would otherwise produce itself:
 
 ```sh
 griffe dump -f -d google --search src mypkg -o mypkg.json
 ```
 
-Publish `mypkg.json` from the Python project's CI, then fetch it into your Astro project
-before the docs build — as `api/mypkg.json` below, a path resolved against the Astro
-project root. The package entry points at that copy instead of a search path:
+Publish `mypkg.json` from the Python project's CI. Then fetch it into your Astro
+project before the docs build. The example below uses `api/mypkg.json`, a path
+resolved against the Astro project root. The package entry then points at that copy
+instead of a search path:
 
 ```diff lang="js"
  packages: [
@@ -252,9 +263,9 @@ project root. The package entry points at that copy instead of a search path:
  ];
 ```
 
-`source: { url: '…' }` fetches it instead, revalidating the cached copy with its `ETag`
-rather than re-downloading on every build. [Pre-generated
-dumps](/starlight-pydocs/guides/pregenerated-dumps/) has the CI side of this.
+`source: { url: '…' }` fetches it instead. It revalidates the cached copy with its
+`ETag`, so it does not re-download on every build. [Pre-generated
+dumps](/starlight-pydocs/guides/pregenerated-dumps/) covers the CI side of this.
 
 <CardGrid>
   <LinkCard

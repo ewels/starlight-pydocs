@@ -36,34 +36,35 @@ starlightPydocs({
 });
 ```
 
-One page per module at `/api/mypkg/`, a sidebar tree mirroring the package layout, plus
-`symbols.json`, `objects.inv` and `llms.txt`.
+This generates one page per module at `/api/mypkg/`, a sidebar tree that mirrors the
+package layout, and `symbols.json`, `objects.inv` and `llms.txt`.
 
 ## What you get
 
 <CardGrid>
   <Card title="Generated pages" icon="list-format">
-    One page per module, injected into the site's routes, with a sidebar tree and
-    prev/next links that mirror the package layout.
+    This injects one page per module into the site's routes. Each page gets a sidebar
+    tree and prev/next links that mirror the package layout.
   </Card>
   <Card title="Autodoc component" icon="puzzle">
     `<Autodoc name="mypkg.Report" />` renders a single class or function into a
     hand-written MDX page.
   </Card>
   <Card title="Symbol search" icon="magnifier">
-    Search the API surface by object path, on top of the site's existing prose search.
+    Search the API surface by object path. This works alongside the site's existing
+    prose search.
   </Card>
   <Card title="Docstring sections" icon="document">
     Google, numpy or sphinx style: parameters, returns, raises, examples, admonitions and
-    deprecations, rendered by your site's own Markdown pipeline.
+    deprecations. Your site's own Markdown pipeline renders them.
   </Card>
   <Card title="No Python at build time" icon="setting">
     Point the plugin at a dump your CI published and the site builds without an
     interpreter.
   </Card>
   <Card title="Linked signatures" icon="link">
-    Names in an annotation link to their definition on your own pages or, through a Sphinx
-    inventory, to another project's documentation.
+    Names in an annotation link to their definition. The link points to your own pages,
+    or, through a Sphinx inventory, to another project's documentation.
   </Card>
   <Card title="Inherited members" icon="code-branch">
     Merged from resolvable base classes and labelled with the class they came from.
@@ -77,9 +78,9 @@ One page per module at `/api/mypkg/`, a sidebar tree mirroring the package layou
 ## Coming from mkdocstrings
 
 `starlight-pydocs` is the Starlight counterpart of
-[mkdocstrings-python](https://mkdocstrings.github.io/python/) and keeps its conventions
-where they make sense. Heading anchors are dotted object paths, `__all__` selects the
-documented surface, `::: name` becomes `<Autodoc name="…" />`.
+[mkdocstrings-python](https://mkdocstrings.github.io/python/). It keeps mkdocstrings'
+conventions where they make sense. Heading anchors are dotted object paths. `__all__`
+selects the documented surface. `::: name` becomes `<Autodoc name="…" />`.
 
 <LinkButton href="/starlight-pydocs/guides/migration/" variant="secondary">
   Read the migration guide
@@ -88,11 +89,11 @@ documented surface, `::: name` becomes `<Autodoc name="…" />`.
 ## Reading this site with a language model
 
 These docs are published as plain Markdown alongside the HTML.
-[`/llms.txt`](/starlight-pydocs/llms.txt) indexes the site,
-[`/llms-full.txt`](/starlight-pydocs/llms-full.txt) is every guide in one file, and each
-documented package publishes its own API surface the same way — for example
-[`/api/demopkg/llms.txt`](/starlight-pydocs/api/demopkg/llms.txt). Point an agent at those
-rather than asking it to crawl the rendered pages.
+[`/llms.txt`](/starlight-pydocs/llms.txt) indexes the site.
+[`/llms-full.txt`](/starlight-pydocs/llms-full.txt) contains every guide in one file.
+Each documented package publishes its own API surface the same way, for example
+[`/api/demopkg/llms.txt`](/starlight-pydocs/api/demopkg/llms.txt). Point an agent at
+these files instead of asking it to crawl the rendered pages.
 
 ## Where to go next
 

@@ -7,7 +7,7 @@ import { FileTree, Steps } from '@astrojs/starlight/components';
 
 `starlight-pydocs/astro` is an ordinary Astro integration. It injects the same generated pages,
 renders the same components and serves the same `symbols.json`, `objects.inv` and `llms.txt` as the
-Starlight plugin. What it cannot hand you is Starlight's shell.
+Starlight plugin. It cannot give you Starlight's shell.
 
 ## What changes without Starlight
 
@@ -15,15 +15,15 @@ The generated pages, every component, the search index, the Sphinx inventory and
 unchanged. Two things do not:
 
 - **No full-text search.** Pagefind belongs to Starlight, so nothing indexes the prose of the
-  generated pages. The [symbol search](/starlight-pydocs/guides/search/) box is independent of
-  Starlight and still appears on each package's root page automatically, but it matches object names
-  rather than prose.
-- **No sidebar and no prev/next links.** Both are built from Starlight's route data, which a plain
-  Astro site has no equivalent of. Build navigation yourself from the `symbols.json` endpoint or the
+  generated pages. The [symbol search](/starlight-pydocs/guides/search/) box does not depend on
+  Starlight. It still appears automatically on each package's root page, but it matches object names,
+  not prose.
+- **No sidebar and no prev/next links.** Both come from Starlight's route data, and a plain Astro
+  site has no equivalent. Build your own navigation from the `symbols.json` endpoint or the
   [Content Layer loader](#the-content-layer-loader): every object carries the page slug it is
   documented on and its heading anchor.
 
-`@astrojs/starlight` is an optional peer dependency, and nothing in this integration's module graph
+`@astrojs/starlight` is an optional peer dependency. Nothing in this integration's module graph
 imports it, so you never have to install it.
 
 ## Set it up
@@ -39,11 +39,11 @@ imports it, so you never have to install it.
 2. Make sure that Griffe is available in your system's Python, or that
    [uv](https://docs.astral.sh/uv/) is installed.
 
-   If you prefer, Griffe can be run separately and the plugin pointed at the JSON file
-   it writes. See [Without Python](../getting-started/#without-python) for more information.
+   If you prefer, run Griffe separately and point the plugin at the JSON file it writes. See
+   [Without Python](/starlight-pydocs/guides/getting-started/#without-python) for more information.
 
-3. Add the integration. The import is `starlight-pydocs/astro`: the package's default export is a
-   Starlight plugin, which is not an Astro integration and does not belong in `integrations`.
+3. Add the integration. The import is `starlight-pydocs/astro`. The package's default export is a
+   Starlight plugin, not an Astro integration, so it does not belong in `integrations`.
 
    ```js title="astro.config.mjs" {2}
    import { defineConfig } from 'astro/config';
@@ -65,9 +65,10 @@ imports it, so you never have to install it.
 </Steps>
 
 Every option is the same as the Starlight plugin's, listed in
-[Configuration](/starlight-pydocs/guides/configuration/), with one addition and one that does
-nothing. `layout` names a component of your own to wrap the generated pages. `injectStyles` is
-ignored, because a plain Astro project has no `customCss` for the integration to append to.
+[Configuration](/starlight-pydocs/guides/configuration/). This integration adds one option and
+disables another. `layout` names a component of your own to wrap the generated pages.
+`injectStyles` has no effect here, because a plain Astro project has no `customCss` for the
+integration to append to.
 
 ## Where the files go
 
@@ -99,15 +100,16 @@ import 'starlight-pydocs/styles';
 ---
 ```
 
-The stylesheet stands alone: its `--pyd-*` tokens fall back to static values when Starlight's
-`--sl-*` tokens are absent, and it carries its own dark palette for both `prefers-color-scheme` and
-an explicit `data-theme="dark"` on `<html>`. See [Theming](/starlight-pydocs/guides/theming/).
+The stylesheet works without Starlight. Its `--pyd-*` tokens fall back to static values when
+Starlight's `--sl-*` tokens are absent. It carries its own dark palette for both
+`prefers-color-scheme` and an explicit `data-theme="dark"` on `<html>`. See
+[Theming](/starlight-pydocs/guides/theming/).
 
 ## The built-in layout
 
-Generated pages render through a deliberately minimal layout: a document, a content column, a table
-of contents built from the same headings the model produced, and the stylesheet. It is enough to
-read, and it is not trying to be your site.
+Generated pages render through a minimal built-in layout: a document, a content column, a table of
+contents built from the same headings the model produced, and the stylesheet. This layout lets you
+read the docs. It is not a full site design.
 
 Pass `layout` to use your own component instead, as a path relative to the project root or a package
 specifier:
@@ -170,15 +172,14 @@ const { title, headings, description } = Astro.props;
 </html>
 ```
 
-`slug` is the dotted object path, which is also the heading's `id`, so a table of contents is a list
-of `#slug` links and nothing more. `depth` is 2 for a module's own members and 3 for the members
-of a class.
+`slug` is the dotted object path. It is also the heading's `id`, so a table of contents is just a
+list of `#slug` links. `depth` is 2 for a module's own members and 3 for the members of a class.
 
 ## Any markdown processor
 
 Docstring prose renders through whatever `markdown.processor` your project resolves to, and the
-package depends on neither engine. Astro 7.1 and later default to Sätteri; a project pinned to the
-unified pipeline for mermaid or a remark plugin works just as well:
+package depends on neither engine. Astro 7.1 and later default to Sätteri. A project pinned to the
+unified pipeline, for mermaid or a remark plugin, works just as well:
 
 ```js title="astro.config.mjs" {7}
 import { unified } from '@astrojs/markdown-remark';
@@ -200,7 +201,7 @@ is. On Astro 7.0.x, where `markdown.processor` does not exist yet, install
 
 ## Components in your own pages
 
-`<Autodoc>` documents one object wherever you put it, and `<SymbolSearch>` is the search box the
+`<Autodoc>` documents one object wherever you put it. `<SymbolSearch>` is the search box the
 generated root pages use. Both work in a hand-written page:
 
 ```astro title="src/pages/index.astro" {9}
@@ -215,17 +216,17 @@ import 'starlight-pydocs/styles';
 <Autodoc name="mypkg.build" headingLevel={3} labels={{ parameters: 'Args', returns: 'Yields' }} />
 ```
 
-There is no Starlight translation table for the components to read, which is why every label is a
+There is no Starlight translation table for the components to read. That is why every label is a
 prop. Each label resolves from `labels` first, then from a translation function on `Astro.locals` if
-you set one, then from the bundled English default. The generated pages are rendered by the route
-rather than by you, so setting `Astro.locals.t` in middleware is how you translate those; see
+you set one, then from the bundled English default. The route renders the generated pages, not you,
+so you translate those pages by setting `Astro.locals.t` in middleware. See
 [Internationalisation](/starlight-pydocs/guides/i18n/#without-starlight).
 
 ## The Content Layer loader
 
 `starlight-pydocs/loader` exposes the same model as data, one collection entry per documented
-object, for pages that want to list, filter or tabulate the surface rather than render it. It runs
-the same extraction, so a site can use both and they agree.
+object. Use it to list, filter or tabulate the surface instead of rendering it. It runs the same
+extraction, so a site can use both the loader and the integration and get matching results.
 
 ```ts title="src/content.config.ts"
 import { defineCollection } from 'astro:content';
@@ -238,8 +239,8 @@ export const collections = {
 };
 ```
 
-`pydocsLoader` takes the per-package options plus `runner`, `cacheDir` and `projectRoot`, so a
-collection can read a pre-generated dump (`source: { file: './dumps/mypkg.json' }`) while the
+`pydocsLoader` takes the per-package options plus `runner`, `cacheDir` and `projectRoot`. This lets
+a collection read a pre-generated dump (`source: { file: './dumps/mypkg.json' }`) while the
 integration extracts, or the other way round.
 
 Each entry's `id` is the object's dotted path, and its data is typed:

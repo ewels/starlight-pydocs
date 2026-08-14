@@ -1,25 +1,25 @@
 ---
 title: Component overrides
-description: Replace any of the nine Astro components that render the API pages with one of your own, everywhere it is used.
+description: Replace any of the nine Astro components that render the API pages with your own version, everywhere it is used.
 ---
 
 import { CardGrid, FileTree, LinkCard } from '@astrojs/starlight/components';
 
-The generated pages are Astro components rendering a normalised model of your package, and nine of
-them can be replaced with components of your own. Reach for this when you need different markup: an
-extra badge in every signature, or a warning above every abstract class. If what you want is
-different colours or spacing, [Theming](/starlight-pydocs/guides/theming/) does that with CSS and no
-components at all.
+The generated pages are Astro components. Each one renders a normalised model of your package, and
+you can replace nine of them with your own components. Do this when you need different markup: an
+extra badge in every signature, or a warning above every abstract class. If you only want different
+colours or spacing, use [Theming](/starlight-pydocs/guides/theming/) instead. Theming needs CSS and
+no components.
 
-An override applies everywhere its component is used: the generated pages, the
+An override applies everywhere its component is used. This includes the generated pages, the
 [`<Autodoc>`](/starlight-pydocs/guides/autodoc/) blocks you embed in hand-written pages, and other
 overrides.
 
 ## Registering an override
 
 Name the component and point at a file. A value starting with `.`, or an absolute path, resolves
-against the Astro project root; anything else is passed through as a package specifier, so an
-override can ship from your own npm package.
+against the Astro project root. Any other value is passed through as a package specifier. This lets
+an override ship from your own npm package.
 
 ```js title="astro.config.mjs" {3-6}
 starlightPydocs({
@@ -45,17 +45,17 @@ The components themselves can live anywhere in your project. This page keeps the
 
 </FileTree>
 
-An unknown component name is a configuration error that lists the nine, so a typo fails the build
-instead of being ignored.
+An unknown component name causes a configuration error, and the error message lists the nine valid
+names. This way, a typo fails the build instead of being ignored.
 
 ## Wrapping the built-in component
 
 The built-in components are exported from `starlight-pydocs/components`, so an override can add to
-one rather than reimplement it. Importing the original there is safe: it bypasses the override
+one rather than reimplement it. Importing the original there is safe. It bypasses the override
 mechanism, so there is no loop.
 
-So a useful override can be an import, the markup you are adding, and one line handing the rest
-back. Here that is a warning above every abstract class:
+A useful override often needs only three things: an import, the markup you add, and one line that
+hands the rest back. Here, the override adds a warning above every abstract class:
 
 ```astro title="src/components/pydocs/ClassDoc.astro" {2, 15, 18-22}
 ---
@@ -83,12 +83,12 @@ const isAbstract = doc.labels.includes('abstract');
 <ClassDoc doc={doc} scope={scope} labels={labels} />
 ```
 
-The last line hands everything else back to the built-in renderer, `labels` included, so the class
-bodies keep rendering exactly as they did.
+The last line hands everything else back to the built-in renderer, including `labels`. This keeps
+the class bodies rendering exactly as they did before.
 
 Overrides are compiled by your own project, so `astro check` covers them. Declare the props exactly
-as listed below: that is what makes the check meaningful, because an override with a missing prop
-then fails at build time rather than rendering a blank block.
+as listed below. Then the check is meaningful: an override with a missing prop fails at build time
+instead of rendering a blank block.
 
 ## The nine components
 
@@ -105,8 +105,8 @@ then fails at build time rather than rendering a blank block.
 | `Heading`           | An anchor heading with its permalink                                    | `level`, `id`, `class?`, `labels?`, default slot |
 
 Everything else is fixed. The object heading, badges, provenance line and deprecation notice come
-from `ObjectDoc`, which also owns the recursion into members; `<Autodoc>` and `<SymbolSearch>` are
-entry points rather than pieces. Style those with CSS instead.
+from `ObjectDoc`, which also handles the recursion into members. `<Autodoc>` and `<SymbolSearch>`
+are entry points, not pieces you can replace. Style those with CSS instead.
 
 ## The props
 
@@ -134,7 +134,7 @@ are most likely to use:
 | `resolver`    | Annotation name resolver, wired to the site's inventories                      |
 | `rendered`    | Pre-rendered docstring HTML, keyed by canonical path and section index         |
 
-`labels` is a `StringOverrides` object that any component may be handed to override individual
+`labels` is a `StringOverrides` object. You can pass it to any component to override individual
 strings. Pass it down so overrides keep working through your component.
 
 `starlight-pydocs/render` exports the helpers the built-in components use, so an override rarely has
@@ -144,7 +144,8 @@ to compute anything itself: `hrefForPath`, `hrefForTarget`, `pageHref`, `package
 ## Replacing a component outright
 
 When the built-in markup is not the starting point you want, declare the same props and render
-whatever you like. Say the `View source` link should carry a forge icon and open in a new tab:
+whatever you like. For example, make the `View source` link carry a forge icon and open in a new
+tab:
 
 ```astro title="src/components/pydocs/SourceLink.astro" {18-19}
 ---
