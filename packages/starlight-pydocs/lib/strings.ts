@@ -74,7 +74,7 @@ export const STRINGS = {
   searchPlaceholder: 'Search classes, functions, attributes…',
   searchNoResults: 'No matching symbols',
   searchResults: 'Results',
-  searchHint: 'Type part of a name, or a dotted path',
+  searchHint: 'Type part of a name or a dotted path',
 
   // Page furniture.
   /** Accessible name of an anchor heading's link, followed by the object path. */
@@ -83,7 +83,7 @@ export const STRINGS = {
   overview: 'Overview',
   onPage: 'On this page',
   noMembers: 'No documented members.',
-  undocumented: 'No description provided.',
+  undocumented: 'No description.',
 } as const;
 
 export type StringKey = keyof typeof STRINGS;

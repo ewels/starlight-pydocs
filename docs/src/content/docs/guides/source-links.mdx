@@ -92,10 +92,9 @@ per component with `labels={{ viewSource: 'Source' }}`.
 
 Griffe 2 records a `source_link` per object: a blob URL at the commit it extracted from, derived
 from the repository's own git remote. When no `sourceLink` is configured, that link is used as-is.
-It is convenient and it needs nothing from you, with two caveats: it is pinned to the commit that
-was checked out when the dump was made, and it only exists when griffe ran inside a git checkout
-with a recognisable remote, so a pre-generated dump from someone else's CI may or may not carry
-one.
+It needs nothing from you, with two caveats: it is pinned to the commit that was checked out when
+the dump was made, and it only exists when griffe ran inside a git checkout with a recognisable
+remote, so a pre-generated dump from someone else's CI may or may not carry one.
 
 Configure `sourceLink` when you want links that follow a branch or a tag, or when you want them to
 point somewhere other than the remote griffe happened to see.

@@ -9,9 +9,9 @@ built for names rather than prose.
 ## Prose search
 
 Under Starlight, generated pages render the standard page shell, so
-[Pagefind](https://pagefind.app/) indexes them with no configuration at all. Searching for a
-sentence from a docstring finds the module page it belongs to, and the result links into the page
-like any other. This site's end-to-end suite asserts it: a search for `generate_report` finds
+[Pagefind](https://pagefind.app/) indexes them with no configuration. Searching for a sentence
+from a docstring finds the module page it belongs to, and the result links into the page like any
+other. This site's end-to-end suite asserts it: a search for `generate_report` finds
 `/api/demopkg/`.
 
 Two things follow from Pagefind indexing whole pages:
@@ -28,7 +28,7 @@ A plain Astro site has no Pagefind unless you add it, and the symbol search belo
 ## Symbol search
 
 Prose search answers "where is this explained"; symbol search answers "where is `Report.generate`".
-It is on by default, and it consists of two pieces: an index endpoint and a custom element.
+It is on by default and has two pieces: an index endpoint and a custom element.
 
 The endpoint is served next to each package's pages at `<base>/symbols.json`, and it is the only
 pydocs JSON a browser ever fetches:

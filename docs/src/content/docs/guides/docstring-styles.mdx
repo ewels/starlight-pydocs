@@ -111,7 +111,7 @@ package brings along. Whatever your site does to its own Markdown (the theme, th
 Starlight registers, a mermaid plugin you added, GFM tables, smart quotes) happens to docstring
 prose too, so an API page reads like the rest of the site.
 
-Two consequences worth knowing:
+Two consequences:
 
 - Rendering happens once per build, at `astro:config:done`, after every integration has finished
   configuring the pipeline. The HTML lands in a sidecar file beside the cached dump, so no markdown
