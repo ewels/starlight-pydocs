@@ -164,6 +164,11 @@ test('a long attribute value is line-broken and folds without breaking its links
   const fold = page.locator('.pyd-fold').filter({ has: block });
   const input = fold.locator('.pyd-fold-input');
   const toggle = fold.locator('.pyd-fold-toggle');
+  // Both labels are always in the markup; CSS shows the one that applies. Assert
+  // on visibility, not on the label's text: `toHaveText` reads `textContent`,
+  // which happily returns the hidden one too ("Show moreShow less").
+  const showMore = toggle.locator('[data-pydocs-fold="more"]');
+  const showLess = toggle.locator('[data-pydocs-fold="less"]');
 
   // Black's rule: the outer dict is too wide for one line so every item gets
   // its own, and an inner dict that fits stays whole.
@@ -173,13 +178,15 @@ test('a long attribute value is line-broken and folds without breaking its links
   // Collapsed, the block is clamped but its first line — the name and the type
   // — is still on the page. That is why this is not a <details>.
   await expect(input).not.toBeChecked();
-  await expect(toggle).toHaveText('Show more');
+  await expect(showMore).toBeVisible();
+  await expect(showLess).toBeHidden();
   const clamped = (await block.boundingBox())?.height ?? 0;
   expect(clamped).toBeLessThan(await block.evaluate((el) => el.scrollHeight));
 
   await toggle.click();
   await expect(input).toBeChecked();
-  await expect(toggle).toHaveText('Show less');
+  await expect(showLess).toBeVisible();
+  await expect(showMore).toBeHidden();
   expect((await block.boundingBox())?.height ?? 0).toBeGreaterThan(clamped);
 
   // The reason for the checkbox: inside a <summary>, clicking a cross-reference
