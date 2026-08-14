@@ -9,6 +9,7 @@ First release, still in development.
 ### Fixes (pre-release)
 
 - A dump's `source_link` and absolute URIs in Sphinx inventories are scheme-checked before becoming links, so a hostile input cannot plant a `javascript:` href on a page.
+- Version annotations resolve a package's search paths before comparing them with the repository root, so a checkout reached through a symlink (a symlinked home or work directory, `/tmp` and `/var` on macOS) is no longer reported as lying outside its own repository.
 - Symbol search now gives each result a unique option id, so `aria-activedescendant` follows the highlighted option instead of always naming the first one.
 - `objects.inv` parsing finds the end of the header on the raw bytes rather than decoded text, so an inventory whose project name contains multi-byte characters decompresses correctly.
 - The generated sidebar rebuilds after a dev-server re-extraction instead of staying stale until restart: the navigation cache is now keyed by each package's dump path.

@@ -15,6 +15,7 @@
  * The diff itself is pure and lives in `lib/versions.ts`.
  */
 
+import { realpathSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -147,13 +148,31 @@ async function materialiseWorktree(
   return directory;
 }
 
-/** The package's search paths, as paths inside a worktree. */
+/** A path with its symlinks resolved, left as it is when it does not exist. */
+function resolveSymlinks(target: string): string {
+  try {
+    return realpathSync(target);
+  } catch {
+    return target;
+  }
+}
+
+/**
+ * The package's search paths, as paths inside a worktree.
+ *
+ * Search paths are resolved before they are compared with the root: git reports
+ * the toplevel with every symlink resolved, while a search path comes from the
+ * config as it was written. Without this, a checkout reached through a symlink
+ * (`/tmp` and `/var` on macOS, a symlinked home or work directory anywhere)
+ * looks like it lies outside its own repository.
+ */
 export function rebaseSearchPaths(pkg: PydocsPackageConfig, repositoryRoot: string, worktree: string): string[] {
-  return pkg.search.map((searchPath) => {
+  return pkg.search.map((configured) => {
+    const searchPath = resolveSymlinks(configured);
     const relative = path.relative(repositoryRoot, searchPath);
     if (relative === '' || relative.startsWith('..') || path.isAbsolute(relative)) {
       throw new PydocsError(
-        `starlight-pydocs: the search path ${searchPath} of '${pkg.name}' is outside the repository ` +
+        `starlight-pydocs: the search path ${configured} of '${pkg.name}' is outside the repository ` +
           `${repositoryRoot}, so it cannot be extracted at a git ref; move it inside the repository or drop the ` +
           'versions option',
       );

@@ -74,6 +74,10 @@ describe.skipIf(!available)('version annotations from a git repository', () => {
     await git('init', '--quiet');
     await git('config', 'user.email', 'test@example.com');
     await git('config', 'user.name', 'Test');
+    // Signing is inherited from the user's global config otherwise, and a signed
+    // tag is an annotated tag, which fails without a message.
+    await git('config', 'commit.gpgsign', 'false');
+    await git('config', 'tag.gpgsign', 'false');
     await fs.mkdir(path.dirname(module), { recursive: true });
 
     await fs.writeFile(module, V1);
