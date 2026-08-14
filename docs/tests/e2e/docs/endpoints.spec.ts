@@ -77,3 +77,14 @@ test('llms.txt renders the whole API surface as Markdown', async ({ request }) =
   expect(sphinx.startsWith('# sphpkg')).toBe(true);
   expect(sphinx).toContain('## sphpkg.submit');
 });
+
+test('every page points at a share card that exists', async ({ page, request }) => {
+  await page.goto('guides/theming/');
+  const card = page.locator('meta[property="og:image"]');
+  await expect(card).toHaveAttribute('content', /\/starlight-pydocs\/og\/guides\/theming\.png$/);
+  expect((await request.get('og/guides/theming.png')).status()).toBe(200);
+
+  // Generated API pages have no card of their own, so they get the site one.
+  await page.goto('api/demopkg/');
+  await expect(card).toHaveAttribute('content', /\/starlight-pydocs\/og\/index\.png$/);
+});

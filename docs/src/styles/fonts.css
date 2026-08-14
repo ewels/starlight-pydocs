@@ -1,0 +1,11 @@
+/* Michroma is the face the logotype was outlined in, reused for page titles. It
+   ships one weight, so headings drop to 400 rather than faking a bold. */
+@import '@fontsource/michroma/400.css';
+
+h1#_top,
+.hero h1 {
+  font-family: Michroma, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(1.5rem, 1rem + 1.8vw, 2.1rem);
+  line-height: 1.3;
+}

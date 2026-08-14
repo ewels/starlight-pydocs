@@ -42,6 +42,9 @@ export default defineConfig({
         replacesTitle: true,
       },
       favicon: '/favicon.svg',
+      // Adds the `og:image` tags for the generated share cards.
+      components: { Head: './src/components/Head.astro' },
+      customCss: ['./src/styles/fonts.css'],
       social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/ewels/starlight-pydocs' }],
       plugins: [
         starlightPydocs({
