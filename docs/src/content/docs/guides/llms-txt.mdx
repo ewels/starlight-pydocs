@@ -152,3 +152,32 @@ If you want the same information as structured data instead of Markdown, use the
 [Content Layer loader](/starlight-pydocs/guides/vanilla-astro/#the-content-layer-loader). It
 exposes one entry per documented object, with its path, kind, brief, signature and page. Use it to
 build a table, a cheat sheet, or your own index.
+
+## Listing the generated pages
+
+Site-wide features that iterate over pages — share card images, a custom index, an extra sitemap —
+build their list from your content collection. The generated pages are injected routes, so they are
+not in it. Ask the plugin for them instead:
+
+```ts title="src/pages/og/[...route].ts" {2,5}
+import { getCollection } from 'astro:content';
+import { listPydocsPages } from 'starlight-pydocs/pages';
+import context from 'virtual:starlight-pydocs/context';
+
+const generated = await listPydocsPages(context);
+// [{ base: 'api/demopkg', slug: 'api/demopkg/report',
+//    title: 'demopkg.report', description: 'Report classes and the …' }, …]
+
+const pages = {
+  ...Object.fromEntries((await getCollection('docs')).map((entry) => [entry.id, entry.data])),
+  ...Object.fromEntries(generated.map((page) => [page.slug, page])),
+};
+```
+
+The `slug` is the page's path within your site, with the package base already on the front, so it
+works as a route key and as a URL. The `description` is the module's first docstring line, which is
+also what the page itself uses for its `<meta name="description">` and OpenGraph description.
+
+This site generates its own share cards this way. The
+[`astro-og-canvas`](https://github.com/delucis/astro-og-canvas) route reads both lists, and a
+`Head` component override points each page at its image.

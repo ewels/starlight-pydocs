@@ -84,7 +84,13 @@ test('every page points at a share card that exists', async ({ page, request }) 
   await expect(card).toHaveAttribute('content', /\/starlight-pydocs\/og\/guides\/theming\.png$/);
   expect((await request.get('og/guides/theming.png')).status()).toBe(200);
 
-  // Generated API pages have no card of their own, so they get the site one.
-  await page.goto('api/demopkg/');
-  await expect(card).toHaveAttribute('content', /\/starlight-pydocs\/og\/index\.png$/);
+  // Generated pages get one too, through `listPydocsPages`, with the module's
+  // docstring summary as the description.
+  await page.goto('api/demopkg/report/');
+  await expect(card).toHaveAttribute('content', /\/starlight-pydocs\/og\/api\/demopkg\/report\.png$/);
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+    'content',
+    'Report classes and the functions that build them.',
+  );
+  expect((await request.get('og/api/demopkg/report.png')).status()).toBe(200);
 });

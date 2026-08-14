@@ -25,6 +25,7 @@ import {
   modelOptionsFor,
 } from '../lib/data.ts';
 import { buildInventory } from '../lib/inventory.ts';
+import { listPydocsPages } from '../libs/pages.ts';
 import { fixturePath } from './helpers.ts';
 
 let workspace: string;
@@ -430,5 +431,28 @@ describe('version release links', () => {
       starlight: true,
     });
     expect(context.packages[0]?.versionReleases).toEqual({});
+  });
+});
+
+describe('listPydocsPages', () => {
+  test('lists every generated page with its site path and module summary', async () => {
+    const context = await contextFor();
+    const pages = await listPydocsPages(context);
+
+    expect(pages.map((page) => page.slug)).toEqual([
+      'api/demopkg',
+      'api/demopkg/compat',
+      'api/demopkg/models',
+      'api/demopkg/report',
+      'api/demopkg/utils',
+    ]);
+    // The slug is what a route builds a URL from, so it carries the base; the
+    // description is the module's first docstring line, for meta tags and cards.
+    expect(pages.find((page) => page.slug === 'api/demopkg/report')).toEqual({
+      base: 'api/demopkg',
+      slug: 'api/demopkg/report',
+      title: 'demopkg.report',
+      description: 'Report classes and the functions that build them.',
+    });
   });
 });

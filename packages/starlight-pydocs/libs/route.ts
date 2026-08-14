@@ -9,6 +9,7 @@
 import type { PydocsContext, PydocsPackageContext } from '../lib/context.ts';
 import { packageForSlug } from '../lib/context.ts';
 import { getModel } from '../lib/data.ts';
+import { listPydocsPages } from './pages.ts';
 import type { RenderScope } from '../lib/render.ts';
 import { createRenderScope } from '../lib/render.ts';
 import { PydocsError } from '../lib/errors.ts';
@@ -32,17 +33,11 @@ export interface PydocsRoute {
 
 /** One route per module page of every configured package. */
 export async function getPydocsStaticPaths(context: PydocsContext): Promise<PydocsRoute[]> {
-  const routes: PydocsRoute[] = [];
-  for (const pkg of context.packages) {
-    const model = await getModel(context, pkg.base);
-    for (const page of model.pages) {
-      routes.push({
-        params: { pydocsSlug: page.slug },
-        props: { pydocsBase: pkg.base, pydocsSlug: page.slug },
-      });
-    }
-  }
-  return routes;
+  const pages = await listPydocsPages(context);
+  return pages.map((page) => ({
+    params: { pydocsSlug: page.slug },
+    props: { pydocsBase: page.base, pydocsSlug: page.slug },
+  }));
 }
 
 /**

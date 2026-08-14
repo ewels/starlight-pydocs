@@ -1,6 +1,8 @@
 import { getCollection } from 'astro:content';
 import { OGImageRoute } from 'astro-og-canvas';
 import sharp from 'sharp';
+import { listPydocsPages } from 'starlight-pydocs/pages';
+import context from 'virtual:starlight-pydocs/context';
 
 // CanvasKit only decodes bitmaps, so the SVG logotype is rasterised once per
 // build rather than checked in as a second copy that could drift.
@@ -9,13 +11,17 @@ const logo = 'node_modules/.astro/og-logotype.png';
 // detail of the mark survives the downscale instead of aliasing.
 await sharp('src/assets/logotype-dark.svg', { density: 288 }).resize({ width: 960 }).png().toFile(logo);
 
+// Keyed by the page's path within the site, which is the collection entry id for
+// hand-written pages and `listPydocsPages` for the injected API reference pages.
+// `src/components/Head.astro` derives the same key from the URL.
 const entries = await getCollection('docs');
+const generated = await listPydocsPages(context);
 
-// ponytail: content collection pages only. The generated API reference pages are
-// injected routes this module cannot enumerate, so they fall back to the site
-// card in `src/components/Head.astro`.
 export const { getStaticPaths, GET } = await OGImageRoute({
-  pages: Object.fromEntries(entries.map((entry) => [entry.id, entry.data])),
+  pages: {
+    ...Object.fromEntries(entries.map((entry) => [entry.id, entry.data])),
+    ...Object.fromEntries(generated.map((page) => [page.slug, page])),
+  },
 
   getImageOptions: (_path, page) => ({
     title: page.title,

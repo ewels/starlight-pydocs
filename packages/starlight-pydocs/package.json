@@ -35,6 +35,7 @@
     "./loader": "./loader.ts",
     "./components": "./components/index.ts",
     "./render": "./lib/render.ts",
+    "./pages": "./libs/pages.ts",
     "./styles": {
       "types": "./styles.d.ts",
       "default": "./styles.css"

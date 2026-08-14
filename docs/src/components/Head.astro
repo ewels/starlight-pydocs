@@ -1,16 +1,21 @@
 ---
 // Starlight emits every OpenGraph tag except the image, so the generated card
-// from `src/pages/og/[...route].ts` is added here. Pages with no generated card
-// (the injected API reference routes) get the site one.
+// from `src/pages/og/[...route].ts` is added here. The card is keyed by the
+// page's path within the site; anything with no card of its own (the 404 page)
+// gets the site one.
 import Default from '@astrojs/starlight/components/Head.astro';
 import { getCollection } from 'astro:content';
+import { listPydocsPages } from 'starlight-pydocs/pages';
+import context from 'virtual:starlight-pydocs/context';
 
-const ids = new Set((await getCollection('docs')).map((entry) => entry.id));
-const { id } = Astro.locals.starlightRoute;
-const image = new URL(
-  `${import.meta.env.BASE_URL}/og/${ids.has(id) ? id : 'index'}.png`.replace(/\/{2,}/g, '/'),
-  Astro.site,
-);
+const cards = new Set([
+  ...(await getCollection('docs')).map((entry) => entry.id),
+  ...(await listPydocsPages(context)).map((page) => page.slug),
+]);
+
+const base = import.meta.env.BASE_URL;
+const path = Astro.url.pathname.slice(base.length).replace(/^\/|\/$/g, '') || 'index';
+const image = new URL(`${base}/og/${cards.has(path) ? path : 'index'}.png`.replace(/\/{2,}/g, '/'), Astro.site);
 ---
 
 <Default><slot /></Default>

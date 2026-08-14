@@ -10,9 +10,11 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 - Signatures are syntax highlighted with the host's Shiki themes. The cross-reference links survive the pass, so a linked name keeps the accent colour while everything around it is coloured by the grammar.
 - Links to another documentation site open in a new tab, carry a dashed underline to set them apart from same-site links, and name their host in the tooltip. Links to this site's own objects show the target's one-line summary instead.
 - Version labels link to the release page on GitHub, GitLab or Bitbucket, derived from the `sourceLink` preset.
+- `starlight-pydocs/pages` exports `listPydocsPages(context)`, which returns the path, title and summary of every generated page. Injected routes are invisible to code that enumerates content collection entries, so this is how a site builds share cards, a custom index or anything else per page.
 
 ### Changed
 
+- Generated pages under Starlight now carry the module's first docstring line as their page description, so each has its own `<meta name="description">` and OpenGraph description instead of the site-wide one. Vanilla Astro pages already did.
 - "Added in" moved off the heading and into the provenance row, beside the source link, and reads as `Added in v1.9` rather than as a badge.
 
 ### Fixed
