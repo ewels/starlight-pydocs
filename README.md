@@ -26,22 +26,31 @@ page per module. Extraction is static analysis, so nothing is imported and nothi
 It is the Starlight
 counterpart of [mkdocstrings-python](https://mkdocstrings.github.io/python/) and follows its conventions where possible.
 
+<h3 align="center">
+
+Documentation and examples: [ewels.github.io/starlight-pydocs](https://ewels.github.io/starlight-pydocs) 📚
+
+</h3>
+
 ## Features
 
-- 📄 **Generated pages** — one page per module, injected into the site's routes, with a sidebar tree and prev/next links
-  that mirror the package layout
-- 🎯 **Autodoc component** — `<Autodoc name="mypkg.Report" />` renders a single class or function into a hand-written
+- 📄 **Generated pages**
+  - One page per module, injected into the site's routes, with a sidebar tree and prev/next links that mirror the package layout
+- 🎯 **Autodoc component**
+  - `<Autodoc name="mypkg.Report" />` renders a single class or function into a hand-written
   MDX page
-- 🔍 **Symbol search** — search the API surface by object path, on top of the site's existing prose search
-- 📝 **Docstring sections** — google, numpy or sphinx style: parameters, returns, raises, examples, admonitions and
-  deprecations, rendered by your site's own Markdown pipeline
-- 🐍 **No Python at build time** — point the plugin at a dump your CI published and the site builds without an
-  interpreter
-- 🔗 **Linked signatures** — names in an annotation link to their definition on your own pages or, through a Sphinx
-  inventory, to another project's documentation
-- 🧬 **Inherited members** — merged from resolvable base classes and labelled with the class they came from
-- 📚 **Inventory and llms.txt** — `objects.inv` and `llms.txt` per package, so other documentation sites and language
-  models can consume yours
+- 🔍 **Symbol search**
+  - Search the API surface by object path, on top of the site's existing prose search
+- 📝 **Docstring sections**
+  - Google, numpy or sphinx style: parameters, returns, raises, examples, admonitions and deprecations, rendered by your site's own Markdown pipeline
+- 🐍 **Autogenerate at build time, or supply JSON**
+  - Point the plugin at a dump your CI published and the site builds without a Python interpreter
+- 🔗 **Linked signatures**
+  - Names in an annotation link to their definition on your own pages or, through a Sphinx inventory, to another project's documentation
+- 🧬 **Inherited members**
+  - Merged from resolvable base classes and labelled with the class they came from
+- 📚 **Inventory and llms.txt**
+  - `objects.inv` and `llms.txt` per package, so other documentation sites and language models can consume yours
 
 ## Installation
 
@@ -120,12 +129,15 @@ import { Autodoc } from 'starlight-pydocs/components';
 The **[documentation site](https://ewels.github.io/starlight-pydocs)** documents three example Python packages with the
 plugin, so every API page on it is also a live demo of the output.
 
-- [Getting started](https://ewels.github.io/starlight-pydocs/guides/getting-started/) — install, configure, build
-- [Examples](https://ewels.github.io/starlight-pydocs/examples/) — one package per docstring style, rendered end to end
-- [Configuration](https://ewels.github.io/starlight-pydocs/guides/configuration/) — every option, with defaults
-- [Migrating from mkdocstrings](https://ewels.github.io/starlight-pydocs/guides/migration/) — for an existing Python
-  project
-- [llms.txt](https://ewels.github.io/starlight-pydocs/llms.txt) — the whole site as Markdown, for language models
+<div align="center">
+
+[Getting started](https://ewels.github.io/starlight-pydocs/guides/getting-started/) &nbsp; | &nbsp;
+[Examples](https://ewels.github.io/starlight-pydocs/examples/) &nbsp; | &nbsp;
+[Configuration](https://ewels.github.io/starlight-pydocs/guides/configuration/) &nbsp; | &nbsp;
+[Migrating from mkdocstrings](https://ewels.github.io/starlight-pydocs/guides/migration/) &nbsp; | &nbsp;
+[llms.txt for AI models](https://ewels.github.io/starlight-pydocs/llms.txt)
+
+</div>
 
 ## License
 
