@@ -1,91 +1,126 @@
 ---
 title: Internationalisation
-description: The bundled locales, how Starlight picks one, and label props for sites without Starlight.
+description: Translate the plugin's UI labels — through Starlight's translation tables, or through label props on a site without Starlight.
 ---
 
-Every label the pages render (section headings, badges, table columns, the search box, the
-permalink hint) comes from a translation table. Thirteen languages ship with the package, and
-nothing needs configuring to use them.
+Every label the generated pages render — section headings such as **Parameters** and
+**Returns**, badges, table columns, the search box, the permalink hint — comes from a
+translation table rather than from your docstrings. Thirteen languages ship with the
+package and nothing needs configuring to use them.
+
+Which mechanism translates them depends on the host. Under Starlight the labels come from
+Starlight's own translation system, and the plugin injects its tables into it. A plain
+Astro project has no translation system to inject into, so the components take a `labels`
+prop instead — that is why `<Autodoc>`, `<SymbolSearch>` and the rest have label props at
+all.
 
 ## Bundled locales
 
-| Locale  | Language              | Locale  | Language            |
-| ------- | --------------------- | ------- | ------------------- |
-| `en`    | English (the source)  | `nl`    | Dutch               |
-| `de`    | German                | `no`    | Norwegian (Bokmål)  |
-| `es`    | Spanish               | `pt-BR` | Portuguese (Brazil) |
-| `fr`    | French                | `ru`    | Russian             |
-| `it`    | Italian               | `sv`    | Swedish             |
-| `ja`    | Japanese              | `zh`    | Chinese (simplified) |
-| `ko`    | Korean                |         |                     |
+| Locale  | Language             | Locale  | Language             |
+| ------- | -------------------- | ------- | -------------------- |
+| `en`    | English (the source) | `nl`    | Dutch                |
+| `de`    | German               | `no`    | Norwegian (Bokmål)   |
+| `es`    | Spanish              | `pt-BR` | Portuguese (Brazil)  |
+| `fr`    | French               | `ru`    | Russian              |
+| `it`    | Italian              | `sv`    | Swedish              |
+| `ja`    | Japanese             | `zh`    | Chinese (simplified) |
+| `ko`    | Korean               |         |                      |
 
-Each locale overlays only the keys it translates, and English fills any gap, so a string added in a
-new release is readable everywhere from the day it lands.
+Each locale overlays only the keys it translates, and English fills any gap, so a string
+added in a new release is readable everywhere from the day it lands.
 
-Labels that name a Python or pydantic construct are deliberately left in English in every locale:
-`classmethod`, `staticmethod`, `async`, `abstract`, `cached`, `pydantic model`, `pydantic field` and
-`pydantic validator` are the identifiers a reader sees in the code, and translating them would name
-something that does not exist.
+Labels that name a Python or pydantic construct are deliberately left in English in every
+locale: `classmethod`, `staticmethod`, `async`, `abstract`, `cached`, `pydantic model`,
+`pydantic field` and `pydantic validator` are the identifiers a reader sees in the code,
+and translating them would name something that does not exist.
 
 ## In a Starlight site
 
-The plugin injects its tables through Starlight's `i18n:setup` hook, so labels follow Starlight's
-own locale selection with no extra configuration. A site with `locales` configured serves each
-locale's pages with that locale's labels; a monolingual site with `defaultLocale: 'fr'` gets French
-labels throughout.
+The plugin injects its tables through Starlight's `i18n:setup` hook, so labels follow
+Starlight's own locale selection with no extra configuration. A site with `locales`
+configured serves each locale's pages with that locale's labels; a monolingual site with
+`defaultLocale: 'fr'` gets French labels throughout.
 
-```js
-// astro.config.mjs
-starlight({
-  title: 'Mon projet',
-  defaultLocale: 'fr',
-  locales: { fr: { label: 'Français' }, en: { label: 'English' } },
-  plugins: [starlightPydocs({ packages: [{ name: 'mypkg', search: ['../src'] }] })],
+```js title="astro.config.mjs" {9-10}
+import starlight from '@astrojs/starlight';
+import { defineConfig } from 'astro/config';
+import starlightPydocs from 'starlight-pydocs';
+
+export default defineConfig({
+  integrations: [
+    starlight({
+      title: 'Mon projet',
+      defaultLocale: 'fr',
+      locales: { fr: { label: 'Français' }, en: { label: 'English' } },
+      plugins: [starlightPydocs({ packages: [{ name: 'mypkg', search: ['../src'] }] })],
+    }),
+  ],
 });
 ```
 
-Generated pages themselves are not translated: there is one set of API pages, built from one dump,
-and they carry the labels of whichever locale the reader is browsing. The docstrings are your
-package's, in whatever language you wrote them.
+Generated pages themselves are not translated: there is one set of API pages, built from
+one dump, and they carry the labels of whichever locale the reader is browsing. The
+docstrings are your package's, in whatever language you wrote them.
 
 ### Changing or adding a string
 
-The keys share Starlight's global translation table, namespaced `starlightPydocs.`, so overriding
-one is the same as overriding any Starlight string:
+The keys share Starlight's global translation table, namespaced `starlightPydocs.`, so
+overriding one is the same as overriding any Starlight string. Starlight reads those
+overrides from an `i18n` collection, which a site that has never translated anything will
+not have declared yet:
 
-```js
-// src/content/i18n/fr.json
+```ts title="src/content.config.ts" {7} "i18nLoader" "i18nSchema"
+import { docsLoader, i18nLoader } from '@astrojs/starlight/loaders';
+import { docsSchema, i18nSchema } from '@astrojs/starlight/schema';
+import { defineCollection } from 'astro:content';
+
+export const collections = {
+  docs: defineCollection({ loader: docsLoader(), schema: docsSchema() }),
+  i18n: defineCollection({ loader: i18nLoader(), schema: i18nSchema() }),
+};
+```
+
+One JSON file per locale then overrides whichever keys you name. The schema accepts keys
+it does not know about, so plugin keys need no extra declaration:
+
+```json title="src/content/i18n/fr.json"
 {
   "starlightPydocs.parameters": "Arguments",
   "starlightPydocs.viewSource": "Voir le code"
 }
 ```
 
-The same file is how you add a locale the package does not ship yet. If you translate a full set,
-a pull request adding it to `translations.ts` is welcome. See
+The same file is how you add a locale the package does not ship yet. If you translate a
+full set, a pull request adding it to `translations.ts` is welcome. See
 [Contributing](/starlight-pydocs/guides/contributing/).
 
 ## Without Starlight
 
-There is no translation table to inject into a plain Astro project, so every component takes a
-`labels` prop instead. It wins over everything, which also makes it the way to override one string
-in one place inside a Starlight site:
+A plain Astro project has no translation table to inject into, so every component that
+renders a label takes a `labels` prop carrying whichever keys you want to override. The prop
+wins over everything else, which also makes it the way to override one string in one place
+inside a Starlight site:
 
-```astro
+```astro title="src/pages/report.astro"
 ---
 import { Autodoc, SymbolSearch } from 'starlight-pydocs/components';
 ---
 
-<Autodoc name="mypkg.Report" labels={{ parameters: 'Arguments', returns: 'Retourne', viewSource: 'Voir le code' }} />
-<SymbolSearch labels={{ searchLabel: 'Rechercher un symbole', searchPlaceholder: 'Classes, fonctions, attributs…' }} />
+<Autodoc
+  name="mypkg.Report"
+  labels={{ parameters: 'Arguments', returns: 'Retourne', viewSource: 'Voir le code' }}
+/>
+<SymbolSearch
+  labels={{ searchLabel: 'Rechercher un symbole', searchPlaceholder: 'Classes, fonctions, attributs…' }}
+/>
 ```
 
-The generated pages of a vanilla site are rendered by the route rather than by you, so there is no
-`labels` prop to pass them. They read a translation function off `Astro.locals` instead (the same
-mechanism Starlight's `t()` arrives through), so one middleware translates every generated page:
+The generated pages of a vanilla site are rendered by the route rather than by you, so
+there is no `labels` prop to pass them. They read a translation function off
+`Astro.locals` instead — the same mechanism Starlight's `t()` arrives through — so one
+middleware translates every generated page:
 
-```ts
-// src/middleware.ts
+```ts title="src/middleware.ts" {10}
 import { defineMiddleware } from 'astro:middleware';
 
 const fr: Record<string, string> = {
@@ -100,14 +135,13 @@ export const onRequest = defineMiddleware((context, next) => {
 });
 ```
 
-Keys are namespaced exactly as in a Starlight table, and returning the key unchanged means "no
-translation", which falls back to English. Without such a middleware, a vanilla site's generated
-pages use the English defaults.
+Keys are namespaced exactly as in a Starlight table, and returning the key unchanged means
+"no translation", which falls back to English. Without such a middleware, a vanilla site's
+generated pages use the English defaults.
 
 `locals.t` is your own addition to `App.Locals`, so declare it once for the type-checker:
 
-```ts
-// src/env.d.ts
+```ts title="src/env.d.ts"
 declare namespace App {
   interface Locals {
     t: (key: string) => string;
@@ -118,19 +152,110 @@ declare namespace App {
 ## The keys
 
 Resolution order for every label is: the `labels` prop, then the host's translation for
-`starlightPydocs.<key>`, then the bundled English default. The keys are grouped by what they label:
+`starlightPydocs.<key>`, then the bundled English default below. `lib/strings.ts` in the
+package is the authoritative list, and the unit tests check that every locale's keys exist
+in it.
 
-- Member groups: `attributes`, `properties`, `classes`, `functions`, `methods`, `modules`,
-  `typeAliases`.
-- Docstring sections: `parameters`, `otherParameters`, `typeParameters`, `returns`, `yields`,
-  `receives`, `raises`, `warns`, `examples`.
-- Signatures and metadata: `bases`, `default`, `required`, `inheritedFrom`,
-  `reexportedFrom`, `aliasOf`, `deprecated`, `deprecatedSince`, `addedIn`, `viewSource`.
-- Table columns: `columnName`, `columnType`, `columnDescription`, `columnDefault`.
-- Kinds and labels: `kindModule`, `kindClass`, `kindFunction`, `kindMethod`, `kindAttribute`,
-  `kindProperty`, `kindAlias`, and the `label*` badges.
-- Search: `searchLabel`, `searchPlaceholder`, `searchNoResults`, `searchResults`, `searchHint`.
-- Page furniture: `permalink`, `overview`, `onPage`, `noMembers`, `undocumented`.
+**Member group headings**, for the sections listing what a module or class contains:
 
-`lib/strings.ts` in the package is the authoritative list, and the unit tests check that every
-locale's keys exist in it.
+| Key           | English default |
+| ------------- | --------------- |
+| `attributes`  | Attributes      |
+| `properties`  | Properties      |
+| `classes`     | Classes         |
+| `functions`   | Functions       |
+| `methods`     | Methods         |
+| `modules`     | Modules         |
+| `typeAliases` | Type aliases    |
+
+**Docstring section headings**, one per section Griffe parses out of a docstring:
+
+| Key               | English default  |
+| ----------------- | ---------------- |
+| `parameters`      | Parameters       |
+| `otherParameters` | Other parameters |
+| `typeParameters`  | Type parameters  |
+| `returns`         | Returns          |
+| `yields`          | Yields           |
+| `receives`        | Receives         |
+| `raises`          | Raises           |
+| `warns`           | Warns            |
+| `examples`        | Examples         |
+
+**Signature and member metadata:**
+
+| Key               | English default  |
+| ----------------- | ---------------- |
+| `bases`           | Bases            |
+| `default`         | default          |
+| `required`        | required         |
+| `inheritedFrom`   | Inherited from   |
+| `reexportedFrom`  | Re-exported from |
+| `aliasOf`         | Alias of         |
+| `deprecated`      | Deprecated       |
+| `deprecatedSince` | Deprecated since |
+| `addedIn`         | Added in         |
+| `viewSource`      | View source      |
+
+**Table columns**, used by the parameter and attribute tables:
+
+| Key                 | English default |
+| ------------------- | --------------- |
+| `columnName`        | Name            |
+| `columnType`        | Type            |
+| `columnDescription` | Description     |
+| `columnDefault`     | Default         |
+
+**Object kinds**, for badges and for grouping symbol search results:
+
+| Key             | English default |
+| --------------- | --------------- |
+| `kindModule`    | module          |
+| `kindClass`     | class           |
+| `kindFunction`  | function        |
+| `kindMethod`    | method          |
+| `kindAttribute` | attribute       |
+| `kindProperty`  | property        |
+| `kindAlias`     | alias           |
+
+**Badges** for the labels Griffe attaches to an object. The first five and the three
+pydantic ones are the constructs named above, translated in no locale:
+
+| Key                      | English default    |
+| ------------------------ | ------------------ |
+| `labelClassmethod`       | classmethod        |
+| `labelStaticmethod`      | staticmethod       |
+| `labelAsync`             | async              |
+| `labelAbstract`          | abstract           |
+| `labelCached`            | cached             |
+| `labelReadOnly`          | read-only          |
+| `labelWritable`          | writable           |
+| `labelInstanceAttribute` | instance attribute |
+| `labelClassAttribute`    | class attribute    |
+| `labelModuleAttribute`   | module attribute   |
+| `labelPydanticModel`     | pydantic model     |
+| `labelPydanticField`     | pydantic field     |
+| `labelPydanticValidator` | pydantic validator |
+
+**Symbol search**, the plugin's own search box — see
+[Search](/starlight-pydocs/guides/search/):
+
+| Key                 | English default                        |
+| ------------------- | -------------------------------------- |
+| `searchLabel`       | Search symbols                         |
+| `searchPlaceholder` | Search classes, functions, attributes… |
+| `searchNoResults`   | No matching symbols                    |
+| `searchResults`     | Results                                |
+| `searchHint`        | Type part of a name or a dotted path   |
+
+**Page furniture**, the strings around the objects rather than on them. `permalink` is the
+accessible name of an anchor heading's link and is followed by the object path; `overview`
+is the sidebar link to a package's root page:
+
+| Key            | English default        |
+| -------------- | ---------------------- |
+| `permalink`    | Permalink to           |
+| `overview`     | Overview               |
+| `onPage`       | On this page           |
+| `noMembers`    | No documented members. |
+| `undocumented` | No description.        |

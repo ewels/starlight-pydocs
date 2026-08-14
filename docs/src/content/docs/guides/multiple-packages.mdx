@@ -1,69 +1,18 @@
 ---
 title: Multiple packages
-description: Document several Python packages in one site, each with its own base and sidebar placement.
+description: Document several Python packages in one site, each with its own URL base and its own sidebar section.
 ---
 
-One plugin instance documents any number of packages. Each entry gets its own pages, its own
+import { CardGrid, FileTree, LinkCard } from '@astrojs/starlight/components';
+
+One plugin instance documents any number of packages: the members of a monorepo, a package plus
+its plugins, or one package at several released versions. Each entry gets its own pages, its own
 `symbols.json`, `objects.inv` and `llms.txt`, and its own sidebar group.
 
-```js
-starlightPydocs({
-  packages: [
-    { name: 'mypkg', search: ['../src'] },
-    { name: 'mypkg_plugins', search: ['../plugins/src'], docstringStyle: 'numpy' },
-    { name: 'legacy', base: 'api/legacy', source: { file: './dumps/legacy.json' } },
-  ],
-});
-```
-
-Options are per package, so a monorepo whose packages disagree about docstring style, extensions or
-source links is not a problem. Only the top-level options (inventories, the endpoint switches,
-component overrides, the cache directory) are shared.
-
-This documentation site is built this way: `demopkg` (google style, extracted with a griffe
-extension), `numpkg` (numpy style), `sphpkg` (sphinx style, from a pre-generated dump) and a second
-`demopkg` entry pinned to an archived dump all come from one plugin instance.
-
-## Bases must not overlap
-
-Each package needs a distinct base, and no base may contain another's. `api/mypkg` and
-`api/mypkg_plugins` are fine; `api` and `api/mypkg` are rejected, because pages of one would land
-inside the other's page tree:
-
-```
-packages[1].base: 'api/mypkg' overlaps packages[0].base ('api'); give each package a distinct base
-```
-
-The base, not the name, identifies an entry: the same import name may appear several times as long
-as each entry has its own base, which is how
-[several versions of one package](/starlight-pydocs/guides/versioned-docs/) are documented in one
-build. Where a name is documented once, it still resolves on its own in `<Autodoc>` and
-`<SymbolSearch>`; where it is documented twice, those props take the base instead.
-
-## Sidebar placement
-
-By default every package's tree replaces the shared `pydocsSidebarGroup` placeholder, in
-configuration order:
-
-```js
+```js title="astro.config.mjs" {12-14}
+import starlight from '@astrojs/starlight';
+import { defineConfig } from 'astro/config';
 import starlightPydocs, { pydocsSidebarGroup } from 'starlight-pydocs';
-
-starlight({
-  plugins: [starlightPydocs({ packages: [{ name: 'mypkg', search: ['../src'] }, { name: 'legacy', source: { file: './dumps/legacy.json' } }] })],
-  sidebar: [
-    { label: 'Guides', autogenerate: { directory: 'guides' } },
-    { label: 'API reference', items: [pydocsSidebarGroup] },
-  ],
-});
-```
-
-To put one package somewhere else, give it a placeholder of its own with
-`createPydocsSidebarGroup()` and hand that placeholder to the package as `sidebar.group`:
-
-```js
-import starlightPydocs, { createPydocsSidebarGroup, pydocsSidebarGroup } from 'starlight-pydocs';
-
-const legacyApi = createPydocsSidebarGroup();
 
 export default defineConfig({
   integrations: [
@@ -72,46 +21,177 @@ export default defineConfig({
       plugins: [
         starlightPydocs({
           packages: [
-            { name: 'mypkg', search: ['../src'] },
-            { name: 'legacy', base: 'api/legacy', source: { file: './dumps/legacy.json' }, sidebar: { group: legacyApi } },
+            { name: 'mycore', search: ['../packages/core/src'] },
+            { name: 'myplugins', search: ['../packages/plugins/src'], docstringStyle: 'numpy' },
+            { name: 'legacy', base: 'api/legacy', source: { file: './dumps/legacy.json' } },
+          ],
+        }),
+      ],
+      sidebar: [{ label: 'API reference', items: [pydocsSidebarGroup] }],
+    }),
+  ],
+});
+```
+
+That builds `/api/mycore/`, `/api/myplugins/` and `/api/legacy/`, and puts all three trees under
+one **API reference** section in the sidebar. Almost every option is per package, so packages that
+disagree about docstring style, griffe extensions or source links need no second plugin instance.
+Only a handful of options are shared by all of them: the Sphinx `inventories`, the `symbolSearch`,
+`publishInventory` and `llmsTxt` switches, the `components` overrides and `cacheDir`.
+
+Entries need not agree about where their model comes from either. `legacy` names its `base` — the
+URL path its pages are generated under — instead of leaving it to default, and reads a checked-in
+[pre-generated dump](/starlight-pydocs/guides/pregenerated-dumps/) instead of a `search` path, so
+griffe never runs for it while the other two are extracted from source in the same build.
+
+This documentation site is built this way: `demopkg` (google style, extracted with a griffe
+extension), `numpkg` (numpy style), `sphpkg` (sphinx style, from a pre-generated dump) and a second
+`demopkg` entry at its own base, reading a dump rather than extracting, all come from one
+`starlightPydocs()` call.
+
+## The base identifies a package
+
+`base` is the URL path an entry's pages are generated at, defaulting to `api/<name>`. It is also
+the identity of that entry everywhere else — in the sidebar tree, in route matching, and in the
+`package` prop of `<Autodoc>` and `<SymbolSearch>`. The Python import `name` is not an identity:
+the same package may be documented several times, one release per entry, which is how
+[several versions of one package](/starlight-pydocs/guides/versioned-docs/) live in one build.
+
+Two rules follow from that.
+
+### Bases must not overlap
+
+Each entry needs a distinct base, and no base may contain another's. `api/mypkg` and
+`api/mypkg_plugins` are fine; `api` and `api/mypkg` are rejected, because the pages of one would
+land inside the other's page tree:
+
+```text
+packages[1].base: 'api/mypkg' overlaps packages[0].base ('api'); give each package a distinct base
+```
+
+### Ambiguous names are refused, not guessed
+
+A name documented once still resolves on its own. A name documented twice no longer says which
+entry you mean, so the components resolve their `package` prop as a base first and an import name
+second:
+
+| `package` prop | Resolves to |
+| --- | --- |
+| `package="1x/api/mypkg"` | The entry with that base. Always unambiguous. |
+| `package="mypkg"` | The single entry documenting `mypkg`, or an error listing the candidate bases. |
+| omitted, on `<Autodoc>` | The entry whose import name starts the dotted `name` prop, if only one does. |
+| omitted, on `<SymbolSearch>` | The first configured entry. |
+
+With `mypkg` documented at two bases, `<Autodoc name="mypkg.Report" />` cannot pick one:
+
+```text wrap
+starlight-pydocs: <Autodoc name="mypkg.Report"> is ambiguous: 'mypkg' is documented at 2 bases. Set the package prop to one of these bases: 'api/mypkg', '1x/api/mypkg'.
+```
+
+`<SymbolSearch>` does not throw: an ambiguous or unknown `package` renders no search box at all,
+rather than searching a version of the package you did not ask for.
+
+## Sidebar placement
+
+By default every package's tree replaces the shared `pydocsSidebarGroup` placeholder, in
+configuration order — that is the single **API reference** section in the first example above.
+
+To put one package somewhere else, give it a placeholder of its own. Three lines do the work:
+create the placeholder with `createPydocsSidebarGroup()`, hand it to the package as
+`sidebar.group`, and put it in your `sidebar` where that package belongs.
+
+```js title="astro.config.mjs" {5,18,25}
+import starlight from '@astrojs/starlight';
+import { defineConfig } from 'astro/config';
+import starlightPydocs, { createPydocsSidebarGroup, pydocsSidebarGroup } from 'starlight-pydocs';
+
+const pluginsApi = createPydocsSidebarGroup();
+
+export default defineConfig({
+  integrations: [
+    starlight({
+      title: 'My project',
+      plugins: [
+        starlightPydocs({
+          packages: [
+            { name: 'mycore', search: ['../packages/core/src'] },
+            {
+              name: 'myplugins',
+              search: ['../packages/plugins/src'],
+              sidebar: { group: pluginsApi },
+            },
           ],
         }),
       ],
       sidebar: [
-        { label: 'API reference', items: [pydocsSidebarGroup] },
-        { label: 'Legacy', collapsed: true, items: [legacyApi] },
+        { label: 'Core API', items: [pydocsSidebarGroup] },
+        { label: 'Plugin API', collapsed: true, items: [pluginsApi] },
       ],
     }),
   ],
 });
 ```
 
-Each placeholder is replaced by the tree of the packages assigned to it, so a package with its own
-group leaves the shared one to the rest. `sidebar.label` renames a package's group and
-`sidebar.collapsed` collapses it:
+Each placeholder is replaced by the trees of the packages assigned to it, so a package with its own
+group leaves the shared one to the rest. A placeholder you create but never put in your `sidebar`
+is never substituted, and its package's pages build without appearing in the sidebar at all.
 
-```js
-{ name: 'mypkg', search: ['../src'], sidebar: { label: 'mypkg (unstable)', collapsed: true } }
+`sidebar.label` renames a package's group and `sidebar.collapsed` collapses it:
+
+```js title="astro.config.mjs" collapse={1-8, 21-26} {15-18}
+import starlight from '@astrojs/starlight';
+import { defineConfig } from 'astro/config';
+import starlightPydocs, { pydocsSidebarGroup } from 'starlight-pydocs';
+
+export default defineConfig({
+  integrations: [
+    starlight({
+      title: 'My project',
+      plugins: [
+        starlightPydocs({
+          packages: [
+            {
+              name: 'mypkg',
+              search: ['../src'],
+              sidebar: {
+                label: 'mypkg (unstable)',
+                collapsed: true,
+              },
+            },
+          ],
+        }),
+      ],
+      sidebar: [{ label: 'API reference', items: [pydocsSidebarGroup] }],
+    }),
+  ],
+});
 ```
 
 Inside a package's group, the first entry is the package's own page, labelled with the translated
-`overview` string, followed by one entry per module, nested to mirror the module tree.
+`overview` string (**Overview** in English), followed by one entry per module, nested to mirror the
+module tree.
 
 ## Monorepo layouts
 
 `search` paths are resolved against the Astro project root and may point anywhere, including
-sibling directories:
+sibling directories, so the Python sources do not have to live inside the docs site:
 
-```
-repo/
-├── packages/
-│   ├── core/src/mycore/…
-│   └── plugins/src/myplugins/…
-└── docs/            ← the Astro project
-```
+<FileTree>
 
-```js
-// docs/astro.config.mjs
+- packages/
+  - core/
+    - src/
+      - mycore/
+        - …
+  - plugins/
+    - src/
+      - myplugins/
+        - …
+- docs/ the Astro project, where `astro.config.mjs` lives
+
+</FileTree>
+
+```js title="docs/astro.config.mjs" {5,10} "root: '..'"
 starlightPydocs({
   packages: [
     {
@@ -129,30 +209,59 @@ starlightPydocs({
 ```
 
 `root: '..'` makes source links repository-relative from a `docs/` subdirectory; see
-[Source links](/starlight-pydocs/guides/source-links/). Give a package several search paths when its
-sources are split. Everything under a search path is scanned for the cache key, so pointing one at a
-directory of unrelated code makes rebuild detection noisier than it needs to be.
+[Source links](/starlight-pydocs/guides/source-links/). Give a package several search paths when
+its sources are split across directories.
+
+Point each search path at the parent of the package directory, not at a whole checkout: the size and
+modification time of every `.py` and `.pyi` file underneath goes into that package's extraction
+cache key, so a path covering unrelated code re-runs griffe when code you are not documenting
+changes.
 
 ## Cross-package links
 
-Packages documented together link to each other. A type annotation naming a class in another
-configured package resolves to its page, and so does a
-[docstring cross-reference](/starlight-pydocs/guides/cross-references/): resolution tries the
-package being rendered first, then the others in configuration order, then the inventories. So
+[Docstring cross-references](/starlight-pydocs/guides/cross-references/) reach across packages, so
 `[Report][mycore.Report]` in a `myplugins` docstring links into the core package's pages with no
-inventory involved. Entries sharing an import name are skipped, so one documented version of a
-package never links into another's pages.
+inventory involved. Targets resolve in this order:
+
+1. the symbol index of the package being rendered;
+2. the symbol indexes of the other configured packages, in configuration order;
+3. the configured Sphinx inventories.
+
+Entries sharing an import name are skipped at step 2, so one documented version of a package never
+links into another version's pages and silently mixes two APIs.
+
+Type annotations do not cross packages. A name in an annotation resolves against the rendered
+package's own scopes and symbol index, then the inventories, and renders as plain text otherwise —
+including when it names a class documented elsewhere on the same site.
 
 ## Endpoints per package
 
-Each package serves its own files under its own base:
+Each entry serves its own files under its own base:
 
-```
-/api/mypkg/symbols.json      /api/legacy/symbols.json
-/api/mypkg/objects.inv       /api/legacy/objects.inv
-/api/mypkg/llms.txt          /api/legacy/llms.txt
+```text
+/api/mypkg/symbols.json      /1x/api/mypkg/symbols.json
+/api/mypkg/objects.inv       /1x/api/mypkg/objects.inv
+/api/mypkg/llms.txt          /1x/api/mypkg/llms.txt
 ```
 
-There is no combined index. Symbol search searches one entry at a time (`<SymbolSearch
-package="api/legacy" />` chooses which, by base or by an unambiguous import name), and a project
-publishing several inventories points consumers at each one.
+There is no combined index across entries. Symbol search covers one entry at a time
+(`<SymbolSearch package="1x/api/mypkg" />` chooses which, by base or by an unambiguous import
+name), and a project publishing several inventories points consumers at each one.
+
+<CardGrid>
+  <LinkCard
+    title="Versioned docs"
+    href="/starlight-pydocs/guides/versioned-docs/"
+    description="Several releases of one package, each entry at its own base."
+  />
+  <LinkCard
+    title="Pre-generated dumps"
+    href="/starlight-pydocs/guides/pregenerated-dumps/"
+    description="Point an entry at a griffe dump JSON file instead of running griffe."
+  />
+  <LinkCard
+    title="Cross-references"
+    href="/starlight-pydocs/guides/cross-references/"
+    description="The full resolution order for annotations and docstring references."
+  />
+</CardGrid>

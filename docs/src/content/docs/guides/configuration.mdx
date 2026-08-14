@@ -3,33 +3,115 @@ title: Configuration
 description: Every option the starlight-pydocs plugin and the Astro integration accept, with its type and default.
 ---
 
-The Starlight plugin (`starlight-pydocs`) and the Astro integration (`starlight-pydocs/astro`)
-take the same options, with one extra on the integration: `layout`. Everything is validated when
-the config loads, and a bad value names itself, for example
-`packages[1].base: must not be empty or the site root`.
+Options come at two levels: the ones you pass to the plugin, which apply to the whole site, and
+the `packages` array, where each entry describes one Python package. The Starlight plugin
+(`starlight-pydocs`) and the Astro integration (`starlight-pydocs/astro`) accept the same options;
+the integration adds one, `layout`.
+
+**A package entry is identified by its `base` — the URL path its pages are generated under — and
+not by its import name.** Bases must be unique and must not contain one another. Names carry no
+such rule, so the same import name may appear in `packages` several times, at a base each, which is
+how several releases of one package are documented in a single build. It is also why `<Autodoc>`
+and `<SymbolSearch>` take a base when a name is documented more than once.
+
+Every value is validated as the config loads, and a bad one names itself:
+
+```
+packages[1].base: must not be empty or the site root
+```
+
+## Where the options go
+
+```js title="astro.config.mjs" {11-25, 27-29}
+import starlight from '@astrojs/starlight';
+import { defineConfig } from 'astro/config';
+import starlightPydocs, { pydocsSidebarGroup } from 'starlight-pydocs';
+
+export default defineConfig({
+  integrations: [
+    starlight({
+      title: 'My project',
+      plugins: [
+        starlightPydocs({
+          // Per-package options, one entry per package.
+          packages: [
+            {
+              name: 'mypkg',
+              base: 'api/mypkg',
+              search: ['../src'],
+              docstringStyle: 'google',
+              docstringOptions: { warn_unknown_params: false },
+              extensions: ['griffe_pydantic'],
+              extraRequirements: ['griffe-pydantic'],
+              members: { exclude: ['mypkg._*'] },
+              sourceLink: { host: 'github', repo: 'you/mypkg', ref: 'main', root: '..' },
+              sidebar: { label: 'mypkg API', collapsed: true },
+            },
+          ],
+
+          // Top-level options, shared by every package.
+          inventories: ['python'],
+          cacheDir: '.cache',
+        }),
+      ],
+      sidebar: [{ label: 'API reference', items: [pydocsSidebarGroup] }],
+    }),
+  ],
+});
+```
+
+Extraction shells out to [Griffe](https://mkdocstrings.github.io/griffe/), which reads a package's
+source without importing it. `runner`, `docstringStyle`, `docstringOptions`, `extensions` and
+`source` all steer that step; the rest control what is documented and how the pages look.
 
 ## Top-level options
 
-| Option             | Type                                | Default              | What it does                                                   |
-| ------------------ | ----------------------------------- | -------------------- | -------------------------------------------------------------- |
-| `packages`         | `PackageInput[]`                    | required             | The packages to document. At least one.                        |
-| `runner`           | `{ command?, python? }`             | `{}`                 | Overrides for how griffe is invoked.                           |
-| `inventories`      | `(InventoryInput \| 'python')[]`    | `[]`                 | Sphinx inventories used to link type annotations outwards.      |
-| `publishInventory` | `boolean`                           | `true`               | Serve `objects.inv` for each package.                          |
-| `symbolSearch`     | `boolean`                           | `true`               | Serve `symbols.json` and render the search box.                |
-| `llmsTxt`          | `boolean`                           | `true`               | Serve `llms.txt` for each package.                             |
-| `components`       | `Record<name, string>`              | `{}`                 | Component overrides. See [Component overrides](/starlight-pydocs/guides/component-overrides/). |
-| `injectStyles`     | `boolean`                           | `true`               | Append the package stylesheet to Starlight's `customCss`.       |
-| `cacheDir`         | `string`                            | `node_modules/.astro` | Directory for cached dumps, inventories and rendered prose.    |
-| `layout`           | `string`                            | built-in layout      | Integration only: the component that wraps generated pages.     |
+| Option             | Type                                  | Default               | What it does                                                   |
+| ------------------ | ------------------------------------- | --------------------- | -------------------------------------------------------------- |
+| `packages`         | `PydocsPackageInput[]`                | required              | The packages to document. At least one.                        |
+| `runner`           | `{ command?, python? }`               | `{}`                  | Overrides for how griffe is invoked. See [How extraction is resolved](#how-extraction-is-resolved). |
+| `inventories`      | `(PydocsInventoryInput \| 'python')[]` | `[]`                 | Sphinx inventories used to link type annotations outwards. See [Inventories](#inventories). |
+| `publishInventory` | `boolean`                             | `true`                | Serve `objects.inv` for each package.                          |
+| `symbolSearch`     | `boolean`                             | `true`                | Serve `symbols.json` and render the search box.                |
+| `llmsTxt`          | `boolean`                             | `true`                | Serve `llms.txt` for each package.                             |
+| `components`       | `Record<name, string>`                | `{}`                  | Component overrides. See [Component overrides](/starlight-pydocs/guides/component-overrides/). |
+| `injectStyles`     | `boolean`                             | `true`                | Append the package stylesheet to Starlight's `customCss`.      |
+| `cacheDir`         | `string`                              | `node_modules/.astro` | Directory for cached dumps, inventories and rendered prose.     |
+| `layout`           | `string`                              | built-in layout       | Integration only: the component that wraps generated pages.     |
 
 `injectStyles` has nothing to append to in a plain Astro project, so the integration ignores it;
-import `starlight-pydocs/styles` from your own layout instead (see
+import `starlight-pydocs/styles` from your own layout instead. `layout` names that layout, as an
+import specifier or a path relative to the project root: the component receives `title`, `headings`
+and `description` props and renders the page body in its default slot (see
 [Vanilla Astro](/starlight-pydocs/guides/vanilla-astro/)).
 
 Turning `symbolSearch` off removes both the `symbols.json` endpoint and every rendered search box,
 including a hand-placed `<SymbolSearch />`, which renders nothing rather than a box that cannot
 search.
+
+### Inventories
+
+A Sphinx inventory is the `objects.inv` file a documentation site publishes to say which URL
+documents which object. Each entry of `inventories` is either the `'python'` preset (CPython's
+inventory, based at `https://docs.python.org/3/`) or an object:
+
+| Field   | Type                                  | Default                        | What it does                                              |
+| ------- | ------------------------------------- | ------------------------------ | --------------------------------------------------------- |
+| `url`   | `string`                              | none                           | URL of an `objects.inv`. Mutually exclusive with `file`.   |
+| `file`  | `string`                              | none                           | Path to a local `objects.inv`, relative to the project root. |
+| `base`  | `string`                              | the URL without its last segment | Base URL the inventory's relative URIs resolve against. Required alongside `file`. |
+| `cache` | `'revalidate' \| 'force' \| 'bypass'` | `'revalidate'`                 | Download cache policy. See [Cache behaviour](#cache-behaviour). |
+
+```js title="astro.config.mjs"
+inventories: [
+  'python',
+  { url: 'https://pandas.pydata.org/docs/objects.inv' },
+  { file: './vendor/internal.inv', base: 'https://docs.internal.example/' },
+];
+```
+
+[Cross-references](/starlight-pydocs/guides/cross-references/) covers how annotations and docstring
+references resolve against these.
 
 ## Per-package options
 
@@ -41,24 +123,44 @@ Each entry of `packages` describes one Python package.
 | `base`              | `string`                               | `api/<name>`   | URL base for the generated pages, relative to the site root. Identifies the entry. |
 | `label`             | `string`                               | `name`         | Display name for this entry: the sidebar group, the `llms.txt` heading. |
 | `search`            | `string[]`                             | project root   | Directories passed to `griffe --search`, relative to the project root. |
-| `docstringStyle`    | `'google' \| 'numpy' \| 'sphinx' \| 'auto'` | `'google'` | Docstring flavour, passed to `griffe -d`.                          |
-| `docstringOptions`  | `Record<string, unknown>`               | `{}`           | Parser options, serialised into `griffe -D`.                           |
+| `docstringStyle`    | `'google' \| 'numpy' \| 'sphinx' \| 'auto'` | `'google'` | Docstring flavour, passed to `griffe -d`. See [Docstring styles](/starlight-pydocs/guides/docstring-styles/). |
+| `docstringOptions`  | `Record<string, unknown>`              | `{}`           | Parser options, serialised into `griffe -D`.                           |
 | `extensions`        | `(string \| { name, options })[]`      | `[]`           | Griffe extensions, passed to `griffe -e`.                              |
 | `extraRequirements` | `string[]`                             | `[]`           | Python requirements the extensions need (`uvx --with`).                |
 | `forceInspection`   | `boolean`                              | `false`        | Pass `griffe -x`, allowing griffe to import the package.               |
-| `source`            | `{ file } \| { url, cache? }`          | none           | Use a pre-generated dump instead of running griffe.                    |
+| `source`            | `{ file } \| { url, cache? }`          | none           | Use a pre-generated dump instead of running griffe. See [Pre-generated dumps](/starlight-pydocs/guides/pregenerated-dumps/). |
 | `members`           | `{ include?, exclude? }`               | `{}`           | Glob patterns on dotted paths, applied after `filters`.                |
-| `filters`           | `{ special?, private?, imported?, inherited? }` | see below | Coarse member switches.                                       |
-| `sourceLink`        | `{ template, ref?, root? }` or `{ host, repo, ref?, root? }` | none | Link objects to their source lines.        |
-| `sidebar`           | `{ label?, collapsed?, group? }`       | `{}`           | Sidebar presentation, Starlight only.                                  |
-| `versions`          | `{ refs: { ref, label }[] }`            | none           | Badge objects with the release they appeared in. See [Version annotations](/starlight-pydocs/guides/version-annotations/). |
+| `filters`           | `{ special?, private?, imported?, inherited? }` | see [Member selection](#member-selection) | Coarse member switches.              |
+| `sourceLink`        | `{ template, ref?, root? }` or `{ host, repo, ref?, root? }` | none | Link objects to their source lines. See [Source links](/starlight-pydocs/guides/source-links/). |
+| `sidebar`           | `{ label?, collapsed?, group? }`       | `{}`           | Sidebar presentation, Starlight only. See [Multiple packages](/starlight-pydocs/guides/multiple-packages/). |
+| `versions`          | `{ refs: { ref, label }[] }`           | none           | Badge objects with the release they appeared in. See [Version annotations](/starlight-pydocs/guides/version-annotations/). |
 
-`search` points at the _parent_ of the package directory: `../src` for `../src/mypkg`. Leave it
-unset only when the package sits in the Astro project root.
+`versions` extracts the package at past git refs, so it needs a checkout with history and is
+rejected alongside `source`: a pinned dump describes one release and carries no history to compare
+against. Document that release as its own `packages` entry instead.
+
+### Search paths
+
+`search` points at the _parent_ of the package directory: `../src` for `../src/mypkg`. Paths are
+resolved against the Astro project root and may point outside it, which is what a `docs/`
+subdirectory needs. Leave the option unset only when the package sits in the project root.
+
+```js title="astro.config.mjs" {2}
+packages: [
+  { name: 'mypkg', search: ['../src', '../generated'] },
+];
+```
+
+Each path becomes its own `-s` argument, so split sources need no other configuration. Everything
+under a search path is scanned to build the cache key, so a path pointing at unrelated code makes
+rebuild detection noisier than it needs to be.
+
+### Bases
 
 `base` may not be empty, may not be the site root, and may not overlap another package's base;
-`api/mypkg` and `api` together are rejected, because one would swallow the other's pages. Names need
-not be unique: the same import name may be documented at several bases, one per release, as
+`api/mypkg` and `api` together are rejected, because one would swallow the other's pages. Query
+strings, fragments and whitespace are rejected too. Names need not be unique: the same import name
+may be documented at several bases, one per release, as
 [Versioned docs](/starlight-pydocs/guides/versioned-docs/) describes.
 
 ### Member selection
@@ -79,7 +181,7 @@ mkdocstrings does: the list _is_ the documented surface. `members.include` and `
 then apply on top, matching dotted paths with a small glob dialect where `*` matches inside one
 segment and `**` matches across segments:
 
-```js
+```js title="astro.config.mjs" {5-6}
 packages: [
   {
     name: 'mypkg',
@@ -93,7 +195,7 @@ packages: [
 `include`, when non-empty, is an allow-list: only matching objects are documented, plus the
 containers on the way to them.
 
-## Runner resolution order
+## How extraction is resolved
 
 Extraction picks the first strategy that applies, per package:
 
@@ -152,30 +254,3 @@ file you own and we must not write next to. Dumps of configured
 In `astro dev`, the search paths are watched: saving a `.py` file re-extracts, re-renders the
 prose and triggers a reload. Packages configured with `source` are not watched, because nothing
 would be re-extracted.
-
-## A fully loaded example
-
-```js
-starlightPydocs({
-  packages: [
-    {
-      name: 'mypkg',
-      base: 'api/mypkg',
-      search: ['../src'],
-      docstringStyle: 'google',
-      docstringOptions: { warn_unknown_params: false },
-      extensions: ['griffe_pydantic'],
-      extraRequirements: ['griffe-pydantic'],
-      filters: { inherited: true, special: false },
-      members: { exclude: ['mypkg._*', 'mypkg.**.legacy'] },
-      sourceLink: { host: 'github', repo: 'you/mypkg', ref: 'main', root: '..' },
-      sidebar: { label: 'mypkg API', collapsed: true },
-    },
-  ],
-  inventories: ['python', { url: 'https://pandas.pydata.org/docs/objects.inv' }],
-  symbolSearch: true,
-  llmsTxt: true,
-  publishInventory: true,
-  cacheDir: '.cache',
-});
-```

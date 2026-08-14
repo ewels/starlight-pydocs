@@ -3,53 +3,61 @@ title: Source links
 description: Link every documented object to the lines it is defined on, with a forge preset or a URL template.
 ---
 
-Every object Griffe found carries its file and its first and last line, so each one can link
-straight to its source. Configure it per package with a forge preset:
+import { FileTree } from '@astrojs/starlight/components';
 
-```js
-packages: [
-  {
-    name: 'mypkg',
-    search: ['../src'],
-    sourceLink: { host: 'github', repo: 'you/mypkg', ref: 'main', root: '..' },
-  },
-];
+Griffe records the file and the first and last line of every object it finds, so each one can
+link straight to the code that defines it. Set `sourceLink` on a package and every heading gets a
+**View source** link:
+
+```js title="astro.config.mjs" {16-22}
+import starlight from '@astrojs/starlight';
+import { defineConfig } from 'astro/config';
+import starlightPydocs from 'starlight-pydocs';
+
+export default defineConfig({
+  integrations: [
+    starlight({
+      title: 'My docs',
+      plugins: [
+        starlightPydocs({
+          packages: [
+            {
+              name: 'mypkg',
+              search: ['../src'],
+
+              // Paths are relative to the repository root.
+              sourceLink: {
+                host: 'github',
+                repo: 'you/mypkg',
+                ref: 'main',
+                root: '..',
+              },
+            },
+          ],
+        }),
+      ],
+    }),
+  ],
+});
 ```
 
-`host` is one of `github`, `gitlab` or `bitbucket`, and `repo` is the `owner/name` slug. The
-presets expand to:
+`host` picks a forge's URL layout, `repo` is the `owner/name` slug, `ref` is the branch or tag to
+link at, and `root` is the directory the paths in the URL are computed against — the part most
+configurations get wrong, covered [below](#root-and-why-you-probably-need-it).
 
-| `host`      | URL shape                                                        |
-| ----------- | ---------------------------------------------------------------- |
-| `github`    | `https://github.com/{repo}/blob/{ref}/{path}#L{start}-L{end}`     |
-| `gitlab`    | `https://gitlab.com/{repo}/-/blob/{ref}/{path}#L{start}-{end}`    |
+## Forge presets
+
+Three hosts have presets. `host` must be one of them; anything else is a configuration error, and
+any other forge needs [a template](#a-template-of-your-own).
+
+| `host`      | URL shape                                                           |
+| ----------- | ------------------------------------------------------------------- |
+| `github`    | `https://github.com/{repo}/blob/{ref}/{path}#L{start}-L{end}`       |
+| `gitlab`    | `https://gitlab.com/{repo}/-/blob/{ref}/{path}#L{start}-{end}`      |
 | `bitbucket` | `https://bitbucket.org/{repo}/src/{ref}/{path}#lines-{start}:{end}` |
 
 `ref` defaults to `main`. Point it at a tag to pin the links to a release, or at a branch to keep
 them current.
-
-## A template of your own
-
-Self-hosted forges, Gitea, Sourcehut, an internal code browser: give a template instead of a host.
-
-```js
-sourceLink: {
-  template: 'https://git.internal.example/mypkg/-/blob/{ref}/{path}#L{start}-L{end}',
-  ref: 'v2.1.0',
-  root: '..',
-}
-```
-
-| Placeholder | Value                                                        |
-| ----------- | ------------------------------------------------------------ |
-| `{path}`    | Path of the file the object is defined in                     |
-| `{start}`   | First line of the object                                      |
-| `{end}`     | Last line of the object, or the first when griffe knows only one |
-| `{ref}`     | The `ref` option                                              |
-
-`{path}` is required: a template without it is a configuration error, because a link to a whole
-repository is not a source link. The other placeholders are optional; drop the line fragment if
-your browser does not do line anchors. Paths always use forward slashes, whatever the build ran on.
 
 ## `root`, and why you probably need it
 
@@ -58,14 +66,52 @@ That is repository-relative only when the two are the same directory. A document
 `docs/` with its Python sources one level up therefore gets paths that are not
 repository-relative. When the sources are outside the project entirely, the paths are absolute.
 
-`root` names the directory `{path}` should be computed against, itself relative to the Astro
-project root:
+That layout is the common one:
 
-```js
-// Repository layout:
-//   src/mypkg/…      the Python package
-//   docs/            this Astro project
-sourceLink: { host: 'github', repo: 'you/mypkg', ref: 'main', root: '..' },
+<FileTree>
+
+- src/
+  - mypkg/
+    - **report.py** a link should point here
+- docs/ the Astro project — the directory griffe runs in
+  - astro.config.mjs
+  - src/
+- pyproject.toml
+
+</FileTree>
+
+`root` names the directory `{path}` should be computed against, itself relative to the Astro
+project root. For this layout the repository root is one level up:
+
+```js title="astro.config.mjs" collapse={1-6, 22-28} {15-20}
+import starlight from '@astrojs/starlight';
+import { defineConfig } from 'astro/config';
+import starlightPydocs, { pydocsSidebarGroup } from 'starlight-pydocs';
+
+export default defineConfig({
+  integrations: [
+    starlight({
+      title: 'My project',
+      plugins: [
+        starlightPydocs({
+          packages: [
+            {
+              name: 'mypkg',
+              search: ['../src'],
+              sourceLink: {
+                host: 'github',
+                repo: 'you/mypkg',
+                ref: 'main',
+                root: '..',
+              },
+            },
+          ],
+        }),
+      ],
+      sidebar: [{ label: 'API reference', items: [pydocsSidebarGroup] }],
+    }),
+  ],
+});
 ```
 
 With `root: '..'`, `{path}` becomes `src/mypkg/report.py`, which is what the forge expects. Without
@@ -75,12 +121,57 @@ the build.
 The rule of thumb: set `root` to your repository root whenever the Astro project is a
 subdirectory. This documentation site does exactly that.
 
+## A template of your own
+
+Self-hosted forges, Gitea, Sourcehut, an internal code browser: give a template instead of a host.
+
+```js title="astro.config.mjs" collapse={1-6, 20-27} {15-19} wrap
+import starlight from '@astrojs/starlight';
+import { defineConfig } from 'astro/config';
+import starlightPydocs, { pydocsSidebarGroup } from 'starlight-pydocs';
+
+export default defineConfig({
+  integrations: [
+    starlight({
+      title: 'My project',
+      plugins: [
+        starlightPydocs({
+          packages: [
+            {
+              name: 'mypkg',
+              search: ['../src'],
+              sourceLink: {
+                template: 'https://git.internal.example/mypkg/-/blob/{ref}/{path}#L{start}-L{end}',
+                ref: 'v2.1.0',
+                root: '..',
+              },
+            },
+          ],
+        }),
+      ],
+      sidebar: [{ label: 'API reference', items: [pydocsSidebarGroup] }],
+    }),
+  ],
+});
+```
+
+| Placeholder | Value                                                            |
+| ----------- | ---------------------------------------------------------------- |
+| `{path}`    | Path of the file the object is defined in                        |
+| `{start}`   | First line of the object                                         |
+| `{end}`     | Last line of the object, or the first when griffe knows only one |
+| `{ref}`     | The `ref` option                                                 |
+
+`{path}` is required: a template without it is a configuration error, because a link to a whole
+repository is not a source link. The other placeholders are optional; drop the line fragment if
+your browser does not do line anchors. Paths always use forward slashes, whatever the build ran on.
+
 ## What renders
 
-Each documented object gets a `View source` link next to its heading, with the file and line range
-as the link's `title`:
+Each documented object gets a link next to its heading, with the file and line range as the link's
+`title`:
 
-```html
+```html wrap "pyd-source-link"
 <a class="pyd-source-link" href="https://github.com/you/mypkg/blob/main/src/mypkg/report.py#L57-L160"
    title="src/mypkg/report.py:57-160">View source</a>
 ```
@@ -96,8 +187,11 @@ It needs nothing from you, with two caveats: it is pinned to the commit that was
 the dump was made, and it only exists when griffe ran inside a git checkout with a recognisable
 remote, so a pre-generated dump from someone else's CI may or may not carry one.
 
-Configure `sourceLink` when you want links that follow a branch or a tag, or when you want them to
-point somewhere other than the remote griffe happened to see.
+That last caveat is why an explicit `sourceLink` with an explicit `ref` is the safer choice. Griffe
+detects the ref for itself in a git checkout, but a build from a git archive — a source tarball,
+with no `.git` directory — has nothing to detect, and the links vanish. Configuring `sourceLink`
+also gives you links that follow a branch or a tag, and links that point somewhere other than the
+remote griffe happened to see.
 
 :::caution[Set `root` even when you rely on the fallback]
 The href from griffe's own `source_link` is always fine, but the link's `title` is built from the

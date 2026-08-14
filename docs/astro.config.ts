@@ -1,6 +1,12 @@
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
+import starlightLinksValidator from 'starlight-links-validator';
+import starlightLlmsTxt from 'starlight-llms-txt';
 import starlightPydocs, { createPydocsSidebarGroup, pydocsSidebarGroup } from 'starlight-pydocs';
+
+const ORIGIN = 'https://ewels.github.io';
+const BASE = '/starlight-pydocs';
+const SITE = `${ORIGIN}${BASE}`;
 
 // `sphpkg` lives in its own part of the sidebar, so it gets its own placeholder
 // instead of joining the shared `pydocsSidebarGroup`.
@@ -13,8 +19,8 @@ const legacySidebarGroup = createPydocsSidebarGroup();
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://ewels.github.io',
-  base: '/starlight-pydocs',
+  site: ORIGIN,
+  base: BASE,
   markdown: {
     // Shared (non-deprecated) options, so docstring prose and the site's own
     // content are highlighted identically, in both colour schemes. The processor
@@ -28,6 +34,8 @@ export default defineConfig({
     starlight({
       title: 'Starlight Pydocs',
       description: 'Python API reference documentation for Astro and Starlight, extracted with Griffe.',
+      logo: { src: './src/assets/logo.svg' },
+      favicon: '/favicon.svg',
       social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/ewels/starlight-pydocs' }],
       plugins: [
         starlightPydocs({
@@ -53,9 +61,10 @@ export default defineConfig({
               sourceLink: { host: 'github', repo: 'ewels/starlight-pydocs', ref: 'main', root: '..' },
             },
             {
-              // The same package name again, at its own base: the 1.x release,
-              // pinned to a dump generated at that version. One instance, one
-              // entry per documented version.
+              // The same package name again, at its own base, demonstrating how a
+              // site documents one release per entry. The dump is regenerated from
+              // the current fixture source, so this tree matches the extracted one
+              // rather than being an older API; only the mechanism is on show.
               name: 'demopkg',
               base: '1x/api/demopkg',
               label: 'demopkg 1.x',
@@ -76,6 +85,52 @@ export default defineConfig({
           // `pnpm gen:inventory`), so `pathlib.Path` links to the real Python
           // documentation without the build reaching the network.
           inventories: [{ file: '../fixtures/inventories/python-stdlib.inv', base: 'https://docs.python.org/3/' }],
+        }),
+        // Site-wide llms.txt for the prose guides. The generated API pages are
+        // injected routes rather than content collection entries, so this plugin
+        // cannot see them; `optionalLinks` advertises the per-package llms.txt
+        // endpoints instead, which is the pattern `/guides/llms-txt/` documents.
+        starlightLlmsTxt({
+          description:
+            'starlight-pydocs generates Python API reference documentation for Astro and Starlight sites. It extracts the API surface with Griffe and renders it with Astro components on injected routes.',
+          details: [
+            'Notes for reading this documentation:',
+            '',
+            '- The plugin is the Starlight counterpart of mkdocstrings-python and follows its conventions: the same heading anchor scheme, the same member filtering rules, and `::: name` becomes `<Autodoc name="…" />`.',
+            '- Extraction is static. Griffe never imports the documented package, so no runtime dependency of that package has to be installable.',
+            '- A site can skip Python entirely by pointing the plugin at a pre-generated `griffe dump` JSON file.',
+          ].join('\n'),
+          // The archived 1.x pages are deliberately absent: a model answering a
+          // question about the package should not be pointed at an old release.
+          optionalLinks: [
+            {
+              label: 'demopkg API reference (Markdown)',
+              url: `${SITE}/api/demopkg/llms.txt`,
+              description:
+                'The example package, rendered by this site: google-style docstrings, pydantic models, deprecations, inheritance and `__all__` filtering.',
+            },
+            {
+              label: 'numpkg API reference (Markdown)',
+              url: `${SITE}/api/numpkg/llms.txt`,
+              description: 'The same output for a package documented with numpy-style docstrings.',
+            },
+            {
+              label: 'sphpkg API reference (Markdown)',
+              url: `${SITE}/api/sphpkg/llms.txt`,
+              description:
+                'The same output for sphinx-style docstrings, built from a pre-generated dump with no Python involved.',
+            },
+          ],
+        }),
+        // Runs on `astro build`, which CI does on every pull request through the
+        // end-to-end test job, and again on deploy. Broken internal links fail
+        // the build.
+        starlightLinksValidator({
+          // The generated API pages are injected routes, which the validator
+          // cannot enumerate (it only sees routes Astro reports as belonging to
+          // the project). Every documented package base has to be skipped, or
+          // every link into the examples reads as broken.
+          exclude: [`${BASE}/api/**`, `${BASE}/1x/**`],
         }),
       ],
       sidebar: [

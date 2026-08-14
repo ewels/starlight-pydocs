@@ -1,17 +1,68 @@
 ---
 title: Cross-references
-description: How type annotations and docstring references resolve into links, and how to interoperate with Sphinx and mkdocstrings.
+description: How docstring references and type annotations resolve into links, and how to interoperate with Sphinx and mkdocstrings.
 ---
 
-Two different things get linked: the names inside type annotations, and the references you write
-in docstring prose. Both resolve to the same places: a page on this site, or another project's
-documentation through a Sphinx inventory.
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+Two different things get linked: the references you write in docstring prose, and the names
+inside type annotations. Both land in the same two places — a page on this site, or another
+project's documentation through a Sphinx inventory. An inventory is the `objects.inv` file
+that Sphinx-based sites publish: a compressed index of object names to URLs, and the reason a
+`pathlib.Path` in one of your annotations can reach docs.python.org.
+
+## References in docstring prose
+
+mkdocstrings' reference syntax works in prose, so docstrings written for mkdocstrings keep
+their links:
+
+```python "[Report][mypkg.report.Report]" "[mypkg.report.Report.generate][]" "[a path][pathlib.Path]"
+def generate_report(source, /, name: str, *, fmt: str = "md") -> Report:
+    """Build a report from a source object.
+
+    Returns a [Report][mypkg.report.Report] whose
+    [mypkg.report.Report.generate][] method writes to
+    [a path][pathlib.Path].
+    """
+```
+
+- `[title][dotted.path]` — your own link text, and the object's dotted path as the target.
+- `[dotted.path][]` — the shorthand, where the target doubles as the link text.
+- A target outside your own packages resolves through an inventory, which is how
+  `pathlib.Path` reaches the Python documentation.
+
+Targets resolve against this package's symbol index first, then the other configured
+packages', then the inventories, and the resulting href is the same one an annotation to that
+object would produce.
+
+Both a documented path and the canonical path Griffe found the definition at resolve. If an
+object is documented at several paths (a re-export and its definition), the shortest one wins,
+so `[Report][mypkg.Report]` and `[Report][mypkg.report.Report]` both land somewhere sensible.
+
+### What is left as written
+
+References are rewritten before the Markdown is rendered, and only when the target resolves.
+Everything else survives into the page exactly as you typed it:
+
+- An unresolvable target keeps its brackets, so a typo is visible rather than silently dropped.
+- Fenced code blocks and inline code spans are never touched, so you can document the syntax
+  itself.
+- A target that has a real Markdown reference definition (`[target]: https://…`) in the same
+  docstring is left to Markdown, which knows what to do with it.
+- An escaped bracket (`\[title][target]`) is left alone.
+
+:::note[The `llms.txt` rendition keeps the raw syntax]
+Docstring prose is passed through verbatim into
+[`llms.txt`](/starlight-pydocs/guides/llms-txt/), so references appear there as
+`[title][dotted.path]`. That output is for machines, which do better with the dotted path than
+with a resolved URL.
+:::
 
 ## Linked annotations
 
-Griffe serialises annotations as expression trees, and every name in one is a bare source name:
-`Report`, not `mypkg.report.Report`. Resolving it is this plugin's job, and it happens in a fixed
-order:
+Griffe serialises annotations as expression trees, and every name in one is a bare source
+name: `Report`, not `mypkg.report.Report`. Resolving it is this plugin's job, and it happens
+in a fixed order:
 
 1. **The scope chain of the object the annotation belongs to.** For a method of
    `mypkg.report.Report`, that means `mypkg.report.Report`, then `mypkg.report`, then `mypkg`,
@@ -24,53 +75,12 @@ order:
 
 If nothing resolves, the name renders as plain text. Compound annotations are walked piece by
 piece, so `dict[str, float] | None` links `dict`, `str` and `float` independently, and
-`Mapping[str, Report]` links out to the standard library and back into your own pages in the same
-line.
+`Mapping[str, Report]` links out to the standard library and back into your own pages in the
+same line.
 
 A name the scope chain resolves to something undocumented stays unlinked rather than falling
 through to an inventory: in that scope the name means the thing the scope says it means, and
 linking it elsewhere would be a lie.
-
-## References in docstring prose
-
-mkdocstrings' reference syntax works in prose, so docstrings written for mkdocstrings keep their
-links:
-
-```python
-def generate_report(source, /, name: str, *, fmt: str = "md") -> Report:
-    """Build a report from a source object.
-
-    Returns a [Report][mypkg.report.Report] whose
-    [generate][mypkg.report.Report.generate] method writes a
-    [pathlib.Path][pathlib.Path].
-    """
-```
-
-Both forms are supported: `[title][dotted.path]`, and the shorthand `[dotted.path][]` where the
-target doubles as the text. Targets resolve against this package's symbol index first, then the
-other configured packages', then the inventories, and the resulting href is the same one an
-annotation to that object would produce.
-
-References are rewritten before the Markdown is rendered, and only when the target resolves.
-Everything else is left exactly as written:
-
-- An unresolvable target keeps its brackets, so a typo is visible rather than silently dropped.
-- Fenced code blocks and inline code spans are never touched, so you can document the syntax
-  itself.
-- A target that has a real Markdown reference definition (`[target]: https://…`) in the same
-  docstring is left to Markdown, which knows what to do with it.
-- An escaped bracket (`\[title][target]`) is left alone.
-
-Both a documented path and the canonical path Griffe found the definition at resolve. If an object
-is documented at several paths (a re-export and its definition), the shortest one wins, so
-`[Report][mypkg.Report]` and `[Report][mypkg.report.Report]` both land somewhere sensible.
-
-:::note[The `llms.txt` rendition keeps the raw syntax]
-Docstring prose is passed through verbatim into
-[`llms.txt`](/starlight-pydocs/guides/llms-txt/), so references appear there as
-`[title][dotted.path]`. That output is for machines, which do better with the dotted path than with
-a resolved URL.
-:::
 
 ## Anchors
 
@@ -87,10 +97,10 @@ mapping layer. Module pages have no anchor of their own: a module _is_ a page.
 
 ## Consuming inventories
 
-`inventories` takes a list of entries, each a URL or a local file, plus the base URL its relative
-URIs resolve against:
+`inventories` takes a list of entries, each a URL or a local file, plus the base URL its
+relative URIs resolve against:
 
-```js
+```js title="astro.config.mjs"
 starlightPydocs({
   packages: [{ name: 'mypkg', search: ['../src'] }],
   inventories: [
@@ -118,11 +128,10 @@ starlightPydocs({
 
 Each package serves its own `objects.inv` at `<base>/objects.inv` unless you set
 `publishInventory: false`. It is a Sphinx v2 inventory built from the symbol index, with the roles
-mkdocstrings uses (`py:module`, `py:class`, `py:function`, `py:method`, `py:attribute`), so other
-projects can point at it:
+mkdocstrings uses (`py:module`, `py:class`, `py:function`, `py:method`, `py:attribute`), so an
+mkdocs or Sphinx project that wants to link into your API reference can point at it:
 
-```yaml
-# mkdocs.yml, in a project that wants to link into your API reference
+```yaml title="mkdocs.yml"
 plugins:
   - mkdocstrings:
       handlers:
@@ -131,8 +140,7 @@ plugins:
             - url: https://example.com/api/mypkg/objects.inv
 ```
 
-```python
-# conf.py, for a Sphinx project
+```python title="conf.py"
 intersphinx_mapping = {
     "mypkg": ("https://example.com/api/mypkg", None),
 }
@@ -141,3 +149,16 @@ intersphinx_mapping = {
 Because the anchors are dotted paths, a link from either tool lands on the exact heading, and a
 link from this site into an mkdocstrings site does the same in reverse. That symmetry is the whole
 reason for the anchor scheme.
+
+<CardGrid>
+  <LinkCard
+    title="Docstring styles"
+    href="/starlight-pydocs/guides/docstring-styles/"
+    description="The conventions Griffe parses, and which docstring sections render."
+  />
+  <LinkCard
+    title="Multiple packages"
+    href="/starlight-pydocs/guides/multiple-packages/"
+    description="How references resolve when one site documents several packages."
+  />
+</CardGrid>

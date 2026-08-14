@@ -1,75 +1,91 @@
 ---
 title: Versioned docs
-description: Document several releases of one package in one build, with pinned dumps and one sidebar group per version.
+description: Document several releases of one package in one site, each release at its own URL base with its own pinned dump and sidebar group.
 ---
 
-Generated pages are injected routes, not files in `src/content/docs`, which is what makes their
-anchors, linked types and search metadata possible
-([why](/starlight-pydocs/guides/migration/#page-layout)). It also means
-[starlight-versions](https://starlight-versions.vercel.app/) does not snapshot them: it copies the
-content collection into a per-version directory, and there is no file to copy for a route.
+Shipping 2.0 does not move everyone off 1.x, and the people still on it need the 1.x API reference
+to stay where it was. One plugin instance serves both: `mypkg` 2.x at `/api/mypkg/` from your
+working tree, `mypkg` 1.x at `/1x/api/mypkg/` from a dump frozen when 1.4.3 shipped. To badge the
+objects of a single release with the version each one first appeared in, you want
+[Version annotations](/starlight-pydocs/guides/version-annotations/) instead; the two compose, so
+the current entry can carry "Added in" badges while the archived entries stay as they were.
 
-Versioning the API reference is therefore the plugin's job, and one plugin instance does it: add one
-`packages` entry per release you want to keep, each with its own `base` and its own pinned dump. A
-dump is a complete, frozen description of one release's API, and reading one needs no Python and no
-checkout of that release.
+That takes one `packages` entry per release, each with its own `base` and its own pinned dump. A
+dump is a complete, frozen description of one release's API surface, and reading one needs no Python
+and no checkout of that release.
 
 ## One entry per version
 
-```js
-// astro.config.mjs
+```js title="astro.config.mjs" {3-8, 10-17}
 starlightPydocs({
   packages: [
+    // The current release, extracted from the working tree.
     {
-      // The current release, extracted from the working tree.
       name: 'mypkg',
       search: ['../src'],
       sourceLink: { host: 'github', repo: 'you/mypkg', ref: 'v2.1.0', root: '..' },
     },
+
+    // The 1.x release, pinned to a dump published with it.
     {
-      // The same import name again, at its own base and its own dump.
       name: 'mypkg',
       base: '1x/api/mypkg',
       label: 'mypkg 1.x',
       source: { url: 'https://github.com/you/mypkg/releases/download/v1.4.3/api.json' },
-      sourceLink: { host: 'github', repo: 'you/mypkg', ref: 'v1.4.3', root: '..' },
+      sourceLink: { host: 'github', repo: 'you/mypkg', ref: 'v1.4.3' },
     },
   ],
 });
 ```
 
-`name` is the import name, which every version shares; `base` is the identity of an entry, and
-bases must be distinct and non-overlapping. `label` names the entry for humans (the sidebar group,
-the `llms.txt` heading, the published inventory) and defaults to `name`.
-
-Each entry is self-contained. It gets its own pages under its own base, its own `symbols.json`,
-`objects.inv` and `llms.txt`, its own docstring rendering and its own model. Links stay inside the
-entry that produced them: a type annotation, a member link or a docstring cross-reference on a 1.x
-page resolves against the 1.x model, so `/1x/api/mypkg/report/#mypkg.report.Report` never links out
-to the 2.x page of the same class. Resolution across entries deliberately skips entries with the
-same import name, which is what keeps two documented versions from bleeding into each other.
+`name` is the Python import name, which every version shares. `base` is what identifies an entry:
+bases must be distinct, and no base may contain another. `label` names the entry for humans — the
+sidebar group, the `llms.txt` heading, the published inventory — and defaults to `name`.
 
 This documentation site is built that way: `demopkg` is documented at `/api/demopkg/` from the
 fixture source, and again at `/1x/api/demopkg/` from the checked-in dump.
 
-## Pin the dump
+Everything on this page is one plugin instance with several `packages` entries, because that is the
+only arrangement that works. Registering `starlightPydocs()` twice in one Starlight config does not:
+both instances resolve the same virtual context module and inject the same catch-all route, so the
+second instance's pages do not exist.
 
-An entry documenting a release must not be extracted from the working tree, or it will describe
-whatever `main` looked like at build time. Pin it:
+## Each entry is self-contained
 
-- `source: { url }` for a dump the release workflow published as a release asset.
+An entry gets its own pages under its own base, its own docstring rendering and its own model. The
+files served beside those pages — `symbols.json`, `objects.inv` and `llms.txt` — are per entry too,
+unless `symbolSearch`, `publishInventory` or `llmsTxt` switches one off across the whole site.
+
+Links stay inside the entry that produced them: a type annotation, a member link or a docstring
+cross-reference on a 1.x page resolves against the 1.x model, so
+`/1x/api/mypkg/report/#mypkg.report.Report` never links out to the 2.x page of the same class.
+Resolution across entries deliberately skips entries with the same import name, which is what keeps
+two documented versions from bleeding into each other.
+
+## Pin the archived dump
+
+An entry documenting a past release must not be extracted from the working tree, or it will
+describe whatever `main` looked like at build time. Pin it:
+
+- `source: { url }` for a dump your release workflow published as a release asset.
 - `source: { file }` for a dump committed into the docs site.
 
-`sourceLink.ref` matching that release keeps the source links honest, because line numbers move
-between releases. See [Pre-generated dumps](/starlight-pydocs/guides/pregenerated-dumps/) for how to
-produce and publish `api.json`.
+Set `sourceLink.ref` to the same release: line numbers move between releases, so a source link
+built from `main` lands in the wrong place. Leave `sourceLink.root` out of a pinned entry, though —
+`root` rewrites the paths griffe recorded, and those were recorded wherever the dump was made,
+usually a CI runner. See
+[Pre-generated dumps](/starlight-pydocs/guides/pregenerated-dumps/) for how to produce and publish
+`api.json`.
 
-## Sidebar placement
+## Give each version its own sidebar group
 
-Give each version its own placeholder from `createPydocsSidebarGroup()` and put it where that
-version belongs:
+Every package's pages go into the shared `pydocsSidebarGroup` placeholder unless you say otherwise.
+Give the archived version a placeholder of its own from `createPydocsSidebarGroup()`, hand it to
+that entry, and put it where the version belongs:
 
-```js
+```js title="astro.config.mjs" {5, 20, 27}
+import { defineConfig } from 'astro/config';
+import starlight from '@astrojs/starlight';
 import starlightPydocs, { createPydocsSidebarGroup, pydocsSidebarGroup } from 'starlight-pydocs';
 
 const legacyApi = createPydocsSidebarGroup();
@@ -103,44 +119,53 @@ export default defineConfig({
 
 ## Alongside starlight-versions
 
-starlight-versions is still the right tool for the prose: let it version the guides, and put each
-API entry's group inside the matching version's sidebar. The version sidebars are ordinary
-Starlight sidebars, so a placeholder works there exactly as it does above:
+[starlight-versions](https://starlight-versions.vercel.app/) versions the content collection: it
+copies `src/content/docs` into a per-version directory. Generated API pages are injected routes
+rather than files ([why](/starlight-pydocs/guides/migration/#page-layout)), so there is no file for
+it to copy and it snapshots nothing of the API reference.
 
-```js
-starlight({
-  plugins: [
-    starlightVersions({ versions: [{ slug: '1.x' }] }),
-    starlightPydocs({
-      packages: [
-        { name: 'mypkg', search: ['../src'] },
-        {
-          name: 'mypkg',
-          base: '1x/api/mypkg',
-          label: 'mypkg 1.x',
-          source: { file: './dumps/mypkg-1.4.3.json' },
-          sidebar: { group: legacyApi },
-        },
-      ],
-    }),
-  ],
-  sidebar: [
-    { label: 'Guides', autogenerate: { directory: 'guides' } },
-    { label: 'API reference', items: [pydocsSidebarGroup] },
-    { label: 'v1.x API', items: [legacyApi] },
-  ],
-});
+Split the work. Let starlight-versions version the prose, and put each API entry's group inside the
+matching version's sidebar. Those version sidebars are ordinary Starlight sidebars, so a
+placeholder works there exactly as it does above:
+
+```diff lang="js" title="astro.config.mjs"
+  starlight({
+    plugins: [
++     starlightVersions({ versions: [{ slug: '1.x' }] }),
+      starlightPydocs({
+        packages: [
+          { name: 'mypkg', search: ['../src'] },
+          {
+            name: 'mypkg',
+-           base: '1x/api/mypkg',
++           base: '1.x/api/mypkg',
+            label: 'mypkg 1.x',
+            source: { file: './dumps/mypkg-1.4.3.json' },
+            sidebar: { group: legacyApi },
+          },
+        ],
+      }),
+    ],
+    sidebar: [
+      { label: 'Guides', autogenerate: { directory: 'guides' } },
+      { label: 'API reference', items: [pydocsSidebarGroup] },
+-     { label: 'v1.x', collapsed: true, items: [legacyApi] },
++     { label: 'v1.x API', items: [legacyApi] },
+    ],
+  }),
 ```
 
-Naming the archived base after the version slug starlight-versions uses (`1.x/api/mypkg` for its
-`1.x` prose) keeps the two halves of a version in one place as far as readers are concerned.
+Renaming the base to match the version slug starlight-versions uses puts both halves of a version
+under the same prefix: `/1.x/` for the prose it copied, `/1.x/api/mypkg/` for the API reference. Do
+it before the site is public — a base is a URL, and changing it later breaks every link into the
+archived pages.
 
-## `<Autodoc>` needs the base
+## Point `<Autodoc>` at a base
 
 An import name identifies nothing once it is documented twice, so an `<Autodoc>` block that would
 otherwise resolve by name has to say which entry it means, by base:
 
-```mdx
+```mdx "package"
 <Autodoc name="mypkg.Report" package="api/mypkg" />
 <Autodoc name="mypkg.Report" package="1x/api/mypkg" />
 ```
@@ -153,10 +178,9 @@ same value. Both also accept a plain import name where only one entry documents 
 Documenting versions in one build keeps every release at a stable URL and one deployment. The
 alternative is still available: one site build per version, each pinning its own dump and deployed
 under its own path prefix. It is the better fit when the prose differs so much between versions
-that you want whole separate sites:
+that you want whole separate sites.
 
-```js
-// astro.config.mjs
+```js title="astro.config.mjs" {6, 15-16}
 const version = process.env.DOCS_VERSION ?? 'v2.1.0';
 const isLatest = process.env.DOCS_LATEST === 'true';
 
@@ -190,16 +214,3 @@ DOCS_VERSION=v1.4.3 pnpm build && mv dist public-site/v1.4.3
 
 Every href the plugin emits goes through Astro's `base`, so the archived pages work under their
 prefix with no further configuration.
-
-## Version annotations are a different thing
-
-Documenting several versions gives each release its own pages. Badging one release's pages with the
-version each object appeared in is separate, needs no extra `packages` entry, and is described in
-[Version annotations](/starlight-pydocs/guides/version-annotations/). The two compose: the current
-entry can carry "Added in" badges while archived entries stay as they were.
-
-:::note[Registering the plugin twice does not work]
-Two `starlightPydocs()` instances in one Starlight config would share one virtual context module and
-inject the same catch-all route, so the second instance's pages do not exist. Everything on this
-page is one instance with several `packages` entries, which is the supported shape.
-:::

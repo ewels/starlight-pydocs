@@ -5,6 +5,9 @@ template: splash
 prev: false
 next: false
 hero:
+  image:
+    file: ../../assets/logo.svg
+    alt: A Python logo at the centre of a starburst
   tagline: |
     Python API reference documentation for <a href="https://astro.build">Astro</a> and
     <a href="https://starlight.astro.build">Starlight</a>. At build time,
@@ -27,8 +30,7 @@ import { Card, CardGrid, LinkButton, LinkCard } from '@astrojs/starlight/compone
 
 ## Three lines of configuration
 
-```js
-// astro.config.mjs
+```js title="astro.config.mjs" {2}
 starlightPydocs({
   packages: [{ name: 'mypkg', search: ['../src'] }],
 });
@@ -60,7 +62,7 @@ One page per module at `/api/mypkg/`, a sidebar tree mirroring the package layou
     interpreter.
   </Card>
   <Card title="Linked signatures" icon="link">
-    Every name in an annotation resolves to a page on your own site or, through a Sphinx
+    Names in an annotation link to their definition on your own pages or, through a Sphinx
     inventory, to another project's documentation.
   </Card>
   <Card title="Inherited members" icon="code-branch">
@@ -82,6 +84,15 @@ documented surface, `::: name` becomes `<Autodoc name="…" />`.
 <LinkButton href="/starlight-pydocs/guides/migration/" variant="secondary">
   Read the migration guide
 </LinkButton>
+
+## Reading this site with a language model
+
+These docs are published as plain Markdown alongside the HTML.
+[`/llms.txt`](/starlight-pydocs/llms.txt) indexes the site,
+[`/llms-full.txt`](/starlight-pydocs/llms-full.txt) is every guide in one file, and each
+documented package publishes its own API surface the same way — for example
+[`/api/demopkg/llms.txt`](/starlight-pydocs/api/demopkg/llms.txt). Point an agent at those
+rather than asking it to crawl the rendered pages.
 
 ## Where to go next
 

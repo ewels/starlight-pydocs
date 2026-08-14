@@ -1,80 +1,145 @@
 ---
 title: Contributing
-description: Develop, test and release starlight-pydocs.
+description: Set up the starlight-pydocs repository, run its tests, regenerate the fixtures and cut a release.
 ---
 
-Contributions are welcome. The repository is a pnpm workspace: the published package lives in
-`packages/starlight-pydocs`, this documentation site (which doubles as an end-to-end fixture) in
-`docs`, a plain Astro site proving the no-Starlight path in `examples/vanilla`, and the Python
-fixture packages in `fixtures`.
+import { FileTree, Steps } from '@astrojs/starlight/components';
 
-## Set up
+Contributions are welcome. This page is for working on the plugin itself: getting the repository
+running, knowing which checks to run before opening a pull request, and where the parts live.
 
-Node ≥ 22.12 and pnpm are required. Python is not: the checked-in Griffe dumps under `fixtures/`
-mean the unit tests never shell out, and [`uv`](https://docs.astral.sh/uv/) is only needed to
-regenerate them.
+## Repository layout
 
-```sh
-git clone https://github.com/ewels/starlight-pydocs
-cd starlight-pydocs
-pnpm install
-prek install    # git pre-commit hook: prettier → eslint → typecheck
-pnpm dev        # run this documentation site locally
-```
+A pnpm workspace. Everything published to npm comes from one directory; the rest exists to prove
+the plugin works and to keep it working.
+
+<FileTree>
+
+- packages/
+  - starlight-pydocs/ the published package — the only thing shipped to npm
+    - lib/ framework-free code (no Astro imports), unit-tested here
+    - components/ the `.astro` components that render the API pages
+    - tests/ the Vitest suite
+- docs/ this Starlight site: it dogfoods the plugin and owns the Playwright suite
+- examples/
+  - vanilla/ a plain Astro site, proving the no-Starlight path
+- fixtures/ Python packages plus their checked-in `griffe dump` JSON
+- prek.toml the formatting, linting and type-checking hooks
+
+</FileTree>
+
+The package has no build step: it ships its `.ts` and `.astro` source and the host Astro project
+transpiles it. Edits inside `packages/starlight-pydocs` are picked up by the dev server directly.
+
+## Get it running
+
+You need **Node ≥ 22.12** and **pnpm 10.33** (the version pinned in `packageManager`). pnpm is not
+optional — the workspace links `starlight-pydocs` into the docs site and the example with
+`workspace:*`, which npm and yarn resolve differently or not at all. Install it with
+`npm install -g pnpm`; Corepack was removed from Node in v25, so `corepack enable` is not an option
+on a current Node.
+
+Python is not required to run the unit tests: the `griffe dump` JSON files under `fixtures/` are
+checked in, so the suite never shells out. [`uv`](https://docs.astral.sh/uv/) is needed for two
+things: regenerating those dumps, and building this site, which extracts `demopkg` and `numpkg`
+from their Python sources. With neither `uvx` nor a `python` that can `import griffe` on your
+`PATH`, extraction fails and takes the build with it. Only the two package entries that read a
+pre-generated dump — `api/sphpkg` and the second `demopkg` entry at `1x/api/demopkg` — need no
+Python at all.
+
+<Steps>
+
+1. Clone the repository and install the workspace:
+
+   ```sh
+   git clone https://github.com/ewels/starlight-pydocs
+   cd starlight-pydocs
+   pnpm install
+   ```
+
+2. Install [prek](https://prek.j178.dev) — a separate tool, not an npm dependency — and let it
+   write the git pre-commit hook, so every commit runs prettier, eslint and the type-checker:
+
+   ```sh
+   pipx install prek
+   prek install
+   ```
+
+   Skip this step if you would rather run the checks by hand.
+
+3. Start this documentation site:
+
+   ```sh frame="none"
+   pnpm dev
+   ```
+
+   Open `http://localhost:4321/starlight-pydocs` — the site is served under its base path, so
+   bare `localhost:4321` is a 404. The first run extracts the fixture packages with griffe and
+   caches the result in `node_modules/.astro`, so later starts are quick.
+
+</Steps>
 
 ## Checks
 
-| Task                          | Command                |
-| ----------------------------- | ---------------------- |
-| Unit tests (Vitest)           | `pnpm test`            |
-| End-to-end tests (Playwright) | `pnpm test:e2e`        |
-| Type-check                    | `pnpm typecheck`       |
-| Lint · format                 | `pnpm lint` · `pnpm format` |
-| Everything (as CI runs it)    | `prek run --all-files` |
+| Task                          | Command                                                              |
+| ----------------------------- | -------------------------------------------------------------------- |
+| Unit tests (Vitest)           | `pnpm test`                                                          |
+| One test file                 | `pnpm --filter starlight-pydocs exec vitest run tests/model.test.ts` |
+| Watch · coverage              | `pnpm --filter starlight-pydocs test:watch` · `… test:coverage`      |
+| End-to-end tests (Playwright) | `pnpm test:e2e`                                                      |
+| Type-check                    | `pnpm typecheck`                                                     |
+| Lint · format                 | `pnpm lint` · `pnpm format`                                          |
+| Everything, as CI runs it     | `prek run --all-files`                                               |
+| Regenerate the fixture dumps  | `pnpm gen:dumps`                                                     |
+| Regenerate the inventory      | `pnpm gen:inventory`                                                 |
 
 `pnpm test:e2e` builds and previews both sites (this one on port 4321 under base
 `/starlight-pydocs`, the vanilla example on 4322) and runs the Playwright suite against them, so
-every assertion is made against real generated output.
+every assertion is made against real generated output. It needs a browser binary the first time:
 
-`pnpm typecheck` runs two checks: `tsc --noEmit` over the framework-free code in
-`packages/starlight-pydocs/lib`, and `astro check` in this site, which is what type-checks the
-`.astro` components (they are compiled here, not in the package).
+```sh frame="none"
+pnpm --filter starlight-pydocs-docs exec playwright install chromium
+```
 
-:::note[MDX is formatted by hand]
-Prettier is **not** run on `.mdx` files. It reflows Python signatures and directive examples in
-ways that break them. Format MDX manually, and note that Starlight does not support custom heading
-IDs, so headings on these pages take the slug they are given.
-:::
+`pnpm typecheck` runs the `typecheck` script of every workspace package: `tsc --noEmit` over the
+framework-free code in `packages/starlight-pydocs/lib`, then `astro check` in this site and in the
+vanilla example. The `.astro` components are type-checked by those `astro check` runs, not by the
+package's own `tsc`, because they are compiled where they are consumed.
 
-## Fixtures
+`.mdx` files are excluded from Prettier: it reflows the Python signatures and directive examples in
+these guides in ways that break them. Format MDX by hand. Starlight does not support custom heading
+IDs either, so a heading takes whatever slug its text produces.
 
-`fixtures/demopkg`, `fixtures/numpkg` and `fixtures/sphpkg` are Python packages whose API surface
-is deliberately exhaustive: three docstring styles, inheritance, overloads, `__all__`, pydantic
-models and deprecations. Each has a checked-in `griffe dump` JSON beside it, which is what the
-tests and this site read.
+## Changing a Python fixture
 
-After changing a fixture package, regenerate and commit the dumps:
+`fixtures/demopkg`, `fixtures/numpkg` and `fixtures/sphpkg` are Python packages whose API surface is
+deliberately exhaustive: three docstring styles, inheritance, overloads, `__all__`, pydantic models
+and deprecations. Each has a checked-in `griffe dump` JSON beside it, and that JSON, not the Python
+source, is what the tests and this site read.
+
+So editing the Python alone changes nothing. Regenerate the dumps and commit them in the same
+commit:
 
 ```sh
-pnpm gen:dumps       # needs uv on PATH
+pnpm gen:dumps       # needs uv on PATH; rewrites fixtures/*/dump.json
 pnpm gen:inventory   # only when the fixture Sphinx inventory needs new names
 ```
 
 A guarded test regenerates live when `uv` is available and diffs the surface, so drift between the
-committed dumps and the fixture sources surfaces in CI wherever `uv` exists.
+committed dumps and the fixture sources fails CI, where `uv` is installed.
 
-## Architecture notes
+## Architecture rules
 
-`ARCHITECTURE.md` records every architecture decision, the alternatives rejected and the
-griffe behaviour notes, and `CLAUDE.md` the working conventions. Two rules are
-worth knowing before you start:
+`ARCHITECTURE.md` records every architecture decision, the alternatives rejected and the griffe
+behaviour notes; `CLAUDE.md` records the working conventions. Two rules are worth knowing before you
+change the package:
 
 - `lib/` never imports `astro` or `@astrojs/starlight`, and components never import
   `@astrojs/starlight`. Starlight glue is confined to `index.ts`, `libs/starlight.ts`,
-  `middleware.ts` and `routes/starlight.astro`.
+  `middleware.ts` and `routes/starlight.astro`. Everything else has to work in a plain Astro site.
 - The package registers no remark or rehype plugin. Docstring prose renders through the host
   project's configured markdown processor at `astro:config:done` into a sidecar JSON, and the
-  components consume pre-rendered HTML.
+  components consume the pre-rendered HTML.
 
 ## Releases
 
@@ -85,11 +150,17 @@ that file, so there is nothing to keep in sync by hand.
 
 To cut a release:
 
-1. Move the **Unreleased** entries into a new `## **Version X.Y.Z** (YYYY-MM-DD)` section, and
-   bump `version` in `packages/starlight-pydocs/package.json` to match.
+<Steps>
+
+1. Move the **Unreleased** entries into a new `## **Version X.Y.Z** (YYYY-MM-DD)` section, and bump
+   `version` in `packages/starlight-pydocs/package.json` to match.
+
 2. Commit and push to `main`.
+
 3. Publish a [GitHub release](https://github.com/ewels/starlight-pydocs/releases/new) with a tag
    matching the version, for example `v1.0.0`.
+
+</Steps>
 
 Publishing the release triggers the
 [release workflow](https://github.com/ewels/starlight-pydocs/blob/main/.github/workflows/release.yml),
@@ -97,9 +168,7 @@ which publishes to npm through trusted publishing over OIDC, with no token to ma
 that the release tag matches the package version first, so a mismatch fails the run instead of
 shipping the wrong version.
 
-:::note[The first publish is manual]
-npm trusted publishing can only be configured on a package that already exists, so the very first
-release is published by hand (`pnpm release` after `npm login`). After that, add the GitHub
-repository as a trusted publisher in the package settings on npmjs.com and every later release
-publishes itself.
-:::
+The first publish is the exception. npm trusted publishing can only be configured on a package that
+already exists, so the very first release goes out by hand: `npm login`, then `pnpm release`. Add
+the GitHub repository as a trusted publisher in the package settings on npmjs.com afterwards, and
+every later release publishes itself.
