@@ -179,7 +179,9 @@ export default defineConfig({
           // section its placeholder was put in.
           label: 'Examples',
           items: [
-            { label: 'Overview', link: '/examples/' },
+            // Not "Overview": every generated package group already has an
+            // entry by that name, and the sidebar becomes unreadable.
+            { label: 'All examples', link: '/examples/' },
             {
               label: 'API reference',
               collapsed: true,
