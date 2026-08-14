@@ -1,6 +1,16 @@
 <div align="center">
 
-# starlight-pydocs
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="https://raw.githubusercontent.com/ewels/starlight-pydocs/main/docs/src/assets/logotype-dark.svg"
+  />
+  <img
+    src="https://raw.githubusercontent.com/ewels/starlight-pydocs/main/docs/src/assets/logotype-light.svg"
+    alt="starlight-pydocs"
+    width="420"
+  />
+</picture>
 
 [![npm version](https://img.shields.io/npm/v/starlight-pydocs.svg)](https://www.npmjs.com/package/starlight-pydocs)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/ewels/starlight-pydocs/blob/main/LICENSE)
@@ -11,25 +21,27 @@
 Python API reference documentation for [Starlight](https://starlight.astro.build/) and plain
 [Astro](https://astro.build/) sites. It reads your package with
 [Griffe](https://mkdocstrings.github.io/griffe/) and renders the result with Astro components on injected routes, one
-page per module. Extraction is static analysis, so nothing is imported and nothing needs installing. It is the Starlight
-counterpart of [mkdocstrings-python](https://mkdocstrings.github.io/python/) and follows its conventions where they
-make sense: heading anchors are dotted object paths, `__all__` selects the documented surface, `objects.inv` works in
-both directions, and `::: name` becomes `<Autodoc name="…" />`.
+page per module. Extraction is static analysis, so nothing is imported and nothing needs installing.
+
+It is the Starlight
+counterpart of [mkdocstrings-python](https://mkdocstrings.github.io/python/) and follows its conventions where possible.
 
 ## Features
 
-- 📄 A page per module, with a sidebar tree, a table of contents built from dotted-path anchors, and prev/next links
-- 🔗 Signatures with linked types: every name in an annotation resolves through the scope chain, the builtins table, then Sphinx inventories
-- 📝 Every docstring section in google, numpy or sphinx style: parameters, returns, raises, examples, admonitions, deprecations
-- ↔️ Cross-references in prose: mkdocstrings' `[title][dotted.path]` syntax becomes a real link, or stays literal when nothing resolves it
-- 🧬 Inherited members merged from resolvable base classes, badged with the class they came from
-- 🔍 Symbol search on every generated package page, and `<SymbolSearch />` anywhere you want it
-- 📚 `objects.inv` and `llms.txt` per package, so other documentation sites and language models can consume yours
-- 🎯 `<Autodoc>` to drop one class or function into a hand-written page
-- 🐍 No Python at build time when you point at a dump your project's CI published
-- 🏷️ "Added in" badges computed by extracting your package at past git refs and comparing, with every ref's dump cached by commit
-- 🌐 Thirteen languages out of the box, with label props for sites that translate their own way
-- 🧩 Works anywhere: a Starlight plugin, or an Astro integration with no Starlight in its module graph
+- 📄 **Generated pages** — one page per module, injected into the site's routes, with a sidebar tree and prev/next links
+  that mirror the package layout
+- 🎯 **Autodoc component** — `<Autodoc name="mypkg.Report" />` renders a single class or function into a hand-written
+  MDX page
+- 🔍 **Symbol search** — search the API surface by object path, on top of the site's existing prose search
+- 📝 **Docstring sections** — google, numpy or sphinx style: parameters, returns, raises, examples, admonitions and
+  deprecations, rendered by your site's own Markdown pipeline
+- 🐍 **No Python at build time** — point the plugin at a dump your CI published and the site builds without an
+  interpreter
+- 🔗 **Linked signatures** — names in an annotation link to their definition on your own pages or, through a Sphinx
+  inventory, to another project's documentation
+- 🧬 **Inherited members** — merged from resolvable base classes and labelled with the class they came from
+- 📚 **Inventory and llms.txt** — `objects.inv` and `llms.txt` per package, so other documentation sites and language
+  models can consume yours
 
 ## Installation
 
@@ -105,11 +117,15 @@ import { Autodoc } from 'starlight-pydocs/components';
 
 ## Documentation
 
-Full guides, the options reference and a live demo built from three fixture packages are on the
-**[documentation site](https://ewels.github.io/starlight-pydocs)**. Start with
-[Getting started](https://ewels.github.io/starlight-pydocs/guides/getting-started/), or
-[Migrating from mkdocstrings](https://ewels.github.io/starlight-pydocs/guides/migration/) if you are moving an existing
-Python project across.
+The **[documentation site](https://ewels.github.io/starlight-pydocs)** documents three example Python packages with the
+plugin, so every API page on it is also a live demo of the output.
+
+- [Getting started](https://ewels.github.io/starlight-pydocs/guides/getting-started/) — install, configure, build
+- [Examples](https://ewels.github.io/starlight-pydocs/examples/) — one package per docstring style, rendered end to end
+- [Configuration](https://ewels.github.io/starlight-pydocs/guides/configuration/) — every option, with defaults
+- [Migrating from mkdocstrings](https://ewels.github.io/starlight-pydocs/guides/migration/) — for an existing Python
+  project
+- [llms.txt](https://ewels.github.io/starlight-pydocs/llms.txt) — the whole site as Markdown, for language models
 
 ## License
 
@@ -120,6 +136,7 @@ This project is licensed under the [MIT License](https://github.com/ewels/starli
 - Created by [Phil Ewels](https://github.com/ewels)
 - Built on [Griffe](https://mkdocstrings.github.io/griffe/) by [Timothée Mazzucotelli](https://github.com/pawamoy),
   whose [mkdocstrings-python](https://mkdocstrings.github.io/python/) set the conventions this plugin follows.
+- Logotype set in [Michroma](https://fonts.google.com/specimen/Michroma) (SIL Open Font License).
 
 > [!TIP]
 > **Writing docs with [MkDocs](https://www.mkdocs.org/) instead?**<br>

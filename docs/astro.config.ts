@@ -34,7 +34,13 @@ export default defineConfig({
     starlight({
       title: 'Starlight Pydocs',
       description: 'Python API reference documentation for Astro and Starlight, extracted with Griffe.',
-      logo: { src: './src/assets/logo.svg' },
+      // The logotype carries the name, so the title is hidden in the header. Text is
+      // outlined (Michroma), not live, because an <img>-embedded SVG cannot load a font.
+      logo: {
+        light: './src/assets/logotype-light.svg',
+        dark: './src/assets/logotype-dark.svg',
+        replacesTitle: true,
+      },
       favicon: '/favicon.svg',
       social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/ewels/starlight-pydocs' }],
       plugins: [
