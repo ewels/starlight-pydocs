@@ -25,7 +25,7 @@ import {
   modelOptionsFor,
 } from '../lib/data.ts';
 import { buildInventory } from '../lib/inventory.ts';
-import { listPydocsPages } from '../libs/pages.ts';
+import { listPydocsPages } from '../lib/pages.ts';
 import { fixturePath } from './helpers.ts';
 
 let workspace: string;
@@ -121,6 +121,7 @@ describe('createContext', () => {
       'docstringStyle',
       'dumpPath',
       'filters',
+      'highlightsPath',
       'label',
       'members',
       'name',

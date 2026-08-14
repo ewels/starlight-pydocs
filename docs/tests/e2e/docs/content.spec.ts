@@ -14,6 +14,22 @@ test.describe('demopkg.report', () => {
     await expect(reportSignature).toContainText('scores: dict[str, float] | None = None');
   });
 
+  test('signatures are syntax highlighted, and keep their links', async ({ page }) => {
+    // This asserts against the built page on purpose. The colours are produced
+    // at astro:config:done, because a Shiki highlighter built inside the SSR
+    // bundle cannot resolve its themes — it fails silently and every signature
+    // renders plain, which is exactly what shipped before. A unit test cannot
+    // see that: it has the whole bundle.
+    const reportSignature = signature(page, 'demopkg.report.Report');
+    const coloured = reportSignature.locator('span.pyd-tok').first();
+    await expect(coloured).toHaveAttribute('style', /--shiki-light:/);
+    await expect(coloured).toHaveAttribute('style', /--shiki-dark:/);
+
+    // A cross-reference inside a highlighted signature stays a link, so the
+    // colouring pass has not swallowed the anchors.
+    await expect(signature(page, 'demopkg.report.BaseReport.format').locator('a.pyd-type')).toHaveText('str');
+  });
+
   test('annotations link to documented objects on this site', async ({ page }) => {
     // The bases line of `Report`, resolved inside the package.
     const internal = page.locator('a.pyd-type[href$="#demopkg.report.BaseReport"]').first();

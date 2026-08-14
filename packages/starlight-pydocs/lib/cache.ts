@@ -225,6 +225,11 @@ export function versionsSidecarPath(cacheDir: string, base: string, dumpPath: st
   return sidecarPath(cacheDir, base, dumpPath, 'versions');
 }
 
+/** Shiki colours for one package's signatures (ARCHITECTURE.md decision 7). */
+export function highlightsSidecarPath(cacheDir: string, base: string, dumpPath: string): string {
+  return sidecarPath(cacheDir, base, dumpPath, 'highlights');
+}
+
 /**
  * Where the dump extracted at one commit lives.
  *

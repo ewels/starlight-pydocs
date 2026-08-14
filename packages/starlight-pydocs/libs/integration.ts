@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 
 import type { AstroIntegration, AstroIntegrationLogger } from 'astro';
 
-import { renderedSidecarPath, versionsSidecarPath, writeAtomic } from '../lib/cache.ts';
+import { highlightsSidecarPath, renderedSidecarPath, versionsSidecarPath, writeAtomic } from '../lib/cache.ts';
 import type { PydocsConfig, PydocsUserConfig } from '../lib/config.ts';
 import { normalizeConfig } from '../lib/config.ts';
 import type { PydocsContext, PydocsInventoryContext } from '../lib/context.ts';
@@ -30,6 +30,7 @@ import { computeVersionAnnotations } from '../lib/ref-extract.ts';
 import { resolveAllExtractions, watchPaths } from '../lib/runner.ts';
 import type { DocstringRenderer } from './docstring-renderer.ts';
 import { renderDocstringsForDump, resolveDocstringRenderer } from './docstring-renderer.ts';
+import { highlightSignaturesForPackage } from './signature-highlighter.ts';
 import { vitePluginStarlightPydocs, PYDOCS_CONTEXT_MODULE, resolveVirtualModuleId } from './vite.ts';
 
 /** Everything the hosts hand over about their Astro configuration. */
@@ -95,6 +96,15 @@ function renderedPathsFor(config: PydocsConfig, dumpPaths: Map<string, string>):
   return paths;
 }
 
+/** Signature-colour sidecar path per package base, likewise. */
+function highlightsPathsFor(config: PydocsConfig, dumpPaths: Map<string, string>): Map<string, string> {
+  const paths = new Map<string, string>();
+  for (const [base, dumpPath] of dumpPaths) {
+    paths.set(base, highlightsSidecarPath(config.cacheDir, base, dumpPath));
+  }
+  return paths;
+}
+
 /**
  * Extract every configured version ref and write each package's "added in"
  * labels beside its dump.
@@ -148,6 +158,7 @@ async function preparePydocs(options: PydocsSetupOptions): Promise<PydocsSetup> 
   const context = createContext(config, {
     dumpPaths,
     renderedPaths: renderedPathsFor(config, dumpPaths),
+    highlightsPaths: highlightsPathsFor(config, dumpPaths),
     versionsPaths,
     siteBase: options.base,
     trailingSlash: options.trailingSlash,
@@ -225,6 +236,21 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
     }
   };
 
+  // Same reason as the prose above, different engine: Shiki resolves its themes
+  // from the full bundle, which only exists in this process.
+  const highlightSignatures = async (logger: AstroIntegrationLogger): Promise<void> => {
+    for (const pkg of setup.context.packages) {
+      const { count } = await highlightSignaturesForPackage({
+        context: setup.context,
+        base: pkg.base,
+        highlightsPath: pkg.highlightsPath,
+        themes: setup.context.shikiThemes,
+        logger,
+      });
+      logger.debug(`highlighted ${String(count)} signatures of '/${pkg.base}'`);
+    }
+  };
+
   return {
     name: 'starlight-pydocs',
     hooks: {
@@ -279,6 +305,7 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
       'astro:config:done': async ({ config, logger }) => {
         renderer = await resolveDocstringRenderer(config.markdown);
         await renderDocstrings(logger);
+        await highlightSignatures(logger);
       },
 
       'astro:server:setup': ({ server, logger }) => {
@@ -301,6 +328,7 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
             setup.context = createContext(setup.config, {
               dumpPaths,
               renderedPaths: renderedPathsFor(setup.config, dumpPaths),
+              highlightsPaths: highlightsPathsFor(setup.config, dumpPaths),
               // Version refs are immutable commits: editing a `.py` file cannot
               // change what an old release contained, so the labels are reused.
               versionsPaths: await versionPathsFor(setup.config, dumpPaths, logger),
@@ -314,9 +342,11 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
             // dump is a new key; clearing keeps memory flat rather than being
             // required for correctness.
             clearCaches();
-            // Prose has to be re-rendered for the new dump, with the renderer
-            // built at config:done: nothing in the SSR graph can make one.
+            // Prose and signature colours have to be remade for the new dump,
+            // here in the config process: nothing in the SSR graph can make
+            // either one.
             await renderDocstrings(logger);
+            await highlightSignatures(logger);
 
             const module = server.moduleGraph.getModuleById(resolveVirtualModuleId(PYDOCS_CONTEXT_MODULE));
             if (module !== undefined) server.moduleGraph.invalidateModule(module);

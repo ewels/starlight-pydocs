@@ -9,12 +9,12 @@
 import type { PydocsContext, PydocsPackageContext } from '../lib/context.ts';
 import { packageForSlug } from '../lib/context.ts';
 import { getModel } from '../lib/data.ts';
-import { listPydocsPages } from './pages.ts';
+import { listPydocsPages } from '../lib/pages.ts';
 import type { RenderScope } from '../lib/render.ts';
 import { createRenderScope } from '../lib/render.ts';
 import { PydocsError } from '../lib/errors.ts';
 import type { PackageModel, PageModel } from '../lib/model.ts';
-import { stripLeadingAndTrailingSlashes } from '../lib/paths.ts';
+import { buildHref, stripLeadingAndTrailingSlashes } from '../lib/paths.ts';
 
 export interface PydocsRouteProps {
   /**
@@ -91,7 +91,10 @@ export function markdownAlternate(
   slug: string,
 ): { tag: 'link'; attrs: Record<string, string> }[] {
   if (!context.pageMarkdown) return [];
-  return [{ tag: 'link', attrs: { rel: 'alternate', type: 'text/markdown', href: `${context.siteBase}/${slug}.md` } }];
+  // `buildHref` with 'never': this addresses a file, not a page, so it keeps
+  // the extension on the end and collapses any doubled slash from the base.
+  const href = buildHref(context.siteBase, `${slug}.md`, 'never');
+  return [{ tag: 'link', attrs: { rel: 'alternate', type: 'text/markdown', href } }];
 }
 
 /**

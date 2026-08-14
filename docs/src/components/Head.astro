@@ -4,24 +4,17 @@
 // page's path within the site; anything with no card of its own (the 404 page)
 // gets the site one.
 import Default from '@astrojs/starlight/components/Head.astro';
-import { getCollection } from 'astro:content';
-import { listPydocsPages } from 'starlight-pydocs/pages';
-import context from 'virtual:starlight-pydocs/context';
-
-const written = new Set((await getCollection('docs')).map((entry) => entry.id));
-const generated = new Set((await listPydocsPages(context)).map((page) => page.slug));
-const cards = new Set([...written, ...generated]);
+import { cardKey, cardPages, sitePath, writtenPages } from '../lib/og-cards.ts';
 
 const base = import.meta.env.BASE_URL;
-const path = Astro.url.pathname.slice(base.length).replace(/^\/|\/$/g, '') || 'index';
-const image = new URL(`${base}/og/${cards.has(path) ? path : 'index'}.png`.replace(/\/{2,}/g, '/'), Astro.site);
+const path = cardKey(Astro.url.pathname, base);
+const image = new URL(sitePath(base, 'og', `${path in cardPages ? path : 'index'}.png`), Astro.site);
 
 // Every page is also served as Markdown, so say so in the head rather than
 // leaving a crawler to guess the `.md` convention. starlight-page-actions
 // writes those files for the pages in `src/content/docs` but adds no link tag.
-// The generated pages carry their own, from the plugin's route, so they are
-// excluded here instead of being advertised twice.
-const markdown = written.has(path) && !generated.has(path) ? `${base}/${path}.md`.replace(/\/{2,}/g, '/') : undefined;
+// Only those: the generated pages carry their own tag, from the plugin's route.
+const markdown = writtenPages.has(path) ? sitePath(base, `${path}.md`) : undefined;
 ---
 
 <Default><slot /></Default>

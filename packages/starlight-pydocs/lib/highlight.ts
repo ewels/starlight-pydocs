@@ -13,88 +13,53 @@
  * variable, so a highlighted signature still shows at a glance what is
  * clickable.
  *
- * Highlighting is best-effort. Shiki is reached through
- * `@astrojs/markdown-remark`, an optional peer dependency, and the import is
- * started at module load for the same reason `libs/docstring-renderer.ts` does
- * it: a dynamic import begun later can outlive the Vite module runner. If the
- * import fails, the grammar is missing or the round trip does not reproduce the
- * source exactly, the tokens come back exactly as they went in.
+ * Nothing here runs Shiki. The colours are computed at `astro:config:done` by
+ * `libs/signature-highlighter.ts` and read back from a sidecar
+ * (ARCHITECTURE.md decision 7): a highlighter built inside the SSR graph cannot
+ * resolve a theme the host's own config never asked for, because Astro
+ * tree-shakes Shiki's bundled themes out of that bundle. This module is the
+ * render-time half — a lookup and a zip, both pure.
+ *
+ * Keys are the signature text itself, so a signature repeated across pages
+ * (an inherited member, a re-export) is stored and coloured once.
  */
 
-import type { ShikiThemes } from './context.ts';
 import type { AnnotationToken } from './expr.ts';
 import { tokensText } from './expr.ts';
 
-const shikiModule = import('@astrojs/markdown-remark/shiki').catch(() => null);
-
-/** The slice of Shiki's HAST output this module reads. */
-interface HastNode {
-  type?: string;
-  value?: string;
-  properties?: { style?: unknown };
-  children?: HastNode[];
+/** One run of text with the inline `--shiki-*` style Shiki gave it. */
+export interface ColouredPiece {
+  text: string;
+  style?: string | undefined;
 }
 
-interface Highlighter {
-  codeToHast(code: string, lang: string, options?: unknown): Promise<HastNode> | HastNode;
+/** The sidecar: coloured pieces per signature text. */
+export interface SignatureHighlights {
+  texts: Record<string, ColouredPiece[]>;
 }
 
-/** One highlighter per theme pair, shared by every page in the process. */
-const highlighters = new Map<string, Promise<Highlighter | null>>();
-
-function getHighlighter(themes: ShikiThemes): Promise<Highlighter | null> {
-  const key = JSON.stringify(themes);
-  const existing = highlighters.get(key);
-  if (existing !== undefined) return existing;
-
-  const created = shikiModule
-    .then(async (module) => {
-      if (module === null) return null;
-      const create = module.createShikiHighlighter as (options: unknown) => Promise<unknown>;
-      return (await create({ themes, langs: ['python'] })) as Highlighter;
-    })
-    .catch(() => null);
-
-  highlighters.set(key, created);
-  return created;
-}
+export const EMPTY_SIGNATURE_HIGHLIGHTS: SignatureHighlights = { texts: {} };
 
 /**
- * Recolour a signature's tokens with the host's Shiki themes.
+ * Recolour a signature's tokens from the pre-rendered sidecar.
  *
- * @param tokens - The signature, already line-broken. Returned unchanged when
- *   highlighting is unavailable, so callers need no fallback of their own.
+ * @param tokens - The signature, already line-broken.
+ * @returns The same text, carrying both links and colours. Returned unchanged
+ *   when the sidecar has no entry for it, so callers need no fallback: an
+ *   uncoloured signature is the worst case, never a missing one.
  */
-export async function highlightTokens(tokens: AnnotationToken[], themes: ShikiThemes): Promise<AnnotationToken[]> {
+export function highlightTokens(tokens: AnnotationToken[], highlights: SignatureHighlights): AnnotationToken[] {
   const text = tokensText(tokens);
   if (text === '') return tokens;
 
-  const highlighter = await getHighlighter(themes);
-  if (highlighter === null) return tokens;
+  const coloured = highlights.texts[text];
+  if (coloured === undefined || coloured.length === 0) return tokens;
 
-  try {
-    const hast = await highlighter.codeToHast(text, 'python', { defaultColor: false });
-    const coloured = flattenHast(hast);
-    // Shiki reproduces its input verbatim, but a grammar or transformer that
-    // does not would silently shift every link. Cheaper to check than to debug.
-    if (coloured.map((piece) => piece.text).join('') !== text) return tokens;
-    return zip(tokens, coloured);
-  } catch {
-    return tokens;
-  }
-}
+  // The sidecar is keyed by the text, so this can only disagree if the file was
+  // written for a different dump. Cheaper to check than to debug.
+  if (coloured.map((piece) => piece.text).join('') !== text) return tokens;
 
-interface ColouredPiece {
-  text: string;
-  style: string | undefined;
-}
-
-/** Shiki's leaf text nodes, in order, each with the style of its own span. */
-function flattenHast(node: HastNode, inherited?: string | undefined): ColouredPiece[] {
-  if (node.type === 'text') return [{ text: node.value ?? '', style: inherited }];
-  const own = node.properties?.style;
-  const style = typeof own === 'string' && own.includes('--shiki') ? own : inherited;
-  return (node.children ?? []).flatMap((child) => flattenHast(child, style));
+  return zip(tokens, coloured);
 }
 
 /**

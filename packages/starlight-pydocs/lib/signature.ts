@@ -7,7 +7,7 @@
  */
 
 import type { AnnotationResolver, AnnotationToken } from './expr.ts';
-import { annotationTokens, mergeAnnotationTokens, tokensText } from './expr.ts';
+import { annotationTokens, mergeAnnotationTokens, tokensText, wrapAnnotationTokens } from './expr.ts';
 import type { DocObject } from './model.ts';
 import type { GriffeFunction } from './types.ts';
 
@@ -181,6 +181,20 @@ export function renderedSignatureTokens(doc: DocObject, options: SignatureOption
   tokens.push({ text: options.qualified === true ? doc.path : doc.name });
   tokens.push(...parameterTokens(constructor, doc.path, options));
   return mergeAnnotationTokens(tokens);
+}
+
+/**
+ * Exactly the tokens the signature block renders, line breaks and all.
+ *
+ * An attribute's value can be arbitrarily large, so it is broken at its
+ * brackets; nothing else is. This is the one definition of "what a signature
+ * says", shared by the component that displays it and the config-time pass that
+ * colours it (`libs/signature-highlighter.ts`). Two spellings would put the
+ * colours a character out of step with the text.
+ */
+export function displaySignatureTokens(doc: DocObject, options: SignatureOptions = {}): AnnotationToken[] {
+  const rendered = renderedSignatureTokens(doc, options);
+  return doc.kind === 'attribute' ? wrapAnnotationTokens(rendered) : rendered;
 }
 
 /**

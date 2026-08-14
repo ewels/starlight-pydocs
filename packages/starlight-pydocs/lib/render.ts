@@ -11,7 +11,14 @@
 import type { PydocsContext, PydocsPackageContext } from './context.ts';
 import type { RenderedDocstrings } from './docstrings.ts';
 import type { AnnotationResolver, AnnotationTarget } from './expr.ts';
-import { getAnnotationResolver, getModel, getRenderedDocstrings, requirePackage } from './data.ts';
+import {
+  getAnnotationResolver,
+  getModel,
+  getRenderedDocstrings,
+  getSignatureHighlights,
+  requirePackage,
+} from './data.ts';
+import type { SignatureHighlights } from './highlight.ts';
 import { kindLabelKey, labelBadges } from './markdown-doc.ts';
 import type { DocObject, PackageModel } from './model.ts';
 import { documentedPathFor } from './model.ts';
@@ -32,6 +39,12 @@ export interface RenderScope {
    * host's markdown processor, so no markdown engine runs at render time.
    */
   rendered: RenderedDocstrings;
+  /**
+   * Signature colours, keyed by signature text. Produced at
+   * `astro:config:done` for the same reason as the prose: a Shiki highlighter
+   * built inside the SSR bundle cannot resolve its themes.
+   */
+  highlights: SignatureHighlights;
 }
 
 /**
@@ -42,12 +55,13 @@ export interface RenderScope {
  */
 export async function createRenderScope(context: PydocsContext, base: string): Promise<RenderScope> {
   const pkg = requirePackage(context, base);
-  const [model, resolver, rendered] = await Promise.all([
+  const [model, resolver, rendered, highlights] = await Promise.all([
     getModel(context, base),
     getAnnotationResolver(context, base),
     getRenderedDocstrings(context, base),
+    getSignatureHighlights(context, base),
   ]);
-  return { context, pkg, model, resolver, rendered };
+  return { context, pkg, model, resolver, rendered, highlights };
 }
 
 /** Href of a documented object, or undefined when nothing documents it. */

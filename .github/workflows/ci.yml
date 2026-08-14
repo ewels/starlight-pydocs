@@ -76,9 +76,8 @@ jobs:
       # The docs build extracts the fixture package with griffe via uv.
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
         with:
-          # Nothing in this repository pins a Python dependency, so the cache
-          # would have no key to invalidate on and uvx would keep serving an
-          # old griffe to the tests that check for drift.
+          # Nothing here pins a Python dependency, so the cache would have no
+          # key to invalidate on and uvx would keep serving an old griffe.
           enable-cache: false
       - run: pnpm install --frozen-lockfile
       # starlight-links-validator runs inside this build and fails it on a broken
@@ -104,9 +103,8 @@ jobs:
       # The docs build extracts the fixture package with griffe via uv.
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
         with:
-          # Nothing in this repository pins a Python dependency, so the cache
-          # would have no key to invalidate on and uvx would keep serving an
-          # old griffe to the tests that check for drift.
+          # Nothing here pins a Python dependency, so the cache would have no
+          # key to invalidate on and uvx would keep serving an old griffe.
           enable-cache: false
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter starlight-pydocs-docs exec playwright install --with-deps chromium

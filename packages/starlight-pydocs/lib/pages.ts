@@ -8,8 +8,8 @@
  * answered from the same model the routes render.
  */
 
-import type { PydocsContext } from '../lib/context.ts';
-import { getModel } from '../lib/data.ts';
+import type { PydocsContext } from './context.ts';
+import { getModel } from './data.ts';
 
 export interface PydocsPageInfo {
   /** Base of the package entry the page belongs to. */

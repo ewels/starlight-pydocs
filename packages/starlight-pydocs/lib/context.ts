@@ -44,6 +44,12 @@ export interface PydocsPackageContext {
    * the package has no `versions.refs`.
    */
   versionsPath: string;
+  /**
+   * Absolute path to the Shiki colours for this package's signatures, written
+   * at `astro:config:done` (ARCHITECTURE.md decision 7). Empty when the
+   * highlighting pass did not run, and signatures then render uncoloured.
+   */
+  highlightsPath: string;
   /** Docstring flavour the dump was parsed with, for display and diagnostics. */
   docstringStyle: DocstringStyle;
   /** Member selection globs, needed to build the model. */
@@ -116,6 +122,8 @@ export interface CreateContextOptions {
   renderedPaths?: Map<string, string> | undefined;
   /** Absolute version-annotation sidecar path per package base, where there is one. */
   versionsPaths?: Map<string, string> | undefined;
+  /** Absolute signature-colour sidecar path per package base, from `highlightsSidecarPath`. */
+  highlightsPaths?: Map<string, string> | undefined;
   /** Astro's `base`, in any form; normalised to '' or '/prefix'. */
   siteBase: string | undefined;
   trailingSlash: 'always' | 'never' | 'ignore';
@@ -138,6 +146,7 @@ export function createContext(config: PydocsConfig, options: CreateContextOption
       dumpPath: options.dumpPaths.get(pkg.base) ?? '',
       renderedPath: options.renderedPaths?.get(pkg.base) ?? '',
       versionsPath: options.versionsPaths?.get(pkg.base) ?? '',
+      highlightsPath: options.highlightsPaths?.get(pkg.base) ?? '',
       docstringStyle: pkg.docstringStyle,
       members: pkg.members,
       filters: pkg.filters,

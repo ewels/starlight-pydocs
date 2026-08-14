@@ -27,13 +27,27 @@ export async function getStaticPaths() {
   return getPydocsStaticPaths(context);
 }
 
+/**
+ * Rendered Markdown per slug, for the build only. The two patterns are two
+ * routes over the same pages, so without this every page is rendered twice for
+ * byte-identical output. Not used in dev: editing a `.py` file rebuilds the
+ * model, and a cached string would outlive it.
+ */
+const rendered = new Map<string, string>();
+
 export const GET: APIRoute = async ({ props, url }) => {
-  const { page } = await resolvePydocsPage(context, props as PydocsRouteProps);
+  const { pydocsSlug } = props as PydocsRouteProps;
+  let markdown = import.meta.env.DEV ? undefined : rendered.get(pydocsSlug);
+  if (markdown === undefined) {
+    const { page } = await resolvePydocsPage(context, props as PydocsRouteProps);
+    markdown = renderPageMarkdown(page, { includeSource: true });
+    rendered.set(pydocsSlug, markdown);
+  }
   // The `.md.txt` alias exists to be plain text, so say so. A static host
   // answers by extension and ignores this; an SSR host sends what we set.
   const type = url.pathname.endsWith('.txt') ? 'text/plain' : 'text/markdown';
 
-  return new Response(renderPageMarkdown(page, { includeSource: true }), {
+  return new Response(markdown, {
     headers: { 'content-type': `${type}; charset=utf-8` },
   });
 };

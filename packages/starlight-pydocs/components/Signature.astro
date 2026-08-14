@@ -17,14 +17,16 @@
  * whole block lives in the `<summary>` and CSS clamps its height while closed.
  *
  * Colours come from the host's Shiki themes and the cross-reference links
- * survive the pass; see `lib/highlight.ts`.
+ * survive the pass. Nothing is highlighted here: the colours were computed at
+ * `astro:config:done` and are looked up by signature text; see
+ * `lib/highlight.ts`.
  */
 import { createStringResolver } from '../lib/i18n.ts';
-import { tokensText, wrapAnnotationTokens } from '../lib/expr.ts';
+import { tokensText } from '../lib/expr.ts';
 import { highlightTokens } from '../lib/highlight.ts';
 import type { DocObject } from '../lib/model.ts';
 import type { RenderScope } from '../lib/render.ts';
-import { overloadSignatureTokens, renderedParameterCount, renderedSignatureTokens } from '../lib/signature.ts';
+import { displaySignatureTokens, overloadSignatureTokens, renderedParameterCount } from '../lib/signature.ts';
 import type { StringOverrides } from '../lib/strings.ts';
 import AnnotationTokens from './AnnotationTokens.astro';
 
@@ -42,12 +44,11 @@ const { doc, scope, labels, class: className } = Astro.props;
 
 const resolve = createStringResolver(Astro.locals, labels);
 const options = { resolver: scope.resolver };
-const rendered = renderedSignatureTokens(doc, options);
-const wrapped = doc.kind === 'attribute' ? wrapAnnotationTokens(rendered) : rendered;
-const themes = scope.context.shikiThemes;
-const tokens = await highlightTokens(wrapped, themes);
-const overloads = await Promise.all(
-  (doc.overloads ?? []).map((overload) => highlightTokens(overloadSignatureTokens(overload, doc, options), themes)),
+const wrapped = displaySignatureTokens(doc, options);
+const { highlights } = scope;
+const tokens = highlightTokens(wrapped, highlights);
+const overloads = (doc.overloads ?? []).map((overload) =>
+  highlightTokens(overloadSignatureTokens(overload, doc, options), highlights),
 );
 const multiline = renderedParameterCount(doc) > 3;
 const folded = tokensText(wrapped).length > FOLD_THRESHOLD;

@@ -16,6 +16,8 @@ import { createCrossReferenceResolver } from './crossrefs.ts';
 import type { RenderedDocstrings } from './docstrings.ts';
 import { PydocsError } from './errors.ts';
 import type { AnnotationResolver } from './expr.ts';
+import type { SignatureHighlights } from './highlight.ts';
+import { EMPTY_SIGNATURE_HIGHLIGHTS } from './highlight.ts';
 import type { InventoryLookup } from './inventory.ts';
 import { createInventoryLookup, parseInventory } from './inventory.ts';
 import type { ModelOptions, PackageModel } from './model.ts';
@@ -37,6 +39,7 @@ const modelCache = new Map<string, Promise<PackageModel>>();
 const inventoryCache = new Map<string, Promise<InventoryLookup>>();
 const renderedCache = new Map<string, CachedJson<RenderedDocstrings>>();
 const versionsCache = new Map<string, Promise<Map<string, string>>>();
+const highlightsCache = new Map<string, CachedJson<SignatureHighlights>>();
 
 /**
  * The promise cached under `key`, or `build()`'s, cached and evicted again if it
@@ -186,6 +189,33 @@ export async function getRenderedDocstrings(context: PydocsContext, base: string
   return loadRendered(requirePackage(context, base).renderedPath);
 }
 
+/**
+ * Shiki colours for the package's signatures.
+ *
+ * Unlike the docstring sidecar this never throws: prose that fails to render
+ * loses the page its content, whereas colours that fail to load cost only
+ * colours. A missing or damaged file leaves signatures plain.
+ */
+export async function getSignatureHighlights(context: PydocsContext, base: string): Promise<SignatureHighlights> {
+  const { highlightsPath } = requirePackage(context, base);
+  if (highlightsPath === '') return EMPTY_SIGNATURE_HIGHLIGHTS;
+
+  try {
+    return await loadJson({
+      cache: highlightsCache,
+      path: highlightsPath,
+      unreadable: `starlight-pydocs: the signature colours at ${highlightsPath} are missing`,
+      invalidJson: `starlight-pydocs: ${highlightsPath} is not valid JSON`,
+      interpret: (parsed) =>
+        typeof parsed === 'object' && parsed !== null && 'texts' in parsed
+          ? (parsed as SignatureHighlights)
+          : EMPTY_SIGNATURE_HIGHLIGHTS,
+    });
+  } catch {
+    return EMPTY_SIGNATURE_HIGHLIGHTS;
+  }
+}
+
 /** Model options for one package, as recorded in the virtual context. */
 export function modelOptionsFor(pkg: PydocsPackageContext): ModelOptions {
   return {
@@ -314,4 +344,5 @@ export function clearCaches(): void {
   inventoryCache.clear();
   renderedCache.clear();
   versionsCache.clear();
+  highlightsCache.clear();
 }

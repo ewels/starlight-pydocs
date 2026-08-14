@@ -272,6 +272,22 @@ Test coverage: the docs site runs the Astro 7 default (Sätteri); the vanilla
 example site pins `markdown: { processor: unified() }`, so CI exercises both
 engines end to end.
 
+**Signature colours ride the same rule.** Shiki highlighting of signatures is
+also produced at `astro:config:done`, into a sidecar beside the dump
+(`libs/signature-highlighter.ts` writes it, `lib/highlight.ts` reads it). The
+first implementation ran at render time and shipped doing nothing at all: Astro
+tree-shakes Shiki's bundled themes out of the server bundle, so
+`createShikiHighlighter` inside the SSR graph fails with ``Theme `github-light`
+is not included in this bundle`` — and a Starlight site always asks for exactly
+such a theme, because Expressive Code owns its prose code and
+`markdown.shikiConfig` is left at Astro's default. The failure was caught and
+swallowed, so every signature silently rendered plain while the unit tests (in
+plain Node, with the full bundle) passed. The sidecar is keyed by signature
+text, so a signature repeated across pages is coloured once, and a missing or
+stale entry costs colours rather than correctness. The end-to-end assertion in
+`docs/tests/e2e/docs/content.spec.ts` checks a **built** page, because that is
+the only place this class of failure is visible.
+
 ### 8. Search: Pagefind for prose, a symbol index for symbols
 
 Generated pages are indexed by Pagefind automatically because `StarlightPage` renders

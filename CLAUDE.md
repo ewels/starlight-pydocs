@@ -190,6 +190,12 @@ them. `pnpm typecheck` runs both.
   created at render time cannot resolve a theme the host's own config never asked for
   (`Theme 'github-light' is not included in this bundle`). Rendering happens at
   `astro:config:done`, in the config process, where the full bundle exists.
+  **This covers Shiki itself, not just markdown.** Signature highlighting was
+  written at render time once and shipped colouring nothing: the error was
+  swallowed, the unit tests passed (plain Node has the whole bundle), and only a
+  built page showed it. Anything needing Shiki or the host's markdown pipeline is
+  computed at `astro:config:done` into a sidecar, and asserted against a **built**
+  page, never only in a unit test.
 - **Starlight colour tokens are contrast tokens, not literal colours.**
   `--sl-color-white` flips to dark in light mode. Follow the LinkButton pattern
   (`background: var(--sl-color-text-accent)`, `color: var(--sl-color-black)`); all
