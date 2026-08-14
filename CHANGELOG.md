@@ -2,6 +2,13 @@
 
 All notable changes to `starlight-pydocs` are recorded here. New work is added under **Unreleased** and rolled into a dated version section when a release is cut.
 
+## v0.2.1 (2026-08-14)
+
+Metadata-only release: no code changes.
+
+- 🛠️ Reworked the npm keywords. `astro-integration` is gone: the default export is a Starlight plugin, so `astro add starlight-pydocs` would have wired up the wrong thing.
+- 🛠️ Published with npm provenance.
+
 ## v0.2.0 (2026-08-14)
 
 - ✨ Syntax-highlighted signatures, in your `markdown.shikiConfig` themes. Cross-references stay links.

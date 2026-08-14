@@ -1,6 +1,6 @@
 {
   "name": "starlight-pydocs",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "license": "MIT",
   "author": "Phil Ewels",
@@ -16,14 +16,19 @@
     "starlight",
     "starlight-plugin",
     "astro",
-    "astro-integration",
+    "astro-component",
     "withastro",
+    "astro-loader",
     "documentation",
     "python",
     "api-reference",
+    "api-docs",
+    "docstrings",
     "griffe",
     "mkdocstrings",
-    "autodoc"
+    "sphinx",
+    "autodoc",
+    "pdoc"
   ],
   "sideEffects": [
     "*.css",
@@ -103,6 +108,7 @@
     "node": ">=22.12.0"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   }
 }
