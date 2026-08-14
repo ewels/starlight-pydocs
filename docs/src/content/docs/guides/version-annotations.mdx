@@ -68,6 +68,59 @@ instead:
 The result, a map from object path to version label, is written beside the package's dump. It is
 read back when pages render. Only the badge text reaches the browser.
 
+## Listing the releases automatically
+
+`refs` is a plain array, so build it from your tags instead of editing the config on every
+release:
+
+```js title="astro.config.mjs" {8-15,24}
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+// The repository root, one level above this Astro project.
+const repo = fileURLToPath(new URL('..', import.meta.url));
+const opts = { cwd: repo, encoding: 'utf8' };
+
+// Every release tag, oldest first. `v:refname` sorts 1.10 after
+// 1.9, which an alphabetical sort does not.
+const args = ['tag', '--list', 'v*', '--sort=v:refname'];
+const refs = execFileSync('git', args, opts)
+  .split('\n')
+  // Releases only: drops `v2.0.0.dev0` and other prereleases.
+  .filter((tag) => /^v\d+\.\d+(\.\d+)?$/.test(tag))
+  .map((tag) => ({ ref: tag, label: tag.slice(1) }));
+
+starlightPydocs({
+  packages: [
+    {
+      name: 'mypkg',
+      search: ['../src'],
+      // A checkout with no tags gives no badges, rather than a
+      // build that stops on a ref it cannot resolve.
+      ...(refs.length > 0 && { versions: { refs } }),
+    },
+  ],
+});
+```
+
+The oldest tag stays the baseline and gets no badge, so the list grows a label at the new end each
+time you release.
+
+:::caution[Slow with many releases]
+Every ref costs one worktree checkout and one griffe run on the first build. A package with a few
+dozen tags takes seconds; a package with hundreds takes minutes, and a CI job that starts with an
+empty cache pays that on every build.
+
+Two ways to keep it short:
+
+- **Minor releases only.** `--list 'v*.*.0'` badges `2.1` rather than `2.1.3`, which is what a
+  reader needs to pick a version to install.
+- **Recent releases only.** Add `.slice(-8)` after the filter. The oldest listed ref is the
+  baseline, so anything older than it is simply unbadged.
+
+See [Caching](#caching): the dumps are keyed by commit, so a warm cache does no git work at all.
+:::
+
 ## What your build needs
 
 ### A git checkout with history
@@ -117,6 +170,53 @@ different ways.
 
 `cacheDir` defaults to `node_modules/.astro`. Point it at a directory your CI caches, so the git
 work happens once across builds instead of once per build.
+
+### In GitHub Actions
+
+Cache the ref dumps the same way you cache pnpm's store or uv's: with `actions/cache`, keyed on
+the tag list. A build then extracts only the releases the cache does not already have.
+
+Put the cache directory outside `node_modules`, so installing dependencies cannot remove it:
+
+```js title="astro.config.mjs" {5}
+starlightPydocs({
+  packages: [
+    { name: 'mypkg', search: ['../src'], versions: { refs } },
+  ],
+  cacheDir: '.cache',
+});
+```
+
+```yaml title=".github/workflows/docs.yml" {5,9,16-17}
+steps:
+  - uses: actions/checkout@v7
+    with:
+      # Version refs are resolved in your own repository.
+      fetch-depth: 0
+
+  - id: refs
+    run: |
+      key=$(git tag --list 'v*' | sha256sum | cut -c1-16)
+      echo "key=$key" >> "$GITHUB_OUTPUT"
+
+  - uses: actions/cache@v6
+    with:
+      # Only the dumps. Worktrees are rebuilt on demand and are large.
+      path: .cache/starlight-pydocs/versions
+      key: pydocs-versions-${{ steps.refs.outputs.key }}
+      restore-keys: pydocs-versions-
+```
+
+A cache entry cannot be overwritten, so the key has to change when the tag list does. `restore-keys`
+is what makes that cheap: the new key misses, the prefix match restores the previous build's dumps,
+griffe runs for the new tag only, and the job saves the whole set under the new key.
+
+Use the cache rather than an artifact. Artifacts are for files a build publishes; they are not
+restored into the next run on their own.
+
+The dumps are megabytes each, so a package with many releases makes a large cache. GitHub's limits
+apply: 10 GB per repository, and an entry that goes unread for 7 days is evicted, which costs you
+one slow build.
 
 ## Deprecations are separate
 
