@@ -108,6 +108,7 @@ describe('createContext', () => {
       'llmsTxt',
       'packages',
       'publishInventory',
+      'shikiThemes',
       'siteBase',
       'starlight',
       'symbolSearch',
@@ -124,6 +125,7 @@ describe('createContext', () => {
       'renderedPath',
       'sidebar',
       'sourceLink',
+      'versionReleases',
       'versionsPath',
     ]);
   });
@@ -374,5 +376,59 @@ describe('inventories at render time', () => {
   test('no inventories means an empty lookup', async () => {
     const lookup = await getInventoryLookup(await contextFor());
     expect(lookup.lookup('pathlib.Path')).toBeUndefined();
+  });
+});
+
+describe('version release links', () => {
+  test('pairs each label with its tag on the configured forge', () => {
+    const config = normalizeConfig(
+      {
+        packages: [
+          {
+            name: 'demopkg',
+            sourceLink: { host: 'github', repo: 'ewels/demopkg' },
+            versions: {
+              refs: [
+                { ref: 'v1.6.0', label: '1.6' },
+                { ref: 'v1.9.0', label: '1.9' },
+              ],
+            },
+          },
+        ],
+      },
+      workspace,
+    );
+    const context = createContext(config, {
+      dumpPaths: new Map(),
+      siteBase: '',
+      trailingSlash: 'ignore',
+      starlight: true,
+    });
+    expect(context.packages[0]?.versionReleases).toEqual({
+      '1.6': 'https://github.com/ewels/demopkg/releases/tag/v1.6.0',
+      '1.9': 'https://github.com/ewels/demopkg/releases/tag/v1.9.0',
+    });
+  });
+
+  test('has no release links without a forge preset', () => {
+    const config = normalizeConfig(
+      {
+        packages: [
+          {
+            name: 'demopkg',
+            sourceLink: { template: 'https://example.dev/{path}' },
+            versions: { refs: [{ ref: 'v1.9.0', label: '1.9' }] },
+          },
+        ],
+      },
+      workspace,
+    );
+    const context = createContext(config, {
+      dumpPaths: new Map(),
+      siteBase: '',
+      trailingSlash: 'ignore',
+      starlight: true,
+    });
+    expect(context.packages[0]?.versionReleases).toEqual({});
   });
 });

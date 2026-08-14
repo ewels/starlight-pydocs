@@ -3,7 +3,8 @@
  * Link to an object's source.
  *
  * Renders only when the model resolved an href: either from the configured
- * `sourceLink` template or from griffe's own `source_link` field.
+ * `sourceLink` template or from griffe's own `source_link` field. It points at
+ * a forge rather than at this site, so it opens in a new tab.
  */
 import { createStringResolver } from '../lib/i18n.ts';
 import type { DocObject } from '../lib/model.ts';
@@ -29,7 +30,7 @@ const lines =
 
 {
   href === undefined ? null : (
-    <a class="pyd-source-link" href={href} rel="noreferrer" title={lines}>
+    <a class="pyd-source-link" href={href} target="_blank" rel="noreferrer" title={lines}>
       {resolve('viewSource')}
     </a>
   )

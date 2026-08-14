@@ -43,6 +43,8 @@ export interface PydocsSetupOptions {
   trailingSlash: 'always' | 'never' | 'ignore';
   /** True when the host is Starlight. */
   starlight: boolean;
+  /** `astroConfig.markdown.shikiConfig`, for highlighting signatures. */
+  shikiConfig?: unknown;
   /** Astro's logger, which already satisfies the {@link PydocsLogger} seam. */
   logger: AstroIntegrationLogger;
   /** Component specifier for the vanilla layout. Ignored under Starlight. */
@@ -151,6 +153,7 @@ async function preparePydocs(options: PydocsSetupOptions): Promise<PydocsSetup> 
     trailingSlash: options.trailingSlash,
     starlight: options.starlight,
     inventories: loadedInventories,
+    shikiConfig: options.shikiConfig,
   });
 
   for (const pkg of config.packages) {
@@ -290,6 +293,7 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
               trailingSlash: options.trailingSlash,
               starlight: options.starlight,
               inventories: setup.context.inventories,
+              shikiConfig: options.shikiConfig,
             });
             // Models are keyed by dump path, which is content-hashed, so a new
             // dump is a new key; clearing keeps memory flat rather than being

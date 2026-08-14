@@ -7,6 +7,8 @@ import {
   createAnnotationResolver,
   expressionToPath,
   scopeChain,
+  tokensText,
+  wrapAnnotationTokens,
 } from '../lib/expr.ts';
 import { buildAnnotationResolver } from '../lib/model.ts';
 import type { PackageModel } from '../lib/model.ts';
@@ -289,5 +291,38 @@ describe('createAnnotationResolver', () => {
       lookupExternal: (path) => (path === 'builtins.str' ? 'https://docs/str' : undefined),
     });
     expect(resolver.resolve('str', 'pkg')).toEqual({ kind: 'external', href: 'https://docs/str' });
+  });
+});
+
+describe('wrapAnnotationTokens', () => {
+  test('leaves a group that fits on one line', () => {
+    const tokens = [{ text: 'x: list = ["cyan", "yellow", "green"]' }];
+    expect(tokensText(wrapAnnotationTokens(tokens))).toBe('x: list = ["cyan", "yellow", "green"]');
+  });
+
+  test('breaks only the groups that are too wide', () => {
+    const item = '"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"';
+    const tokens = [{ text: `x = {"a": [1, 2], "b": [${item}, ${item}, ${item}]}` }];
+    expect(tokensText(wrapAnnotationTokens(tokens, 40)).split('\n')).toEqual([
+      'x = {',
+      '  "a": [1, 2],',
+      '  "b": [',
+      `    ${item},`,
+      `    ${item},`,
+      `    ${item}`,
+      '  ]',
+      '}',
+    ]);
+  });
+
+  test('ignores brackets and commas inside string literals', () => {
+    const tokens = [{ text: `x = ("a,{b}c", 'd\\'e')` }];
+    expect(tokensText(wrapAnnotationTokens(tokens))).toBe(`x = ("a,{b}c", 'd\\'e')`);
+  });
+
+  test('keeps linked tokens intact', () => {
+    const target = { kind: 'internal', path: 'pkg.Theme' } as const;
+    const tokens: AnnotationToken[] = [{ text: 'x = ' }, { text: 'Theme', target }, { text: '()' }];
+    expect(wrapAnnotationTokens(tokens)).toEqual(tokens);
   });
 });

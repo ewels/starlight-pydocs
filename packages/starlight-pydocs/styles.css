@@ -12,10 +12,15 @@
  *    `--sl-color-white` is dark text in light mode. Accent-on-background pairs
  *    therefore follow Starlight's own LinkButton pattern
  *    (`background: var(--sl-color-text-accent)`, `color: var(--sl-color-black)`).
- * 2. Starlight's own rules are unlayered and beat everything in this layer.
- *    Where a rule must win inside Starlight's `.sl-markdown-content`, it says so
- *    and uses enough specificity to do it.
+ * 2. Starlight puts its own rules in `starlight.*` layers, and layer order beats
+ *    specificity. The statement below names Starlight's layers in their own
+ *    order and puts ours last, so `starlight.reset`'s `* { margin: 0 }` and
+ *    `starlight.content`'s inline-code chrome stop winning over this file.
+ *    Whichever stylesheet loads first sets the order; both spellings agree.
  */
+
+@layer starlight.base, starlight.reset, starlight.core, starlight.content, starlight.components,
+  starlight.utils, starlight-pydocs;
 
 @layer starlight-pydocs {
   :root {
@@ -90,15 +95,12 @@
     margin-block: 1.25rem;
   }
 
-  .pyd-heading {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: baseline;
-  }
+  /* Inline flow, not flex: the name, the badges and the anchor wrap as one run
+     of text. A flex row puts each on its own line once the name is long, and an
+     invisible anchor alone on a heading-sized line is a hole in the page.
 
-  /* Two classes deep on purpose: the heading's name is a `<code>` element, and
-     Starlight's unlayered inline-code chrome has to be stripped back off it. */
+     The name is a `<code>` element, so Starlight's inline-code background,
+     padding and border come off it here. */
   .pyd-heading .pyd-member-name {
     font-family: var(--pyd-mono);
     background: none;
@@ -109,6 +111,7 @@
 
   /* CSS-only hover affordance: no script, and it stays reachable by keyboard. */
   .pyd-anchor {
+    margin-inline-start: 0.5rem;
     opacity: 0;
     color: var(--pyd-text-muted);
     text-decoration: none;
@@ -127,10 +130,12 @@
 
   /* -- Badges ------------------------------------------------------------- */
 
+  /* The badges flow inline after the heading name, so they carry their own gap. */
   .pyd-badges {
     display: inline-flex;
     flex-wrap: wrap;
     gap: 0.25rem;
+    margin-inline-start: 0.5rem;
     vertical-align: middle;
   }
 
@@ -153,13 +158,6 @@
     border-color: var(--pyd-accent);
     /* LinkButton pattern: `black` is the colour that contrasts the accent. */
     color: var(--pyd-text-invert);
-  }
-
-  /* Quieter than the kind badge: it is metadata, not identity. */
-  .pyd-badge--added {
-    background: var(--pyd-accent-low);
-    border-color: var(--pyd-accent);
-    color: var(--pyd-accent);
   }
 
   .pyd-badge--deprecated {
@@ -211,10 +209,87 @@
     color: var(--pyd-text-muted);
   }
 
+  /* Shiki colours, one custom property per scheme (`defaultColor: false`).
+     Linked names are `.pyd-type`, never `.pyd-tok`, so they keep the accent
+     colour and stay recognisable as links inside a highlighted signature. */
+  .pyd-tok {
+    color: var(--shiki-light);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) .pyd-tok {
+      color: var(--shiki-dark);
+    }
+  }
+
+  :root[data-theme='dark'] .pyd-tok {
+    color: var(--shiki-dark);
+  }
+
+  /* A signature long enough to fold sits inside the `<summary>` itself, so the
+     closed state shows a clamped preview instead of nothing. No script needed.
+
+     Starlight dresses every `<details>` in prose as a callout: a start border,
+     an indent and a rotating chevron. A signature block is not a callout, so
+     that chrome comes off and the `<pre>` is the whole control. */
+  .pyd-fold {
+    border-inline-start: 0;
+    padding-inline-start: 0;
+  }
+
+  .pyd-fold > summary {
+    display: block;
+    list-style: none;
+    cursor: pointer;
+    margin-inline-start: 0;
+    padding-inline-start: 0;
+    color: inherit;
+    font-weight: inherit;
+  }
+
+  .pyd-fold[open] > summary {
+    margin-bottom: 0;
+  }
+
+  .pyd-fold > summary::marker,
+  .pyd-fold > summary::-webkit-details-marker,
+  .pyd-fold > summary::before {
+    display: none;
+    content: none;
+  }
+
+  .pyd-fold:not([open]) .pyd-signature {
+    max-height: 11em;
+    overflow: hidden;
+    mask-image: linear-gradient(to bottom, #000 70%, transparent);
+  }
+
+  .pyd-fold-toggle {
+    color: var(--pyd-accent);
+    font-size: 0.8125rem;
+  }
+
+  .pyd-fold > summary:hover .pyd-fold-toggle {
+    text-decoration: underline;
+  }
+
+  .pyd-fold:not([open]) [data-pydocs-fold='less'],
+  .pyd-fold[open] [data-pydocs-fold='more'] {
+    display: none;
+  }
+
   .pyd-type {
     color: var(--pyd-accent);
+    text-decoration-line: underline;
+    text-decoration-style: solid;
     text-decoration-thickness: 1px;
     text-underline-offset: 0.2em;
+  }
+
+  /* A dashed underline marks the link as leaving the site, so a reader can tell
+     an inventory entry from one of our own objects before clicking. */
+  .pyd-type--external {
+    text-decoration-style: dashed;
   }
 
   .pyd-bases {
@@ -242,13 +317,21 @@
     display: none;
   }
 
-  .pyd-source-link {
-    margin-inline-start: auto;
+  /* Both ends of the provenance row read as metadata, not as prose links, so
+     they are muted until hovered. */
+  .pyd-source-link,
+  .pyd-version-link {
     color: var(--pyd-text-muted);
   }
 
-  .pyd-source-link:hover {
+  .pyd-source-link:hover,
+  .pyd-version-link:hover {
     color: var(--pyd-accent);
+  }
+
+  /* Pushed to the far end of the row, opposite the version. */
+  .pyd-source-link {
+    margin-inline-start: auto;
   }
 
   /* -- Docstring sections ------------------------------------------------- */
@@ -401,6 +484,13 @@
   }
 
   /* -- Member groups, summaries, submodules ------------------------------- */
+
+  /* Bigger than the gap between members inside a group, so "Attributes" and
+     "Functions" read as separate blocks. Collapses with the last member's own
+     margin, hence the size. */
+  .pyd-group {
+    margin-block-end: 4rem;
+  }
 
   .pyd-summary {
     margin-block: 1rem 1.5rem;

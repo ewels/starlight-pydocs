@@ -51,6 +51,7 @@ export default function pydocs(options: PydocsAstroOptions): AstroIntegration {
           base: config.base,
           trailingSlash: config.trailingSlash,
           starlight: false,
+          shikiConfig: config.markdown.shikiConfig,
           logger,
           layout: options.layout,
         };

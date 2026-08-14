@@ -2,6 +2,24 @@
 
 All notable changes to `starlight-pydocs` are recorded here. New work is added under **Unreleased** and rolled into a dated version section when a release is cut.
 
+## Unreleased
+
+### Added
+
+- Attribute values are line-broken at their brackets, so a dict of dicts reads as a formatted literal instead of one long line. A value that is still long folds behind a native `<details>` with a "Show more" toggle.
+- Signatures are syntax highlighted with the host's Shiki themes. The cross-reference links survive the pass, so a linked name keeps the accent colour while everything around it is coloured by the grammar.
+- Links to another documentation site open in a new tab, carry a dashed underline to set them apart from same-site links, and name their host in the tooltip. Links to this site's own objects show the target's one-line summary instead.
+- Version labels link to the release page on GitHub, GitLab or Bitbucket, derived from the `sourceLink` preset.
+
+### Changed
+
+- "Added in" moved off the heading and into the provenance row, beside the source link, and reads as `Added in v1.9` rather than as a badge.
+
+### Fixed
+
+- Every `margin` in the stylesheet was inert on Starlight sites. The theme's cascade layer was declared before Starlight's, so `starlight.reset`'s `* { margin: 0 }` won every time. The stylesheet now names Starlight's layers in their own order and puts its own last.
+- Heading names no longer pick up Starlight's inline-code background and padding, and a long name no longer strands the anchor link on a heading-sized empty line.
+
 ## v0.1.0 (2026-08-14)
 
 First release. Python API reference documentation for Astro and Starlight sites, extracted with [Griffe](https://mkdocstrings.github.io/griffe/).

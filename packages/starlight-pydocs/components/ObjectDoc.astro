@@ -61,6 +61,19 @@ const provenance = relations.flatMap(({ relation, labelKey, from, linkable }) =>
   from === undefined ? [] : [{ relation, labelKey, path: from, href: linkable ? hrefForPath(scope, from) : undefined }],
 );
 
+/**
+ * The version an object appeared in, beside the source link rather than badged
+ * against the name. The version reads as the tag it points at, so the link text
+ * matches its destination; a label that is already `v`-prefixed is left alone.
+ */
+const addedIn =
+  doc.addedIn === undefined
+    ? undefined
+    : {
+        text: `${resolve('addedIn')} ${/^v/i.test(doc.addedIn) ? doc.addedIn : `v${doc.addedIn}`}`,
+        href: scope.pkg.versionReleases[doc.addedIn],
+      };
+
 const deprecation = doc.deprecated;
 const deprecationHtml = deprecation === undefined ? '' : renderedDeprecation(scope.rendered, doc.canonicalPath);
 ---
@@ -72,6 +85,19 @@ const deprecationHtml = deprecation === undefined ? '' : renderedDeprecation(sco
   </Heading>
 
   <div class="pyd-provenance">
+    {
+      addedIn === undefined ? null : (
+        <span class="pyd-provenance-item" data-pydocs-provenance="added">
+          {addedIn.href === undefined ? (
+            addedIn.text
+          ) : (
+            <a class="pyd-version-link" href={addedIn.href} target="_blank" rel="noreferrer">
+              {addedIn.text}
+            </a>
+          )}
+        </span>
+      )
+    }
     {
       provenance.map((item) => (
         <span class="pyd-provenance-item" data-pydocs-provenance={item.relation}>

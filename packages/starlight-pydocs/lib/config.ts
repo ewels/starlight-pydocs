@@ -277,6 +277,13 @@ export interface NormalisedSourceLink {
   ref: string;
   /** Absolute directory `{path}` is computed against, when configured. */
   root: string | undefined;
+  /**
+   * Template with a `{ref}` placeholder for a tag's release page, when the
+   * forge is one of the presets. A hand-written `template` says nothing about
+   * where releases live, so it leaves this unset and version labels render as
+   * plain text.
+   */
+  releaseTemplate: string | undefined;
 }
 
 export interface NormalisedFilters {
@@ -361,6 +368,13 @@ const SOURCE_LINK_PRESETS: Record<PydocsSourceLinkPreset['host'], (repo: string)
   github: (repo) => `https://github.com/${repo}/blob/{ref}/{path}#L{start}-L{end}`,
   gitlab: (repo) => `https://gitlab.com/${repo}/-/blob/{ref}/{path}#L{start}-{end}`,
   bitbucket: (repo) => `https://bitbucket.org/${repo}/src/{ref}/{path}#lines-{start}:{end}`,
+};
+
+/** Release-page URL templates, keyed the same way as the source-link presets. */
+const RELEASE_LINK_PRESETS: Record<PydocsSourceLinkPreset['host'], (repo: string) => string> = {
+  github: (repo) => `https://github.com/${repo}/releases/tag/{ref}`,
+  gitlab: (repo) => `https://gitlab.com/${repo}/-/releases/{ref}`,
+  bitbucket: (repo) => `https://bitbucket.org/${repo}/src/{ref}`,
 };
 
 const INVENTORY_PRESETS: Record<PydocsInventoryPreset, { url: string; base: string }> = {
@@ -479,7 +493,7 @@ function normaliseSourceLink(
     if (!template.includes('{path}')) {
       throw configError(`${optionPath}.template`, "must contain the '{path}' placeholder");
     }
-    return { template, ref, root };
+    return { template, ref, root, releaseTemplate: undefined };
   }
 
   const host = input.host;
@@ -490,8 +504,13 @@ function normaliseSourceLink(
   if (typeof repo !== 'string' || !/^[^/\s]+\/[^/\s]+$/.test(repo)) {
     throw configError(`${optionPath}.repo`, "must be an 'owner/name' repository slug");
   }
-  const preset = SOURCE_LINK_PRESETS[host as PydocsSourceLinkPreset['host']];
-  return { template: preset(repo), ref, root };
+  const forge = host as PydocsSourceLinkPreset['host'];
+  return {
+    template: SOURCE_LINK_PRESETS[forge](repo),
+    ref,
+    root,
+    releaseTemplate: RELEASE_LINK_PRESETS[forge](repo),
+  };
 }
 
 function normaliseFilters(input: PydocsFiltersInput | undefined, optionPath: string): NormalisedFilters {

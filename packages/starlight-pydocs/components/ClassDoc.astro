@@ -35,7 +35,7 @@ const bases = (doc.bases ?? []).map((base) => annotationTokens(base.expression, 
         <>
           {index === 0 ? null : ', '}
           <code>
-            <AnnotationTokens tokens={base} scope={scope} />
+            <AnnotationTokens tokens={base} scope={scope} labels={labels} />
           </code>
         </>
       ))}

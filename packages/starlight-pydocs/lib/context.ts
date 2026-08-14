@@ -15,6 +15,7 @@ import type {
   NormalisedMembers,
   NormalisedSourceLink,
   PydocsConfig,
+  PydocsPackageConfig,
   PydocsSidebarConfig,
 } from './config.ts';
 import { isInside, isUnderBase, stripLeadingAndTrailingSlashes } from './paths.ts';
@@ -53,6 +54,13 @@ export interface PydocsPackageContext {
   sourceLink: NormalisedSourceLink | undefined;
   /** Sidebar presentation for this package's generated group. */
   sidebar: PydocsSidebarConfig;
+  /**
+   * Release page per "added in" label, e.g. `1.9` → the page for tag `v1.9.0`.
+   * Built here because it needs both halves of the configuration: the label and
+   * git ref come from `versions.refs`, the forge from `sourceLink`. Empty when
+   * either is missing, and the label then renders as plain text.
+   */
+  versionReleases: Record<string, string>;
 }
 
 export interface PydocsInventoryContext {
@@ -80,6 +88,20 @@ export interface PydocsContext {
   inventories: PydocsInventoryContext[];
   /** Absolute cache directory, for endpoints that need to write. */
   cacheDir: string;
+  /** Shiki themes signatures are highlighted with, light and dark. */
+  shikiThemes: ShikiThemes;
+}
+
+/**
+ * A light/dark theme pair for Shiki, as names or inline theme objects.
+ *
+ * Always a pair, even when the host configured one theme: the renderer asks
+ * Shiki for `--shiki-light` and `--shiki-dark` variables in every case, so the
+ * stylesheet has one rule per colour scheme rather than two code paths.
+ */
+export interface ShikiThemes {
+  light: string | Record<string, unknown>;
+  dark: string | Record<string, unknown>;
 }
 
 export interface CreateContextOptions {
@@ -95,6 +117,8 @@ export interface CreateContextOptions {
   starlight: boolean;
   /** Downloaded inventories, in configuration order. */
   inventories?: PydocsInventoryContext[] | undefined;
+  /** `astroConfig.markdown.shikiConfig`, for the signature highlighter. */
+  shikiConfig?: unknown;
 }
 
 /** Build the render-time context from a validated configuration. */
@@ -114,6 +138,7 @@ export function createContext(config: PydocsConfig, options: CreateContextOption
       filters: pkg.filters,
       sourceLink: pkg.sourceLink,
       sidebar: pkg.sidebar,
+      versionReleases: versionReleasesFor(pkg),
     })),
     siteBase: siteBase === '' ? '' : `/${siteBase}`,
     trailingSlash: options.trailingSlash,
@@ -123,7 +148,53 @@ export function createContext(config: PydocsConfig, options: CreateContextOption
     publishInventory: config.publishInventory,
     inventories: options.inventories ?? [],
     cacheDir: config.cacheDir,
+    shikiThemes: shikiThemesFrom(options.shikiConfig),
   };
+}
+
+const DEFAULT_SHIKI_THEMES: ShikiThemes = { light: 'github-light', dark: 'github-dark' };
+
+/** Astro fills this in when the host says nothing, so it cannot mean "chosen". */
+const ASTRO_DEFAULT_SHIKI_THEME = 'github-dark';
+
+/** A theme is usable here only if `JSON.stringify` can carry it into the build. */
+function usableTheme(value: unknown): string | Record<string, unknown> | undefined {
+  if (typeof value === 'string' && value !== '') return value;
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return undefined;
+}
+
+/**
+ * Pick the light/dark pair signatures are highlighted with.
+ *
+ * `markdown.shikiConfig.themes` is the only setting that says something about
+ * both colour schemes, so it wins outright. A single `theme` is used for both
+ * only when the host actually chose it: Astro defaults that field to a dark
+ * theme, and Starlight sites leave it alone because their prose code goes
+ * through Expressive Code, so honouring the default would paint every
+ * signature in dark colours on a light page.
+ */
+function shikiThemesFrom(shikiConfig: unknown): ShikiThemes {
+  if (typeof shikiConfig !== 'object' || shikiConfig === null) return DEFAULT_SHIKI_THEMES;
+  const { theme, themes } = shikiConfig as { theme?: unknown; themes?: unknown };
+  const pair = typeof themes === 'object' && themes !== null ? (themes as Record<string, unknown>) : {};
+  const light = usableTheme(pair['light']);
+  const dark = usableTheme(pair['dark']);
+  if (light !== undefined && dark !== undefined) return { light, dark };
+
+  const single = usableTheme(theme);
+  if (single === undefined || single === ASTRO_DEFAULT_SHIKI_THEME) return DEFAULT_SHIKI_THEMES;
+  return { light: single, dark: single };
+}
+
+function versionReleasesFor(pkg: PydocsPackageConfig): Record<string, string> {
+  const template = pkg.sourceLink?.releaseTemplate;
+  if (template === undefined) return {};
+  return Object.fromEntries(
+    pkg.versions.refs.map(({ label, ref }) => [label, template.replace('{ref}', encodeURIComponent(ref))]),
+  );
 }
 
 /** The package that owns a URL slug, or undefined when none does. */

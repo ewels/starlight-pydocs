@@ -5,9 +5,11 @@ import { EMPTY_RENDERED_DOCSTRINGS } from '../lib/docstrings.ts';
 import {
   admonitionKind,
   admonitionTitle,
+  externalSiteName,
   hrefForPath,
   hrefForTarget,
   objectBadges,
+  summaryForPath,
   packageAssetHref,
   pageHref,
   splitInherited,
@@ -30,6 +32,7 @@ const context: PydocsContext = {
       filters: { special: false, private: false, imported: false, inherited: true },
       sourceLink: undefined,
       sidebar: { label: 'demopkg', collapsed: false, group: undefined },
+      versionReleases: {},
     },
   ],
   siteBase: '/site',
@@ -40,6 +43,7 @@ const context: PydocsContext = {
   publishInventory: true,
   inventories: [],
   cacheDir: '/tmp',
+  shikiThemes: { light: 'github-light', dark: 'github-dark' },
 };
 
 async function scope(): Promise<RenderScope> {
@@ -113,17 +117,14 @@ describe('objectBadges', () => {
     expect(objectBadges(deprecated!).some((badge) => badge.variant === 'deprecated')).toBe(true);
   });
 
-  test('put the version an object appeared in next to the kind badge', async () => {
+  test('leave the version an object appeared in to the provenance row', async () => {
     const model = await fixtureModel('demopkg', { addedIn: new Map([['demopkg.report.Report', '1.1']]) });
     const report = model.objectsByPath.get('demopkg.report.Report');
     expect(report?.addedIn).toBe('1.1');
 
     const badges = objectBadges(report!);
     expect(badges[0]?.variant).toBe('kind');
-    expect(badges[1]).toEqual({ variant: 'added', key: 'addedIn', text: undefined, value: '1.1' });
-
-    const other = model.objectsByPath.get('demopkg.report.generate_report');
-    expect(objectBadges(other!).some((badge) => badge.variant === 'added')).toBe(false);
+    expect(badges.every((badge) => badge.key !== 'addedIn')).toBe(true);
   });
 });
 
@@ -198,5 +199,43 @@ describe('class signatures merge __init__', () => {
         .join(''),
     ).toBe("def generate_report(source, /, name: str, *, fmt: str = 'md') -> Report");
     expect(renderedParameterCount(fn!)).toBe(3);
+  });
+});
+
+describe('link titles', () => {
+  test('names the host an external link lands on', () => {
+    expect(externalSiteName('https://docs.python.org/3/library/stdtypes.html#str')).toBe('docs.python.org');
+    expect(externalSiteName('https://www.example.dev/a')).toBe('example.dev');
+    expect(externalSiteName('not a url')).toBeUndefined();
+  });
+
+  test('summarises a documented object from its first docstring line', async () => {
+    const rendered = await scope();
+    expect(summaryForPath(rendered, 'demopkg.report.Report')).toBe(
+      rendered.model.symbolsByPath.get('demopkg.report.Report')?.brief,
+    );
+  });
+
+  test('has no summary for a path nothing documents', async () => {
+    const rendered = await scope();
+    expect(summaryForPath(rendered, 'demopkg.nope.Missing')).toBeUndefined();
+  });
+
+  test('truncates a summary that runs long, on a word boundary', async () => {
+    const rendered = await scope();
+    const long = 'word '.repeat(60).trim();
+    rendered.model.symbolsByPath.set('demopkg.long', {
+      path: 'demopkg.long',
+      kind: 'class',
+      pageSlug: 'x',
+      anchor: '',
+      brief: long,
+    });
+    rendered.model.objectsByPath.set('demopkg.long', rendered.model.objectsByPath.get('demopkg.report.Report')!);
+
+    const summary = summaryForPath(rendered, 'demopkg.long');
+    expect(summary?.endsWith('…')).toBe(true);
+    expect(summary?.length).toBeLessThanOrEqual(141);
+    expect(summary?.replace('…', '').endsWith('word')).toBe(true);
   });
 });

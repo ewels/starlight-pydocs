@@ -32,6 +32,8 @@ export type AnnotationTarget = InternalAnnotationTarget | ExternalAnnotationTarg
 export interface AnnotationToken {
   text: string;
   target?: AnnotationTarget;
+  /** Inline `--shiki-*` custom properties, when the piece has been highlighted. */
+  style?: string;
 }
 
 export interface AnnotationResolver {
@@ -583,6 +585,129 @@ function walkUnknown(context: WalkContext, expr: Expr, depth: number): void {
       walkList(context, value, depth, ', ');
     }
   }
+}
+
+const OPEN_BRACKETS = new Set(['(', '[', '{']);
+const CLOSE_BRACKETS = new Set([')', ']', '}']);
+const ATOM_BREAKS = new Set([...OPEN_BRACKETS, ...CLOSE_BRACKETS, ',']);
+
+/**
+ * Break a long expression across lines at its bracket and comma boundaries.
+ *
+ * Big literal defaults (a dict of dicts, a list of tuples) arrive as one flat
+ * run of text and render as an unreadable wall. Black's rule applies here: a
+ * bracketed group that fits `width` stays on its line, one that does not puts
+ * every comma-separated item on its own line.
+ *
+ * The token list carries no nesting, so depth is recovered by scanning. String
+ * literals are stepped over whole, since a repr can hold any bracket at all.
+ */
+export function wrapAnnotationTokens(tokens: AnnotationToken[], width = 88): AnnotationToken[] {
+  const atoms = splitIntoAtoms(tokens);
+  const expand = expandedGroups(atoms, width);
+  const out: AnnotationToken[] = [];
+  const open: boolean[] = [];
+  let indent = 0;
+  let stripIndent = false;
+
+  const pushBreak = (): void => {
+    out.push({ text: `\n${'  '.repeat(indent)}` });
+    stripIndent = true;
+  };
+
+  atoms.forEach((atom, index) => {
+    const plain = atom.target === undefined;
+    if (plain && OPEN_BRACKETS.has(atom.text)) {
+      out.push(atom);
+      open.push(expand[index] === true);
+      if (expand[index] === true) {
+        indent += 1;
+        pushBreak();
+      }
+      return;
+    }
+    if (plain && CLOSE_BRACKETS.has(atom.text)) {
+      if (open.pop() === true) {
+        indent -= 1;
+        pushBreak();
+      }
+      out.push(atom);
+      stripIndent = false;
+      return;
+    }
+    if (plain && atom.text === ',') {
+      out.push(atom);
+      if (open[open.length - 1] === true) pushBreak();
+      return;
+    }
+    out.push(plain && stripIndent ? { text: atom.text.replace(/^[ \t]+/, '') } : atom);
+    stripIndent = false;
+  });
+
+  return mergeAnnotationTokens(out);
+}
+
+/** One token per bracket, comma, string literal and run of anything else. */
+function splitIntoAtoms(tokens: AnnotationToken[]): AnnotationToken[] {
+  const atoms: AnnotationToken[] = [];
+  for (const token of tokens) {
+    if (token.target !== undefined) {
+      atoms.push(token);
+      continue;
+    }
+    let buffer = '';
+    for (let index = 0; index < token.text.length; index += 1) {
+      const char = token.text[index] as string;
+      if (char === '"' || char === "'") {
+        const end = endOfStringLiteral(token.text, index);
+        buffer += token.text.slice(index, end);
+        index = end - 1;
+        continue;
+      }
+      if (!ATOM_BREAKS.has(char)) {
+        buffer += char;
+        continue;
+      }
+      if (buffer !== '') atoms.push({ text: buffer });
+      buffer = '';
+      atoms.push({ text: char });
+    }
+    if (buffer !== '') atoms.push({ text: buffer });
+  }
+  return atoms;
+}
+
+/** Index of the character after the literal starting at `start`. */
+function endOfStringLiteral(text: string, start: number): number {
+  const quote = text[start];
+  for (let index = start + 1; index < text.length; index += 1) {
+    if (text[index] === '\\') {
+      index += 1;
+      continue;
+    }
+    if (text[index] === quote) return index + 1;
+  }
+  return text.length;
+}
+
+/** Mark each opening bracket whose group is too wide to keep on one line. */
+function expandedGroups(atoms: AnnotationToken[], width: number): boolean[] {
+  const expand = atoms.map(() => false);
+  const lengths = [0];
+  atoms.forEach((atom, index) => {
+    lengths.push((lengths[index] as number) + atom.text.length);
+  });
+  const open: number[] = [];
+  atoms.forEach((atom, index) => {
+    if (atom.target !== undefined) return;
+    if (OPEN_BRACKETS.has(atom.text)) open.push(index);
+    else if (CLOSE_BRACKETS.has(atom.text)) {
+      const start = open.pop();
+      if (start === undefined) return;
+      if ((lengths[index + 1] as number) - (lengths[start] as number) > width) expand[start] = true;
+    }
+  });
+  return expand;
 }
 
 /** Collapse runs of unlinked tokens so renderers emit fewer nodes. */

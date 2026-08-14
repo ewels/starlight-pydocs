@@ -64,6 +64,7 @@ export default function starlightPydocs(options: PydocsUserConfig): StarlightPlu
           base: astroConfig.base,
           trailingSlash: astroConfig.trailingSlash,
           starlight: true,
+          shikiConfig: astroConfig.markdown.shikiConfig,
           logger,
         });
 

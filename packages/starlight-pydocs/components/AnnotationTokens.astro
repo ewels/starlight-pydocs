@@ -5,33 +5,64 @@
  * Tokens come from `lib/expr.ts`, which has already resolved each name to a
  * documented object, an inventory entry, or nothing at all. Everything here is
  * presentation.
+ *
+ * An inventory entry lives on someone else's site (`str` on docs.python.org),
+ * so it opens in a new tab: following it is a detour from reading this page,
+ * not a step through it. Links to our own objects navigate in place.
  */
 import type { AnnotationToken } from '../lib/expr.ts';
+import { createStringResolver } from '../lib/i18n.ts';
 import type { RenderScope } from '../lib/render.ts';
-import { hrefForTarget } from '../lib/render.ts';
+import { externalSiteName, hrefForTarget, summaryForPath } from '../lib/render.ts';
+import type { StringOverrides } from '../lib/strings.ts';
 
 interface Props {
   tokens: AnnotationToken[];
   scope: RenderScope;
+  labels?: StringOverrides | undefined;
 }
 
-const { tokens, scope } = Astro.props;
+const { tokens, scope, labels } = Astro.props;
+
+const resolve = createStringResolver(Astro.locals, labels);
+
+/**
+ * What the reader gets for hovering: where an external link lands, or what the
+ * object a same-site link points at actually is.
+ */
+function titleFor(token: AnnotationToken): string | undefined {
+  const target = token.target;
+  if (target === undefined) return undefined;
+  if (target.kind === 'internal') return summaryForPath(scope, target.path);
+  const site = externalSiteName(target.href);
+  return site === undefined ? undefined : `${resolve('openDocsAt')} ${site}`;
+}
 
 const rendered = tokens.map((token) => ({
   text: token.text,
   href: hrefForTarget(scope, token.target),
   external: token.target?.kind === 'external',
+  style: token.style,
+  title: titleFor(token),
 }));
 ---
 
 {
   rendered.map((token) =>
     token.href === undefined ? (
-      token.text
+      token.style === undefined ? (
+        token.text
+      ) : (
+        <span class="pyd-tok" style={token.style}>
+          {token.text}
+        </span>
+      )
     ) : (
       <a
         class:list={['pyd-type', token.external && 'pyd-type--external']}
         href={token.href}
+        title={token.title}
+        target={token.external ? '_blank' : undefined}
         rel={token.external ? 'noreferrer' : undefined}
       >
         {token.text}

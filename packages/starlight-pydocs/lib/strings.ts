@@ -38,6 +38,11 @@ export const STRINGS = {
   deprecatedSince: 'Deprecated since',
   addedIn: 'Added in',
   viewSource: 'View source',
+  /** Tooltip prefix on a link that leaves the site, followed by the host name. */
+  openDocsAt: 'Open docs at',
+  /** Toggle on a signature whose value is too long to show in full. */
+  showMore: 'Show more',
+  showLess: 'Show less',
 
   // Table column headings, used by the parameter and attribute tables.
   columnName: 'Name',

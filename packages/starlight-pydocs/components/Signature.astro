@@ -10,12 +10,26 @@
  * Long signatures wrap rather than overflow: the layout is CSS's decision, made
  * from the `pyd-signature--multiline` class this component adds once a
  * signature has more than three parameters.
+ *
+ * An attribute's value can be arbitrarily large (a dict of dicts, a table of
+ * themes). Those are line-broken at their brackets, then folded into a
+ * `<details>` so a page of constants stays readable. The fold is native: the
+ * whole block lives in the `<summary>` and CSS clamps its height while closed.
+ *
+ * Colours come from the host's Shiki themes and the cross-reference links
+ * survive the pass; see `lib/highlight.ts`.
  */
+import { createStringResolver } from '../lib/i18n.ts';
+import { tokensText, wrapAnnotationTokens } from '../lib/expr.ts';
+import { highlightTokens } from '../lib/highlight.ts';
 import type { DocObject } from '../lib/model.ts';
 import type { RenderScope } from '../lib/render.ts';
 import { overloadSignatureTokens, renderedParameterCount, renderedSignatureTokens } from '../lib/signature.ts';
 import type { StringOverrides } from '../lib/strings.ts';
 import AnnotationTokens from './AnnotationTokens.astro';
+
+/** Characters of signature text beyond which the block folds. */
+const FOLD_THRESHOLD = 320;
 
 interface Props {
   doc: DocObject;
@@ -24,22 +38,45 @@ interface Props {
   class?: string | undefined;
 }
 
-const { doc, scope, class: className } = Astro.props;
+const { doc, scope, labels, class: className } = Astro.props;
 
+const resolve = createStringResolver(Astro.locals, labels);
 const options = { resolver: scope.resolver };
-const tokens = renderedSignatureTokens(doc, options);
-const overloads = (doc.overloads ?? []).map((overload) => overloadSignatureTokens(overload, doc, options));
+const rendered = renderedSignatureTokens(doc, options);
+const wrapped = doc.kind === 'attribute' ? wrapAnnotationTokens(rendered) : rendered;
+const themes = scope.context.shikiThemes;
+const tokens = await highlightTokens(wrapped, themes);
+const overloads = await Promise.all(
+  (doc.overloads ?? []).map((overload) => highlightTokens(overloadSignatureTokens(overload, doc, options), themes)),
+);
 const multiline = renderedParameterCount(doc) > 3;
+const folded = tokensText(wrapped).length > FOLD_THRESHOLD;
+// `<pre>` keeps every space in the template, so the block is written on one
+// line in both branches below and the class list is built here instead.
+const signatureClass = ['pyd-signature', multiline && 'pyd-signature--multiline', className];
 ---
 
 {
-  overloads.map((overload) => (
-    <pre class="pyd-signature pyd-signature--overload" data-pydocs-signature="overload">
-      <code>
-        <span class="pyd-decorator">@overload</span> <AnnotationTokens tokens={overload} scope={scope} />
-      </code>
-    </pre>
-  ))
-}<pre
-  class:list={['pyd-signature', multiline && 'pyd-signature--multiline', className]}
-  data-pydocs-signature={doc.path}><code><AnnotationTokens tokens={tokens} scope={scope} /></code></pre>
+  overloads.map((overload) =>
+    /* prettier-ignore */
+    <pre class="pyd-signature pyd-signature--overload" data-pydocs-signature="overload"><code><span class="pyd-decorator">@overload</span> <AnnotationTokens tokens={overload} scope={scope} labels={labels} /></code></pre>,
+  )
+}{
+  folded ? (
+    <details class="pyd-fold">
+      <summary>
+        {/* prettier-ignore */}
+        <pre class:list={signatureClass} data-pydocs-signature={doc.path}><code><AnnotationTokens tokens={tokens} scope={scope} labels={labels} /></code></pre>
+        <span class="pyd-fold-toggle" data-pydocs-fold="more">
+          {resolve('showMore')}
+        </span>
+        <span class="pyd-fold-toggle" data-pydocs-fold="less">
+          {resolve('showLess')}
+        </span>
+      </summary>
+    </details>
+  ) : (
+    /* prettier-ignore */
+    <pre class:list={signatureClass} data-pydocs-signature={doc.path}><code><AnnotationTokens tokens={tokens} scope={scope} labels={labels} /></code></pre>
+  )
+}

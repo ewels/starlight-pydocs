@@ -59,6 +59,48 @@ export function hrefForPath(scope: RenderScope, dottedPath: string): string | un
   return objectHref(scope.context.siteBase, entry.pageSlug, entry.anchor, scope.context.trailingSlash);
 }
 
+/**
+ * Longest tooltip worth showing. A docstring's first line is usually a sentence
+ * but nothing stops it being a paragraph, and a tooltip the width of the screen
+ * helps nobody.
+ */
+const TITLE_LIMIT = 140;
+
+/** Cut at the last word boundary inside the limit, with an ellipsis. */
+function truncate(value: string, limit = TITLE_LIMIT): string {
+  if (value.length <= limit) return value;
+  const clipped = value.slice(0, limit);
+  const lastSpace = clipped.lastIndexOf(' ');
+  return `${(lastSpace > limit / 2 ? clipped.slice(0, lastSpace) : clipped).trimEnd()}…`;
+}
+
+/**
+ * The site an external link lands on, for a tooltip: `docs.python.org`.
+ *
+ * The host name rather than a configured title, because it is the thing a
+ * reader recognises and it needs no configuration to be right.
+ */
+export function externalSiteName(href: string): string | undefined {
+  try {
+    return new URL(href).hostname.replace(/^www\./, '');
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * One-line summary of a documented object, for a tooltip on a link to it.
+ *
+ * Reuses the brief the member tables already show, so a link and a summary row
+ * never disagree.
+ */
+export function summaryForPath(scope: RenderScope, dottedPath: string): string | undefined {
+  const documented = documentedPathFor(scope.model, dottedPath);
+  if (documented === undefined) return undefined;
+  const brief = scope.model.symbolsByPath.get(documented)?.brief ?? '';
+  return brief === '' ? undefined : truncate(brief);
+}
+
 /** Href for a resolved annotation target: same-site page or external doc site. */
 export function hrefForTarget(scope: RenderScope, target: AnnotationTarget | undefined): string | undefined {
   if (target === undefined) return undefined;
@@ -77,7 +119,7 @@ export function packageAssetHref(scope: RenderScope, filename: string): string {
 
 // -- Badges ----------------------------------------------------------------
 
-export type BadgeVariant = 'kind' | 'label' | 'deprecated' | 'added';
+export type BadgeVariant = 'kind' | 'label' | 'deprecated';
 
 export interface DocBadge {
   variant: BadgeVariant;
@@ -85,14 +127,15 @@ export interface DocBadge {
   key: StringKey | undefined;
   /** Verbatim text, for griffe labels we have no translation for. */
   text: string | undefined;
-  /** Appended after the label, for a badge that carries a value ("Added in 1.1"). */
-  value?: string | undefined;
 }
 
 /**
- * Badges for an object's heading: its kind, the version it appeared in, the
- * griffe labels worth surfacing (`classmethod`, `pydantic model`, …) and a
- * deprecation marker.
+ * Badges for an object's heading: its kind, the griffe labels worth surfacing
+ * (`classmethod`, `pydantic model`, …) and a deprecation marker.
+ *
+ * "Added in" is deliberately not among them. It is provenance, not identity,
+ * and it reads as plain text beside the source link rather than as a third
+ * pill competing with the name.
  *
  * The kind and label keys come from the Markdown renderer so both outputs name
  * things identically.
@@ -101,12 +144,6 @@ export function objectBadges(doc: DocObject): DocBadge[] {
   const badges: DocBadge[] = [];
   const kindKey = kindLabelKey(doc);
   if (kindKey !== undefined) badges.push({ variant: 'kind', key: kindKey, text: undefined });
-
-  // Next to the kind badge, because "when did this appear" is the second thing
-  // a reader wants from a heading.
-  if (doc.addedIn !== undefined) {
-    badges.push({ variant: 'added', key: 'addedIn', text: undefined, value: doc.addedIn });
-  }
 
   for (const { key, raw } of labelBadges(doc)) {
     badges.push({ variant: 'label', key, text: key === undefined ? raw : undefined });

@@ -108,7 +108,9 @@ describe('normalizeConfig source links', () => {
     );
     expect(config.packages[0]?.sourceLink).toEqual({
       template: 'https://github.com/ewels/starlight-pydocs/blob/{ref}/{path}#L{start}-L{end}',
+      releaseTemplate: 'https://github.com/ewels/starlight-pydocs/releases/tag/{ref}',
       ref: 'main',
+      root: undefined,
     });
   });
 
@@ -398,5 +400,15 @@ describe('normalizeConfig errors', () => {
 
   test('throws PydocsError instances', () => {
     expect(() => normalizeConfig({ packages: [] }, root)).toThrow(PydocsError);
+  });
+});
+
+describe('normalizeConfig release links', () => {
+  test('leaves the release template unset for a hand-written source template', () => {
+    const config = normalizeConfig(
+      { packages: [{ name: 'demopkg', sourceLink: { template: 'https://example.dev/{path}' } }] },
+      root,
+    );
+    expect(config.packages[0]?.sourceLink?.releaseTemplate).toBeUndefined();
   });
 });
