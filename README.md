@@ -8,7 +8,7 @@
   <img
     src="https://raw.githubusercontent.com/ewels/starlight-pydocs/main/docs/src/assets/logotype-light.svg"
     alt="starlight-pydocs"
-    width="420"
+    width="800"
   />
 </picture>
 
