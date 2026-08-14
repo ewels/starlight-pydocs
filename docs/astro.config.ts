@@ -2,6 +2,7 @@ import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 import starlightLinksValidator from 'starlight-links-validator';
 import starlightLlmsTxt from 'starlight-llms-txt';
+import starlightPageActions from 'starlight-page-actions';
 import starlightPydocs, { createPydocsSidebarGroup, pydocsSidebarGroup } from 'starlight-pydocs';
 
 const ORIGIN = 'https://ewels.github.io';
@@ -130,6 +131,25 @@ export default defineConfig({
                 'The same output for sphinx-style docstrings, built from a pre-generated dump with no Python involved.',
             },
           ],
+        }),
+        // "Copy Markdown" and "Open in…" under the page title. The buttons
+        // fetch `<pathname>.md`: this plugin writes those for the pages in
+        // `src/content/docs`, and starlight-pydocs serves them for the
+        // generated ones, so the buttons work on every page of the site.
+        starlightPageActions({
+          // Deliberately no `baseUrl`: setting it makes this plugin write its
+          // own `llms.txt` over the one starlight-llms-txt generates above.
+          // Unset, it owns the `.md` routes and the buttons, nothing else.
+          position: 'page-title',
+          // ChatGPT, Claude and "View in Markdown" are on by default; these two
+          // are not. The rest (t3chat, v0, perplexity) stay off: each one is
+          // another row in the dropdown that helps only its own users.
+          actions: { cursor: true, githubCopilot: true },
+          prompt: [
+            'Read {url}, from the documentation for starlight-pydocs: an Astro and Starlight',
+            'plugin that generates Python API reference pages from a Griffe dump.',
+            'I want to ask questions about it.',
+          ].join(' '),
         }),
         // Runs on `astro build`, which CI does on every pull request through the
         // end-to-end test job, and again on deploy. Broken internal links fail

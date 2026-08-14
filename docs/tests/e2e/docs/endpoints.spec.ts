@@ -78,6 +78,52 @@ test('llms.txt renders the whole API surface as Markdown', async ({ request }) =
   expect(sphinx).toContain('## sphpkg.submit');
 });
 
+test('every generated page serves itself as Markdown at <path>.md', async ({ request }) => {
+  const response = await request.get('api/demopkg/report.md');
+  expect(response.status()).toBe(200);
+  // Prerendered, so the content type comes from the host's extension mapping
+  // rather than the route. `.md` maps to `text/markdown` here, where the
+  // `.txt` of `llms.txt` lands on `text/plain`.
+  expect(response.headers()['content-type']).toContain('text/markdown');
+
+  const text = await response.text();
+  // One page, not the whole package: the module heading, its own objects, and
+  // nothing from a sibling module.
+  expect(text.startsWith('# demopkg.report')).toBe(true);
+  expect(text).toContain('## demopkg.report.Report');
+  expect(text).toContain('[View source](https://github.com/ewels/starlight-pydocs/blob/main/');
+  expect(text).not.toContain('# demopkg.utils');
+
+  // The package root page answers at the base itself, which is what the page
+  // action buttons request from `/api/demopkg/`.
+  const root = await request.get('api/demopkg.md');
+  expect(root.status()).toBe(200);
+  expect((await root.text()).startsWith('# demopkg')).toBe(true);
+
+  // The `.md.txt` alias is the same bytes, under the extension that makes a
+  // host send `text/plain` so a browser shows it instead of downloading it.
+  const alias = await request.get('api/demopkg/report.md.txt');
+  expect(alias.status()).toBe(200);
+  expect(alias.headers()['content-type']).toContain('text/plain');
+  expect(await alias.text()).toBe(text);
+});
+
+test('every page advertises its Markdown twin in the document head', async ({ request }) => {
+  const alternate = /<link rel="alternate" type="text\/markdown" href="([^"]+)"\s*\/?>/g;
+
+  // Generated pages get the tag from the plugin's own route, hand-written ones
+  // from this site's `Head` override. Exactly one either way: advertising it
+  // twice would mean both had claimed the page.
+  for (const page of ['api/demopkg/report/', 'guides/getting-started/', '']) {
+    const html = await (await request.get(page)).text();
+    const hrefs = [...html.matchAll(alternate)].map((match) => match[1] as string);
+    expect(hrefs, `on /${page}`).toHaveLength(1);
+
+    // And the URL it names is really served.
+    expect((await request.get(hrefs[0] as string)).status(), `href on /${page}`).toBe(200);
+  }
+});
+
 test('every page points at a share card that exists', async ({ page, request }) => {
   await page.goto('guides/theming/');
   const card = page.locator('meta[property="og:image"]');

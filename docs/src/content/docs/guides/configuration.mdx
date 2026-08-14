@@ -77,6 +77,7 @@ gets documented and how the pages look.
 | `publishInventory` | `boolean`                             | `true`                | Serve `objects.inv` for each package.                          |
 | `symbolSearch`     | `boolean`                             | `true`                | Serve `symbols.json` and render the search box.                |
 | `llmsTxt`          | `boolean`                             | `true`                | Serve `llms.txt` for each package.                             |
+| `pageMarkdown`     | `boolean`                             | `true`                | Serve each generated page as Markdown at `<path>.md` and `<path>.md.txt`. |
 | `components`       | `Record<name, string>`                | `{}`                  | Component overrides. See [Component overrides](/starlight-pydocs/guides/component-overrides/). |
 | `injectStyles`     | `boolean`                             | `true`                | Append the package stylesheet to Starlight's `customCss`.      |
 | `cacheDir`         | `string`                              | `node_modules/.astro` | Directory for cached dumps, inventories and rendered prose.     |

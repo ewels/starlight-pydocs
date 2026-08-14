@@ -1,6 +1,6 @@
 ---
 title: llms.txt
-description: The plain-Markdown version of the API surface, and how starlight-llms-txt advertises it.
+description: The plain-Markdown version of the API surface, per package and per page, and how starlight-llms-txt advertises it.
 ---
 
 Each documented package serves its whole API surface as plain Markdown at `<base>/llms.txt`. On
@@ -71,6 +71,55 @@ form. A model can use that form better than a resolved URL.
 
 The file is prerendered, so a static host serves it as `text/plain` regardless of the
 `text/markdown` the route sets. Browsers show it, `curl` pipes it, and models read it.
+
+## One page at a time
+
+The same Markdown is served per page, at the page's own path plus `.md`. The page at
+`/api/demopkg/report/` is also
+[/starlight-pydocs/api/demopkg/report.md](/starlight-pydocs/api/demopkg/report.md), and a
+package's root page answers at its base:
+[/starlight-pydocs/api/demopkg.md](/starlight-pydocs/api/demopkg.md).
+
+Each one is served again at `.md.txt`, for example
+[/starlight-pydocs/api/demopkg/report.md.txt](/starlight-pydocs/api/demopkg/report.md.txt). The
+bytes are identical. Only the extension differs, and it is the extension a host reads: `.md.txt`
+gets `text/plain`, which browsers and viewers show inline, where a `.md` is often downloaded
+instead. Link the `.md` for machines and the `.md.txt` for people.
+
+Use the whole-package file to give a model an entire API in one request. Use the per-page file
+when something already holds a single page's URL: an agent handed a link, or a reader who wants
+this page and not the other twelve.
+
+Each generated page advertises its own `.md` in the document head, so nothing has to know the
+convention to find it:
+
+```html
+<link rel="alternate" type="text/markdown" href="/api/demopkg/report.md" />
+```
+
+Set `pageMarkdown: false` to remove all of these routes, and that tag with them.
+
+`<path>.md` is also the convention the Starlight page-action plugins fetch, so their buttons work
+on the generated pages as well as on the ones you wrote. This site runs
+[starlight-page-actions](https://starlight-page-actions.dlcastillop.com/), which is where the
+**Copy Markdown** and **Open** buttons under every page title come from:
+
+```ts title="astro.config.ts"
+starlight({
+  plugins: [
+    starlightPydocs({ packages: [{ name: 'demopkg', search: ['../fixtures/demopkg/src'] }] }),
+    // Copies `src/content/docs/**` to `<path>.md` and adds the buttons. The
+    // generated pages are not files there, but they answer at `<path>.md`
+    // themselves, so the same buttons work on both.
+    starlightPageActions({ position: 'page-title' }),
+  ],
+});
+```
+
+:::caution
+Leave that plugin's `baseUrl` unset if you also run starlight-llms-txt. With it, both plugins
+write a site-wide `llms.txt` and the last one to run wins.
+:::
 
 ## Wiring it into starlight-llms-txt
 
