@@ -51,6 +51,11 @@ jobs:
       # uv lets the guarded runner-live tests exercise real griffe extraction;
       # without it they skip and only the checked-in dumps are covered.
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          # Nothing in this repository pins a Python dependency, so the cache
+          # would have no key to invalidate on and uvx would keep serving an
+          # old griffe to the tests that check for drift.
+          enable-cache: false
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter starlight-pydocs test:coverage
 
@@ -70,6 +75,11 @@ jobs:
           cache: pnpm
       # The docs build extracts the fixture package with griffe via uv.
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          # Nothing in this repository pins a Python dependency, so the cache
+          # would have no key to invalidate on and uvx would keep serving an
+          # old griffe to the tests that check for drift.
+          enable-cache: false
       - run: pnpm install --frozen-lockfile
       # starlight-links-validator runs inside this build and fails it on a broken
       # internal link or a dead heading anchor, writing a table to the job
@@ -93,6 +103,11 @@ jobs:
           cache: pnpm
       # The docs build extracts the fixture package with griffe via uv.
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          # Nothing in this repository pins a Python dependency, so the cache
+          # would have no key to invalidate on and uvx would keep serving an
+          # old griffe to the tests that check for drift.
+          enable-cache: false
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter starlight-pydocs-docs exec playwright install --with-deps chromium
       - run: pnpm --filter starlight-pydocs-docs test:e2e
