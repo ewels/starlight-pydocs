@@ -82,7 +82,7 @@ export default defineConfig({
         {
           label: 'Getting started',
           items: [
-            { label: 'Introduction', link: '/' },
+            { label: 'Home', link: '/' },
             { label: 'Getting started', link: '/guides/getting-started/' },
             { label: 'Vanilla Astro', link: '/guides/vanilla-astro/' },
             { label: 'Autodoc', link: '/guides/autodoc/' },
@@ -112,23 +112,34 @@ export default defineConfig({
           ],
         },
         {
-          label: 'API reference',
-          items: [pydocsSidebarGroup],
-        },
-        {
-          label: 'v1.x',
-          items: [legacySidebarGroup],
-        },
-        {
-          label: 'Sphinx demo',
-          items: [sphinxSidebarGroup],
-        },
-        {
           label: 'Project',
           items: [
             { label: 'Migrating from mkdocstrings', link: '/guides/migration/' },
             { label: 'Contributing', link: '/guides/contributing/' },
             { label: 'Changelog', link: '/changelog/' },
+          ],
+        },
+        {
+          // The generated pages for all three fixture packages, each under the
+          // section its placeholder was put in.
+          label: 'Examples',
+          items: [
+            { label: 'Overview', link: '/examples/' },
+            {
+              label: 'API reference',
+              collapsed: true,
+              items: [pydocsSidebarGroup],
+            },
+            {
+              label: 'v1.x',
+              collapsed: true,
+              items: [legacySidebarGroup],
+            },
+            {
+              label: 'Sphinx demo',
+              collapsed: true,
+              items: [sphinxSidebarGroup],
+            },
           ],
         },
       ],

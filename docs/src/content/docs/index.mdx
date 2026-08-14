@@ -1,48 +1,109 @@
 ---
 title: Starlight Pydocs
 description: Python API reference documentation for Astro and Starlight, extracted with Griffe.
+template: splash
+prev: false
+next: false
+hero:
+  tagline: |
+    Python API reference documentation for <a href="https://astro.build">Astro</a> and
+    <a href="https://starlight.astro.build">Starlight</a>. At build time,
+    <a href="https://mkdocstrings.github.io/griffe/">Griffe</a> reads your package by
+    static analysis.
+  actions:
+    - text: Get started
+      link: /starlight-pydocs/guides/getting-started/
+      icon: right-arrow
+    - text: See the output
+      link: /starlight-pydocs/examples/
+      variant: secondary
+    - text: GitHub
+      link: https://github.com/ewels/starlight-pydocs
+      variant: minimal
+      icon: external
 ---
 
-`starlight-pydocs` generates Python API reference documentation for
-[Astro](https://astro.build) and [Starlight](https://starlight.astro.build) sites. It
-reads your package with [Griffe](https://mkdocstrings.github.io/griffe/) and renders it
-with Astro components on injected routes. Extraction is static analysis, so nothing is
-imported and nothing needs installing.
+import { Card, CardGrid, LinkButton, LinkCard } from '@astrojs/starlight/components';
 
-It is the Starlight counterpart of
-[mkdocstrings-python](https://mkdocstrings.github.io/python/), and follows its
-conventions where they make sense: heading anchors are dotted object paths,
-`__all__` selects the documented surface, and `::: name` becomes
-`<Autodoc name="…" />`.
+## Three lines of configuration
+
+```js
+// astro.config.mjs
+starlightPydocs({
+  packages: [{ name: 'mypkg', search: ['../src'] }],
+});
+```
+
+One page per module at `/api/mypkg/`, a sidebar tree mirroring the package layout, plus
+`symbols.json`, `objects.inv` and `llms.txt`.
 
 ## What you get
 
-- One page per module, with a sidebar tree and prev/next links that mirror the package
-  layout.
-- Signatures with linked types. Every name in an annotation resolves to a page on this
-  site or, through a Sphinx inventory, to another project's documentation.
-- Every docstring section, in google, numpy or sphinx style: parameters, returns,
-  raises, examples, admonitions and deprecations.
-- Inherited members, merged from resolvable base classes and labelled with where they
-  came from.
-- Cross-references in prose, in mkdocstrings' own `[title][dotted.path]` form.
-- Symbol search over the API surface, on top of the prose search the site already has.
-- `objects.inv` and `llms.txt` for every documented package, so other documentation
-  sites and language models can consume yours.
-- No Python at build time, if you would rather point at a dump your CI published.
+<CardGrid>
+  <Card title="Generated pages" icon="list-format">
+    One page per module, injected into the site's routes, with a sidebar tree and
+    prev/next links that mirror the package layout.
+  </Card>
+  <Card title="Autodoc component" icon="puzzle">
+    `<Autodoc name="mypkg.Report" />` renders a single class or function into a
+    hand-written MDX page.
+  </Card>
+  <Card title="Symbol search" icon="magnifier">
+    Search the API surface by object path, on top of the site's existing prose search.
+  </Card>
+  <Card title="Docstring sections" icon="document">
+    Google, numpy or sphinx style: parameters, returns, raises, examples, admonitions and
+    deprecations, rendered by your site's own Markdown pipeline.
+  </Card>
+  <Card title="No Python at build time" icon="setting">
+    Point the plugin at a dump your CI published and the site builds without an
+    interpreter.
+  </Card>
+  <Card title="Linked signatures" icon="link">
+    Every name in an annotation resolves to a page on your own site or, through a Sphinx
+    inventory, to another project's documentation.
+  </Card>
+  <Card title="Inherited members" icon="code-branch">
+    Merged from resolvable base classes and labelled with the class they came from.
+  </Card>
+  <Card title="Inventory and llms.txt" icon="open-book">
+    `objects.inv` and `llms.txt` per package, so other documentation sites and language
+    models can consume yours.
+  </Card>
+</CardGrid>
+
+## Coming from mkdocstrings
+
+`starlight-pydocs` is the Starlight counterpart of
+[mkdocstrings-python](https://mkdocstrings.github.io/python/) and keeps its conventions
+where they make sense. Heading anchors are dotted object paths, `__all__` selects the
+documented surface, `::: name` becomes `<Autodoc name="…" />`.
+
+<LinkButton href="/starlight-pydocs/guides/migration/" variant="secondary">
+  Read the migration guide
+</LinkButton>
 
 ## Where to go next
 
-- [Getting started](/starlight-pydocs/guides/getting-started/): install the plugin and
-  document your first package.
-- [Configuration](/starlight-pydocs/guides/configuration/): every option, with its type
-  and default.
-- [Migrating from mkdocstrings](/starlight-pydocs/guides/migration/): the configuration
-  map, and what differs.
-- [Vanilla Astro](/starlight-pydocs/guides/vanilla-astro/): the same pages without
-  Starlight.
-- [Autodoc](/starlight-pydocs/guides/autodoc/): drop one object into a hand-written
-  page.
-- The generated reference in the sidebar documents three fixture packages: `demopkg`
-  (google style, pydantic, deprecations), `numpkg` (numpy style) and `sphpkg`
-  (sphinx style, from a pre-generated dump).
+<CardGrid>
+  <LinkCard
+    title="Configuration"
+    href="/starlight-pydocs/guides/configuration/"
+    description="Every option, with its type and default."
+  />
+  <LinkCard
+    title="Vanilla Astro"
+    href="/starlight-pydocs/guides/vanilla-astro/"
+    description="The same pages, without Starlight."
+  />
+  <LinkCard
+    title="Autodoc"
+    href="/starlight-pydocs/guides/autodoc/"
+    description="Drop one object into a hand-written page."
+  />
+  <LinkCard
+    title="The demo reference"
+    href="/starlight-pydocs/api/demopkg/"
+    description="demopkg (google style, pydantic, deprecations), numpkg (numpy style) and sphpkg (sphinx style, from a pre-generated dump)."
+  />
+</CardGrid>

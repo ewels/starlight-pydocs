@@ -1,0 +1,51 @@
+---
+title: Examples
+description: What each demo package on this site shows.
+---
+
+The Python packages documented here are test fixtures in the plugin's own repository, under
+[`fixtures/`](https://github.com/ewels/starlight-pydocs/tree/main/fixtures). Each exercises a
+different part of the plugin, and one
+[`astro.config.ts`](https://github.com/ewels/starlight-pydocs/blob/main/docs/astro.config.ts)
+documents all of them.
+
+| Example                                          | Docstrings | Extracted by         | Sidebar section |
+| ------------------------------------------------ | ---------- | -------------------- | --------------- |
+| [demopkg](/starlight-pydocs/api/demopkg/)        | google     | `uvx --from griffe`  | API reference   |
+| [numpkg](/starlight-pydocs/api/numpkg/)          | numpy      | `uvx --from griffe`  | API reference   |
+| [demopkg 1.x](/starlight-pydocs/1x/api/demopkg/) | google     | a pinned dump        | v1.x            |
+| [sphpkg](/starlight-pydocs/api/sphpkg/)          | sphinx     | a pre-generated dump | Sphinx demo     |
+
+## demopkg
+
+Extracted from source at build time, and the fixture that covers the most: google-style sections,
+inheritance with provenance, `__all__`, re-exports, pydantic models labelled through the
+`griffe_pydantic` extension, deprecations, and source links back to GitHub.
+
+## numpkg
+
+Numpy-style docstrings, and the only package with an explicit `base`.
+[Docstring style](/starlight-pydocs/guides/docstring-styles/) is a per-package setting, so two
+packages on one site can be parsed by two different Griffe parsers.
+
+## demopkg 1.x
+
+The same import name as `demopkg`, documented a second time at its own base (`/1x/api/demopkg/`)
+from a dump pinned to the older release. One `packages` entry per release, each with its own base,
+sidebar section and endpoints — see
+[Versioned docs](/starlight-pydocs/guides/versioned-docs/). Compare `demopkg.report` across the two
+to see what changed.
+
+## sphpkg
+
+Sphinx-style docstrings, rendered from a checked-in `griffe dump` rather than extracted, so no
+Python runs at build time. See
+[Pre-generated dumps](/starlight-pydocs/guides/pregenerated-dumps/): the dump comes from the Python
+project's CI and the docs site only reads it.
+
+## Vanilla Astro
+
+`examples/vanilla` in the repository documents `demopkg` again in a plain Astro site with no
+Starlight, through the built-in layout and its own markdown pipeline. It is not deployed here: see
+[the guide](/starlight-pydocs/guides/vanilla-astro/) or
+[the source](https://github.com/ewels/starlight-pydocs/tree/main/examples/vanilla).
