@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises';
+
 import { expect, test } from '@playwright/test';
 
 import { sidebar, sidebarGroup } from '../helpers.ts';
@@ -49,8 +51,23 @@ test('generated pages get prev/next pagination', async ({ page }) => {
   await expect(page.locator('h1')).toHaveText('demopkg.utils');
 });
 
-test('the agent skill page renders the shipped SKILL.md, without its frontmatter', async ({ page }) => {
-  // The page imports the file the npm package ships, so the two cannot drift.
+test('the agent skill page carries the shipped SKILL.md word for word', async ({ page, request }) => {
+  // The page holds a hand-made copy of the skill the npm package ships. Every
+  // line of the skill's body (headings one level down) must be on the page's
+  // Markdown route, so an edit to one without the other fails here.
+  const skill = await readFile(
+    new URL('../../../../packages/starlight-pydocs/skills/starlight-pydocs/SKILL.md', import.meta.url),
+    'utf8',
+  );
+  const lines = skill
+    .replace(/^---\n[\s\S]*?\n---\n+/, '')
+    .replace(/^#\s[^\n]*\n+/, '')
+    .replace(/^(#{2,5}) /gm, '#$1 ')
+    .split('\n')
+    .filter((line) => line.trim() !== '');
+  const markdown = await (await request.get('guides/agent-skill.md')).text();
+  for (const line of lines) expect(markdown).toContain(line);
+
   await page.goto('guides/agent-skill/');
   const content = page.locator('.sl-markdown-content');
   await expect(content.getByRole('heading', { name: '3. Decide what the public API is' })).toBeVisible();
