@@ -7,58 +7,31 @@ starlight-pydocs ships an [agent skill](https://agentskills.io/): a short setup 
 coding agents such as Claude Code and Codex load when you ask them to add or configure the plugin.
 It links to these guides rather than repeating them, so it stays correct as the plugin changes.
 The skill is in the npm package at `skills/starlight-pydocs/SKILL.md`, and is reproduced in full
-[below](#what-the-skill-says).
+[below](#skill-contents).
 
 ## Install the skill
 
 ### With the skills CLI
 
-The [`skills` CLI](https://github.com/vercel-labs/skills) installs the skill from GitHub for any
-agent it detects on your machine. Run it in your docs project:
+The [`skills` CLI](https://github.com/vercel-labs/skills) installs the skill from GitHub, and asks
+which of your agents to install it for:
 
 ```sh
 npx skills add ewels/starlight-pydocs
 ```
 
-To choose the agents yourself, pass `-a` once for each one (`claude-code`, `codex`, `cursor`,
-`opencode`, and others). Add `-g` to install it for all your projects rather than only this one:
-
-```sh
-npx skills add ewels/starlight-pydocs -a claude-code -a codex
-```
-
-This installs the skill from the `main` branch. To use the copy that matches the version of
-starlight-pydocs you have installed, point the CLI at the package instead:
-
-```sh
-npx skills add ./node_modules/starlight-pydocs -a claude-code -a codex
-```
-
 ### By hand
 
-A skill is a folder with a `SKILL.md` in it, so you can also link the folder from
-`node_modules` into the directory your agent reads skills from. A symlink stays in step when you
-upgrade the package.
+Download [`SKILL.md`](https://github.com/ewels/starlight-pydocs/blob/main/packages/starlight-pydocs/skills/starlight-pydocs/SKILL.md)
+from GitHub and copy it into your agent's skills directory:
 
-**Claude Code** reads project skills from `.claude/skills/`, and personal skills from
-`~/.claude/skills/` ([docs](https://code.claude.com/docs/en/skills)):
-
-```sh
-mkdir -p .claude/skills
-ln -s ../../node_modules/starlight-pydocs/skills/starlight-pydocs .claude/skills/starlight-pydocs
-```
-
-**Codex** reads project skills from `.agents/skills/`, and personal skills from
-`~/.agents/skills/` ([docs](https://learn.chatgpt.com/docs/build-skills)). Several other agents,
-Cursor and OpenCode among them, read the same directory:
-
-```sh
-mkdir -p .agents/skills
-ln -s ../../node_modules/starlight-pydocs/skills/starlight-pydocs .agents/skills/starlight-pydocs
-```
-
-These commands assume `.claude/` or `.agents/` sits next to `node_modules/`. The link is dangling
-until the dependencies are installed, for example in a fresh clone.
+- **Claude Code**: `.claude/skills/starlight-pydocs/SKILL.md` in your project, or
+  `~/.claude/skills/starlight-pydocs/SKILL.md` for all your projects
+  ([docs](https://code.claude.com/docs/en/skills)).
+- **Codex**: `.agents/skills/starlight-pydocs/SKILL.md` in your project, or
+  `~/.agents/skills/starlight-pydocs/SKILL.md` for all your projects
+  ([docs](https://learn.chatgpt.com/docs/build-skills)). Cursor, OpenCode and several other agents
+  read `.agents/skills/` too.
 
 ### Using it
 
@@ -66,7 +39,10 @@ The agent loads the skill on its own when a task matches its description, such a
 starlight-pydocs to a site. You can also call it by name: `/starlight-pydocs` in Claude Code, or
 `$starlight-pydocs` in Codex.
 
-## What the skill says
+## Skill contents
+
+Everything below is `SKILL.md` word for word. Only its frontmatter and title are left out, and its
+headings are one level lower so they sit under this one.
 
 A short checklist for adding starlight-pydocs to a site. It links to the full
 documentation rather than repeating it, so read the linked page before you
