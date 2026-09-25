@@ -4,13 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "sync:changelog": "node scripts/sync-changelog.mjs",
-    "dev": "pnpm sync:changelog && astro dev",
-    "start": "pnpm sync:changelog && astro dev",
-    "build": "pnpm sync:changelog && astro build",
+    "sync": "node scripts/sync-changelog.mjs && node scripts/sync-skill.mjs",
+    "dev": "pnpm sync && astro dev",
+    "start": "pnpm sync && astro dev",
+    "build": "pnpm sync && astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "typecheck": "pnpm sync:changelog && astro check",
+    "typecheck": "pnpm sync && astro check",
     "lint": "eslint .",
     "test:e2e": "playwright test"
   },

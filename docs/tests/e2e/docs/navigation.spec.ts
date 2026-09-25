@@ -49,10 +49,14 @@ test('generated pages get prev/next pagination', async ({ page }) => {
   await expect(page.locator('h1')).toHaveText('demopkg.utils');
 });
 
-test('the agent skill page renders the shipped SKILL.md, without its frontmatter', async ({ page }) => {
-  // The page imports the file the npm package ships, so the two cannot drift.
+test('the agent skill page carries the shipped SKILL.md, without its frontmatter', async ({ page, request }) => {
+  // The page is generated from the file the npm package ships, so the two cannot drift.
   await page.goto('guides/agent-skill/');
   const content = page.locator('.sl-markdown-content');
   await expect(content.getByRole('heading', { name: '3. Decide what the public API is' })).toBeVisible();
   await expect(content).not.toContainText('name: starlight-pydocs');
+
+  // The Markdown copy behind "Copy Markdown" has the skill text, not a component tag.
+  const markdown = await (await request.get('guides/agent-skill.md')).text();
+  expect(markdown).toContain('### 3. Decide what the public API is');
 });
