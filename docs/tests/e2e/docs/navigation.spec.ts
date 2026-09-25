@@ -48,3 +48,11 @@ test('generated pages get prev/next pagination', async ({ page }) => {
   await pagination.locator('a[rel="next"]').click();
   await expect(page.locator('h1')).toHaveText('demopkg.utils');
 });
+
+test('the agent skill page renders the shipped SKILL.md, without its frontmatter', async ({ page }) => {
+  // The page imports the file the npm package ships, so the two cannot drift.
+  await page.goto('guides/agent-skill/');
+  const content = page.locator('.sl-markdown-content');
+  await expect(content.getByRole('heading', { name: '3. Decide what the public API is' })).toBeVisible();
+  await expect(content).not.toContainText('name: starlight-pydocs');
+});

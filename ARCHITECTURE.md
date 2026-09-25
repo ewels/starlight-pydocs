@@ -288,6 +288,13 @@ stale entry costs colours rather than correctness. The end-to-end assertion in
 `docs/tests/e2e/docs/content.spec.ts` checks a **built** page, because that is
 the only place this class of failure is visible.
 
+Shiki itself is a direct dependency (`shiki`, the major Astro depends on, so it
+dedupes), not reached through `@astrojs/markdown-remark/shiki`. The optional peer
+was the first route, and it failed the same silent way on every fresh Sätteri
+site, which never installs markdown-remark: the build warned once and signatures
+rendered plain. The workspace could not see it because markdown-remark is a
+devDependency of the package.
+
 ### 8. Search: Pagefind for prose, a symbol index for symbols
 
 Generated pages are indexed by Pagefind automatically because `StarlightPage` renders

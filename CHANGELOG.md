@@ -2,6 +2,11 @@
 
 All notable changes to `starlight-pydocs` are recorded here. New work is added under **Unreleased** and rolled into a dated version section when a release is cut.
 
+## Unreleased
+
+- ✨ An agent skill with a setup checklist, shipped in the package at `skills/starlight-pydocs/SKILL.md` and shown on the docs site.
+- 🐛 Fixed signatures rendering without syntax colours on sites that don't install `@astrojs/markdown-remark` (the Astro 7.2+ default). Shiki is now a direct dependency.
+
 ## v0.2.1 (2026-08-14)
 
 Metadata-only release: no code changes.

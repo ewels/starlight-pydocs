@@ -125,7 +125,9 @@ Rendered through **the host's configured markdown processor**
 (`astroConfig.markdown.processor.createRenderer(...)`: Sätteri on current Astro,
 `unified()` where the site pins it, with a Starlight-style optional-peer fallback
 to `@astrojs/markdown-remark` for Astro 7.0.x). The package depends on neither
-engine and registers no remark/rehype/mdast/hast plugin anywhere. Because the live
+engine and registers no remark/rehype/mdast/hast plugin anywhere. Signature
+colouring imports `shiki` directly (a real dependency), never through
+`@astrojs/markdown-remark`, which Sätteri sites do not install. Because the live
 processor exists only in the config-time process, all docstring Markdown is
 pre-rendered at `astro:config:done` (after every integration has mutated
 `processor.options`) into a sidecar JSON beside the cached dump; components consume

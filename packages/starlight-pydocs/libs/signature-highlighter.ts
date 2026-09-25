@@ -15,11 +15,13 @@
  * signature repeated across pages (an inherited member, a re-export) is
  * highlighted once.
  *
- * Shiki is reached through `@astrojs/markdown-remark`, an optional peer
- * dependency, and imported at the top level for the same reason
- * `docstring-renderer.ts` does it: Astro closes the Vite module runner that
- * loaded the config before integration hooks run, so a dynamic import started
- * later fails.
+ * Shiki is a direct dependency (the same major Astro itself depends on, so a
+ * site has one copy), not reached through `@astrojs/markdown-remark`: that
+ * package is an optional peer that Sätteri-based sites do not install, and
+ * signatures went uncoloured there with only a warning to show for it. It is
+ * imported at the top level for the same reason `docstring-renderer.ts` does
+ * it: Astro closes the Vite module runner that loaded the config before
+ * integration hooks run, so a dynamic import started later fails.
  */
 
 import { writeAtomic } from '../lib/cache.ts';
@@ -33,7 +35,7 @@ import type { PydocsLogger } from '../lib/logger.ts';
 import { silentLogger } from '../lib/logger.ts';
 import { displaySignatureTokens, overloadSignatureTokens } from '../lib/signature.ts';
 
-const shikiModule = import('@astrojs/markdown-remark/shiki').catch(() => null);
+const shikiModule = import('shiki').catch(() => null);
 
 /** The slice of Shiki's HAST output this module reads. */
 interface HastNode {
@@ -44,7 +46,7 @@ interface HastNode {
 }
 
 interface Highlighter {
-  codeToHast(code: string, lang: string, options?: unknown): Promise<HastNode> | HastNode;
+  codeToHast(code: string, options: unknown): HastNode;
 }
 
 /** One highlighter per theme pair, shared by every package in the process. */
@@ -64,10 +66,10 @@ function getHighlighter(themes: ShikiThemes): Promise<Highlighter> {
 
   const created = shikiModule.then(async (module) => {
     if (module === null) {
-      throw new Error('@astrojs/markdown-remark is not installed');
+      throw new Error('shiki could not be imported');
     }
-    const create = module.createShikiHighlighter as (options: unknown) => Promise<unknown>;
-    return (await create({ themes, langs: ['python'] })) as Highlighter;
+    const create = module.createHighlighter as (options: unknown) => Promise<unknown>;
+    return (await create({ themes: [themes.light, themes.dark], langs: ['python'] })) as Highlighter;
   });
 
   highlighters.set(key, created);
@@ -164,7 +166,9 @@ export async function highlightSignaturesForPackage(options: HighlightSignatures
   const highlights: SignatureHighlights = { texts: {} };
   for (const text of texts) {
     try {
-      const coloured = flattenHast(await highlighter.codeToHast(text, 'python', { defaultColor: false }));
+      const coloured = flattenHast(
+        highlighter.codeToHast(text, { lang: 'python', themes: options.themes, defaultColor: false }),
+      );
       // Shiki reproduces its input verbatim, but a grammar or transformer that
       // does not would silently shift every link, so the entry is dropped
       // rather than stored a character out of step.
