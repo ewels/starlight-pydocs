@@ -7,8 +7,6 @@ dist/
 
 # Generated from the repo-root CHANGELOG.md by docs/scripts/sync-changelog.mjs
 docs/src/content/docs/changelog.md
-# Generated from the package's SKILL.md by docs/scripts/sync-skill.mjs
-docs/src/content/docs/guides/agent-skill.md
 
 # Astro / Vite caches
 .vite/
