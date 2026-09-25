@@ -135,7 +135,8 @@ plugin, so every API page on it is also a live demo of the output.
 [Examples](https://ewels.github.io/starlight-pydocs/examples/) &nbsp; | &nbsp;
 [Configuration](https://ewels.github.io/starlight-pydocs/guides/configuration/) &nbsp; | &nbsp;
 [Migrating from mkdocstrings](https://ewels.github.io/starlight-pydocs/guides/migration/) &nbsp; | &nbsp;
-[llms.txt for AI models](https://ewels.github.io/starlight-pydocs/llms.txt)
+[llms.txt for AI models](https://ewels.github.io/starlight-pydocs/llms.txt) &nbsp; | &nbsp;
+[Agent skill](https://ewels.github.io/starlight-pydocs/guides/agent-skill/)
 
 </div>
 

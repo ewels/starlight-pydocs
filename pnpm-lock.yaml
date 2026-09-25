@@ -105,6 +105,10 @@ importers:
         version: 6.0.3
 
   packages/starlight-pydocs:
+    dependencies:
+      shiki:
+        specifier: ^4.0.2
+        version: 4.4.3
     devDependencies:
       '@astrojs/markdown-remark':
         specifier: ^7.2.2
