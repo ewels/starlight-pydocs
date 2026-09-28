@@ -12,7 +12,7 @@ its conventions where sensible (anchor scheme, member filtering, `::: name` beco
 `<Autodoc name="…" />`).
 
 Read `ARCHITECTURE.md` for the architecture decisions, their reasoning and the griffe
-behaviour notes; `HANDOFF.md` holds the pre-release checklist.
+behaviour notes.
 
 ## Repository layout
 
