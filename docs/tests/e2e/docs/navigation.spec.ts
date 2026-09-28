@@ -54,17 +54,22 @@ test('generated pages get prev/next pagination', async ({ page }) => {
 test('the agent skill page carries the shipped SKILL.md word for word', async ({ page, request }) => {
   // The page ends with a hand-made copy of the skill's body, headings one level
   // down, so an edit to either without the other fails here.
-  const read = (path: string): Promise<string> => readFile(new URL(path, import.meta.url), 'utf8');
-  const skill = await read('../../../../packages/starlight-pydocs/skills/starlight-pydocs/SKILL.md');
+  const read = async (path: string): Promise<string> =>
+    (await readFile(new URL(path, import.meta.url), 'utf8')).replaceAll('\r\n', '\n');
+  const skill = await read('../../../../skills/starlight-pydocs/SKILL.md');
   const mdx = await read('../../../src/content/docs/guides/agent-skill.mdx');
   const body = skill
     .replace(/^---\n[\s\S]*?\n---\n+/, '')
     .replace(/^#\s[^\n]*\n+/, '')
     .replace(/^(#{2,5}) /gm, '#$1 ');
   const marker = 'so they sit under this one.\n\n';
-  expect(mdx.slice(mdx.indexOf(marker) + marker.length)).toBe(body);
+  const start = mdx.indexOf(marker);
+  expect(start, 'the MDX page lost the sentence the copy starts after').toBeGreaterThanOrEqual(0);
+  expect(mdx.slice(start + marker.length)).toBe(body);
 
-  const markdown = await (await request.get('guides/agent-skill.md')).text();
+  const response = await request.get('guides/agent-skill.md');
+  expect(response.ok()).toBe(true);
+  const markdown = await response.text();
   expect(markdown).toContain('### 3. Decide what the public API is');
 
   await page.goto('guides/agent-skill/');

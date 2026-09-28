@@ -168,6 +168,19 @@ describe('highlightSignaturesForPackage', () => {
     expect(highlighted.some((token) => token.style?.includes('--shiki-dark') === true)).toBe(true);
   });
 
+  test("colours with Astro's css-variables theme", async () => {
+    const { count } = await highlightSignaturesForPackage({
+      context,
+      base: 'api/demopkg',
+      highlightsPath,
+      themes: { light: 'css-variables', dark: 'css-variables' },
+    });
+    expect(count).toBeGreaterThan(0);
+    const highlights = await getSignatureHighlights(context, 'api/demopkg');
+    const styles = Object.values(highlights.texts).flatMap((pieces) => pieces.map((piece) => piece.style));
+    expect(styles.some((style) => style?.includes('var(--astro-code-') === true)).toBe(true);
+  });
+
   test('an unreadable sidecar costs colours, not the page', async () => {
     await fs.writeFile(highlightsPath, 'not json');
     expect(await getSignatureHighlights(context, 'api/demopkg')).toEqual(EMPTY_SIGNATURE_HIGHLIGHTS);

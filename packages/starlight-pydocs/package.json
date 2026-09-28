@@ -75,7 +75,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "prepack": "cp ../../README.md ./README.md && cp ../../CHANGELOG.md ./CHANGELOG.md && cp ../../LICENSE ./LICENSE",
+    "prepack": "cp ../../README.md ./README.md && cp ../../CHANGELOG.md ./CHANGELOG.md && cp ../../LICENSE ./LICENSE && rm -rf ./skills && cp -R ../../skills ./skills",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
