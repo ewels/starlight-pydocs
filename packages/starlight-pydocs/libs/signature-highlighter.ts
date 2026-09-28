@@ -19,10 +19,11 @@
  * site has one copy), not reached through `@astrojs/markdown-remark`: that
  * package is an optional peer that Sätteri-based sites do not install, and
  * signatures went uncoloured there with only a warning to show for it. It is
- * imported at the top level for the same reason `docstring-renderer.ts` does
- * it: Astro closes the Vite module runner that loaded the config before
- * integration hooks run, so a dynamic import started later fails.
+ * imported statically, so a broken install fails the build instead of
+ * degrading to uncoloured signatures.
  */
+
+import { createHighlighter } from 'shiki';
 
 import { writeAtomic } from '../lib/cache.ts';
 import type { PydocsContext, ShikiThemes } from '../lib/context.ts';
@@ -34,8 +35,6 @@ import type { ColouredPiece, SignatureHighlights } from '../lib/highlight.ts';
 import type { PydocsLogger } from '../lib/logger.ts';
 import { silentLogger } from '../lib/logger.ts';
 import { displaySignatureTokens, overloadSignatureTokens } from '../lib/signature.ts';
-
-const shikiModule = import('shiki').catch(() => null);
 
 /** The slice of Shiki's HAST output this module reads. */
 interface HastNode {
@@ -55,7 +54,7 @@ const highlighters = new Map<string, Promise<Highlighter>>();
 /**
  * Build (or reuse) the highlighter for a theme pair.
  *
- * @throws When Shiki is unreachable or the themes cannot be loaded. The caller
+ * @throws When the themes cannot be loaded. The caller
  *   reports it: a silent failure here is exactly what let the render-time
  *   version of this ship doing nothing at all.
  */
@@ -64,13 +63,7 @@ function getHighlighter(themes: ShikiThemes): Promise<Highlighter> {
   const existing = highlighters.get(key);
   if (existing !== undefined) return existing;
 
-  const created = shikiModule.then(async (module) => {
-    if (module === null) {
-      throw new Error('shiki could not be imported');
-    }
-    const create = module.createHighlighter as (options: unknown) => Promise<unknown>;
-    return (await create({ themes: [themes.light, themes.dark], langs: ['python'] })) as Highlighter;
-  });
+  const created = createHighlighter({ themes: [themes.light, themes.dark], langs: ['python'] }) as Promise<Highlighter>;
 
   highlighters.set(key, created);
   return created;

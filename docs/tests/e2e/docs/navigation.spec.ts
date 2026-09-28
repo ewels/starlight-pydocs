@@ -52,21 +52,20 @@ test('generated pages get prev/next pagination', async ({ page }) => {
 });
 
 test('the agent skill page carries the shipped SKILL.md word for word', async ({ page, request }) => {
-  // The page holds a hand-made copy of the skill the npm package ships. Every
-  // line of the skill's body (headings one level down) must be on the page's
-  // Markdown route, so an edit to one without the other fails here.
-  const skill = await readFile(
-    new URL('../../../../packages/starlight-pydocs/skills/starlight-pydocs/SKILL.md', import.meta.url),
-    'utf8',
-  );
-  const lines = skill
+  // The page ends with a hand-made copy of the skill's body, headings one level
+  // down, so an edit to either without the other fails here.
+  const read = (path: string): Promise<string> => readFile(new URL(path, import.meta.url), 'utf8');
+  const skill = await read('../../../../packages/starlight-pydocs/skills/starlight-pydocs/SKILL.md');
+  const mdx = await read('../../../src/content/docs/guides/agent-skill.mdx');
+  const body = skill
     .replace(/^---\n[\s\S]*?\n---\n+/, '')
     .replace(/^#\s[^\n]*\n+/, '')
-    .replace(/^(#{2,5}) /gm, '#$1 ')
-    .split('\n')
-    .filter((line) => line.trim() !== '');
+    .replace(/^(#{2,5}) /gm, '#$1 ');
+  const marker = 'so they sit under this one.\n\n';
+  expect(mdx.slice(mdx.indexOf(marker) + marker.length)).toBe(body);
+
   const markdown = await (await request.get('guides/agent-skill.md')).text();
-  for (const line of lines) expect(markdown).toContain(line);
+  expect(markdown).toContain('### 3. Decide what the public API is');
 
   await page.goto('guides/agent-skill/');
   const content = page.locator('.sl-markdown-content');

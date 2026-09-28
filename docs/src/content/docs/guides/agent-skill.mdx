@@ -55,8 +55,8 @@ change anything it covers.
   [Getting started](https://ewels.github.io/starlight-pydocs/guides/getting-started/)
 - A plain Astro site with no Starlight uses `starlight-pydocs/astro` instead.
   [Vanilla Astro](https://ewels.github.io/starlight-pydocs/guides/vanilla-astro/)
-- `search` points at the _parent_ of the package directory (`../src` for
-  `../src/mypkg`), relative to the Astro project root.
+- `search` is an array of paths to the _parent_ of the package directory
+  (`['../src']` for `../src/mypkg`), relative to the Astro project root.
 
 ### 2. Make Griffe runnable wherever the site builds
 
@@ -78,7 +78,8 @@ Version annotations also need the full git history in CI (`fetch-depth: 0`).
 Griffe documents every name without a leading underscore, so helpers and
 internals end up in the reference unless you say otherwise. Pick one:
 
-- declare `__all__` in each module (it wins, as in mkdocstrings);
+- declare `__all__` in each module (it wins, as in mkdocstrings). It picks
+  that module's own members only: submodules get their pages either way;
 - or use `members.include` / `members.exclude` globs in the package config.
 
 If only part of the documented surface is stable, say so on a page of your
