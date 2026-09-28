@@ -1,7 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in
-this repository.
+This file provides guidance to coding agents working with code in this repository.
 
 `starlight-pydocs` is a published npm package (in `packages/starlight-pydocs`) that
 generates Python API reference documentation for Astro and Starlight sites. It

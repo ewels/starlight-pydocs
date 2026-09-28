@@ -5,7 +5,7 @@ sites. It extracts the API surface with [Griffe](https://mkdocstrings.github.io/
 (`griffe dump -f -d <style>`) and renders it with Astro components on injected routes.
 This document records the architecture decisions, the reasoning behind each, the
 alternatives rejected, and the griffe behaviour the implementation depends on.
-`CLAUDE.md` documents day-to-day working conventions. Decision numbers are stable: code
+`AGENTS.md` documents day-to-day working conventions. Decision numbers are stable: code
 comments cite them as "ARCHITECTURE.md decision N".
 
 ## Decisions
