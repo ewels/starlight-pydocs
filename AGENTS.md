@@ -1,7 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in
-this repository.
+This file provides guidance to coding agents working with code in this repository.
 
 `starlight-pydocs` is a published npm package (in `packages/starlight-pydocs`) that
 generates Python API reference documentation for Astro and Starlight sites. It
@@ -12,7 +11,7 @@ its conventions where sensible (anchor scheme, member filtering, `::: name` beco
 `<Autodoc name="…" />`).
 
 Read `ARCHITECTURE.md` for the architecture decisions, their reasoning and the griffe
-behaviour notes; `HANDOFF.md` holds the pre-release checklist.
+behaviour notes.
 
 ## Repository layout
 
@@ -125,7 +124,9 @@ Rendered through **the host's configured markdown processor**
 (`astroConfig.markdown.processor.createRenderer(...)`: Sätteri on current Astro,
 `unified()` where the site pins it, with a Starlight-style optional-peer fallback
 to `@astrojs/markdown-remark` for Astro 7.0.x). The package depends on neither
-engine and registers no remark/rehype/mdast/hast plugin anywhere. Because the live
+engine and registers no remark/rehype/mdast/hast plugin anywhere. Signature
+colouring imports `shiki` directly (a real dependency), never through
+`@astrojs/markdown-remark`, which Sätteri sites do not install. Because the live
 processor exists only in the config-time process, all docstring Markdown is
 pre-rendered at `astro:config:done` (after every integration has mutated
 `processor.options`) into a sidecar JSON beside the cached dump; components consume
@@ -177,6 +178,10 @@ them. `pnpm typecheck` runs both.
   version, and publishes a GitHub release tagged `vX.Y.Z`, which triggers
   `.github/workflows/release.yml` (npm trusted publishing via OIDC, no token; the
   workflow guards tag == package version; the very first publish is manual).
+- `skills/starlight-pydocs/SKILL.md` is copied into the npm package by `prepack`, and
+  by hand into `docs/src/content/docs/guides/agent-skill.mdx` (body only, headings one
+  level down). Edit both together; an e2e test fails when they differ. It lives at the
+  repo root because that is where `npx skills add` looks first.
 - MDX is excluded from Prettier and `*.md` uses `embeddedLanguageFormatting: 'off'`:
   Prettier reflows the Python signatures and directive examples in docs pages.
 

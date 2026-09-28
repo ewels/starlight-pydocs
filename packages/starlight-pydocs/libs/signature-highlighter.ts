@@ -15,12 +15,12 @@
  * signature repeated across pages (an inherited member, a re-export) is
  * highlighted once.
  *
- * Shiki is reached through `@astrojs/markdown-remark`, an optional peer
- * dependency, and imported at the top level for the same reason
- * `docstring-renderer.ts` does it: Astro closes the Vite module runner that
- * loaded the config before integration hooks run, so a dynamic import started
- * later fails.
+ * Shiki is imported statically, so a broken install fails the build instead of
+ * degrading to uncoloured signatures.
  */
+
+import type { Highlighter, ThemeRegistrationAny } from 'shiki';
+import { createCssVariablesTheme, createHighlighter } from 'shiki';
 
 import { writeAtomic } from '../lib/cache.ts';
 import type { PydocsContext, ShikiThemes } from '../lib/context.ts';
@@ -33,18 +33,16 @@ import type { PydocsLogger } from '../lib/logger.ts';
 import { silentLogger } from '../lib/logger.ts';
 import { displaySignatureTokens, overloadSignatureTokens } from '../lib/signature.ts';
 
-const shikiModule = import('@astrojs/markdown-remark/shiki').catch(() => null);
+type HastRoot = ReturnType<Highlighter['codeToHast']>;
+type HastNode = HastRoot | HastRoot['children'][number];
 
-/** The slice of Shiki's HAST output this module reads. */
-interface HastNode {
-  type?: string;
-  value?: string;
-  properties?: { style?: unknown };
-  children?: HastNode[];
-}
-
-interface Highlighter {
-  codeToHast(code: string, lang: string, options?: unknown): Promise<HastNode> | HastNode;
+/**
+ * Astro accepts `css-variables` as a theme name and builds that theme itself;
+ * Shiki no longer bundles one by that name.
+ */
+function loadableTheme(theme: ShikiThemes['light']): ThemeRegistrationAny | string {
+  if (theme === 'css-variables') return createCssVariablesTheme({ variablePrefix: '--astro-code-' });
+  return theme as ThemeRegistrationAny | string;
 }
 
 /** One highlighter per theme pair, shared by every package in the process. */
@@ -53,21 +51,16 @@ const highlighters = new Map<string, Promise<Highlighter>>();
 /**
  * Build (or reuse) the highlighter for a theme pair.
  *
- * @throws When Shiki is unreachable or the themes cannot be loaded. The caller
- *   reports it: a silent failure here is exactly what let the render-time
- *   version of this ship doing nothing at all.
+ * @throws When the themes cannot be loaded; the caller reports it.
  */
 function getHighlighter(themes: ShikiThemes): Promise<Highlighter> {
   const key = JSON.stringify(themes);
   const existing = highlighters.get(key);
   if (existing !== undefined) return existing;
 
-  const created = shikiModule.then(async (module) => {
-    if (module === null) {
-      throw new Error('@astrojs/markdown-remark is not installed');
-    }
-    const create = module.createShikiHighlighter as (options: unknown) => Promise<unknown>;
-    return (await create({ themes, langs: ['python'] })) as Highlighter;
+  const created = createHighlighter({
+    themes: [loadableTheme(themes.light), loadableTheme(themes.dark)],
+    langs: ['python'],
   });
 
   highlighters.set(key, created);
@@ -93,9 +86,11 @@ function tokenColours(value: unknown): string | undefined {
 
 /** Shiki's leaf text nodes, in order, each with the colour of its own span. */
 function flattenHast(node: HastNode, inherited?: string | undefined): ColouredPiece[] {
-  if (node.type === 'text') return [{ text: node.value ?? '', style: inherited }];
-  const style = tokenColours(node.properties?.style) ?? inherited;
-  return (node.children ?? []).flatMap((child) => flattenHast(child, style));
+  if (node.type === 'text') return [{ text: node.value, style: inherited }];
+  if (node.type === 'root') return node.children.flatMap((child) => flattenHast(child, inherited));
+  if (node.type !== 'element') return [];
+  const style = tokenColours(node.properties['style']) ?? inherited;
+  return node.children.flatMap((child) => flattenHast(child, style));
 }
 
 /**
@@ -145,7 +140,6 @@ export interface HighlightSignaturesOptions {
  */
 export async function highlightSignaturesForPackage(options: HighlightSignaturesOptions): Promise<{ count: number }> {
   const logger = options.logger ?? silentLogger;
-  const texts = await signatureTextsFor(options.context, options.base);
 
   let highlighter: Highlighter;
   try {
@@ -161,10 +155,11 @@ export async function highlightSignaturesForPackage(options: HighlightSignatures
     return { count: 0 };
   }
 
+  const themes = options.themes as Record<keyof ShikiThemes, ThemeRegistrationAny | string>;
   const highlights: SignatureHighlights = { texts: {} };
-  for (const text of texts) {
+  for (const text of await signatureTextsFor(options.context, options.base)) {
     try {
-      const coloured = flattenHast(await highlighter.codeToHast(text, 'python', { defaultColor: false }));
+      const coloured = flattenHast(highlighter.codeToHast(text, { lang: 'python', themes, defaultColor: false }));
       // Shiki reproduces its input verbatim, but a grammar or transformer that
       // does not would silently shift every link, so the entry is dropped
       // rather than stored a character out of step.

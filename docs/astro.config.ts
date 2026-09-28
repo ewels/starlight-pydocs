@@ -170,6 +170,7 @@ export default defineConfig({
             { label: 'Getting started', link: '/guides/getting-started/' },
             { label: 'Vanilla Astro', link: '/guides/vanilla-astro/' },
             { label: 'Autodoc', link: '/guides/autodoc/' },
+            { label: 'Agent skill', link: '/guides/agent-skill/' },
           ],
         },
         {

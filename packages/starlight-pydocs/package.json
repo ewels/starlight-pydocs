@@ -64,6 +64,7 @@
     "lib",
     "libs",
     "routes",
+    "skills",
     "styles.css",
     "styles.d.ts",
     "translations.ts",
@@ -74,12 +75,15 @@
     "LICENSE"
   ],
   "scripts": {
-    "prepack": "cp ../../README.md ./README.md && cp ../../CHANGELOG.md ./CHANGELOG.md && cp ../../LICENSE ./LICENSE",
+    "prepack": "cp ../../README.md ./README.md && cp ../../CHANGELOG.md ./CHANGELOG.md && cp ../../LICENSE ./LICENSE && rm -rf ./skills && cp -R ../../skills ./skills",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint ."
+  },
+  "dependencies": {
+    "shiki": "^4.0.2"
   },
   "peerDependencies": {
     "@astrojs/markdown-remark": "^7.2.0",
