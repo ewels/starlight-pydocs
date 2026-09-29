@@ -20,17 +20,17 @@ you hit. Starlight includes the MDX integration, so renaming the file is enough 
 Astro project needs to install `@astrojs/mdx`. Alternatively, write the page as `.astro` and put
 the import in the frontmatter fence.
 
-```mdx title="src/content/docs/reporting.mdx" {5-6,10-11}
+```mdx title="src/content/docs/reporting.mdx" {5, 9}
 ---
 title: Reporting
 ---
 
-{/* Import the component once, below the frontmatter. */}
+<!-- [!callout /import/] Import the component once, below the frontmatter. -->
 import { Autodoc } from 'starlight-pydocs/components';
 
 The helper that writes one for you:
 
-{/* Name the object where you want it rendered. */}
+<!-- [!callout /Autodoc/] Name the object where you want it rendered. -->
 <Autodoc name="demopkg.generate_report" package="api/demopkg" />
 
 Pass `fmt` when you want something other than Markdown.
@@ -82,7 +82,7 @@ This site documents `demopkg` twice (the current source and the archived 1.x dum
 every block on this page names its base. Leave `package` off and the build stops with the
 candidates listed:
 
-```text wrap
+```text wrap error={1}
 starlight-pydocs: <Autodoc name="demopkg.report.Report"> is ambiguous: 'demopkg' is documented at 2 bases. Set the package prop to one of these bases: 'api/demopkg', '1x/api/demopkg'.
 ```
 
@@ -92,7 +92,7 @@ a name when both would match.
 A name that resolves to a package, but not to an object in it, fails the same way. This is usually
 a typo, or a `members`/`filters` setting that excludes the object from that entry:
 
-```text wrap
+```text wrap error={1}
 starlight-pydocs: <Autodoc name="demopkg.report.Reprot"> is not documented at '/api/demopkg'. Check the spelling, or the members/filters options that may be excluding it.
 ```
 

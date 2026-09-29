@@ -19,7 +19,7 @@ import type { AnnotationResolver } from './expr.ts';
 import type { SignatureHighlights } from './highlight.ts';
 import { EMPTY_SIGNATURE_HIGHLIGHTS } from './highlight.ts';
 import type { InventoryLookup } from './inventory.ts';
-import { createInventoryLookup, parseInventory } from './inventory.ts';
+import { createInventoryLookup, inventorySource, parseInventory } from './inventory.ts';
 import type { ModelOptions, PackageModel } from './model.ts';
 import { buildAnnotationResolver, buildModel } from './model.ts';
 import type { GriffeDump } from './types.ts';
@@ -290,7 +290,8 @@ async function buildInventoryLookup(context: PydocsContext): Promise<InventoryLo
   const read = await Promise.all(
     context.inventories.map(async (inventory) => {
       try {
-        return { base: inventory.base, entries: parseInventory(await fs.readFile(inventory.path)) };
+        const buffer = await fs.readFile(inventory.path);
+        return { base: inventory.base, entries: parseInventory(buffer), source: inventorySource(buffer) };
       } catch {
         // A broken cached inventory must not break a page render; annotations
         // simply stay unlinked. The build-time loader already warned.

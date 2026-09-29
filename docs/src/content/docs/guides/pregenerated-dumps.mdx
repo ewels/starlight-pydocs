@@ -169,15 +169,13 @@ Griffe builds source links from the paths it recorded, which are relative to the
 griffe ran. Run the dump command from the repository root, and `{path}` is already
 repository-relative. This is what a forge URL needs:
 
-```js title="astro.config.mjs" {7-13}
+```js title="astro.config.mjs" {6-10}
 starlightPydocs({
   packages: [
     {
       name: 'mypkg',
       source: { url: 'https://…/v2.1.0/api.json' },
-
-      // No root: the paths in the dump are already
-      // relative to the repository.
+      // [!callout /sourceLink/] No `root`: the paths in the dump are already relative to the repository.
       sourceLink: {
         host: 'github',
         repo: 'you/mypkg',
@@ -202,9 +200,12 @@ object when it runs inside a git checkout. A dump made in CI often carries worki
 A dump is an object keyed by package name, with the whole tree underneath:
 
 ```sh
-jq 'keys' api.json                          # ["mypkg"]
-jq '.mypkg.members | keys' api.json         # the top-level surface
-jq '.mypkg.members.Report.docstring.parsed[0].kind' api.json   # "text" if -d ran
+$ jq -c 'keys' api.json
+["mypkg"]
+$ jq -c '.mypkg.members | keys' api.json
+["Report","generate_report","report"]
+$ jq '.mypkg.members.Report.docstring.parsed[0].kind' api.json
+"text"
 ```
 
 If `docstring.parsed` is missing, the dump was made without `-d`. The pages will then carry

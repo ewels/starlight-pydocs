@@ -84,6 +84,8 @@ export interface PydocsContext {
   trailingSlash: 'always' | 'never' | 'ignore';
   /** Whether the host is Starlight (true) or vanilla Astro (false). */
   starlight: boolean;
+  /** Links get starlight-codeblocks' hover card rather than a `title` tooltip. Set when the context module loads. */
+  apiCards?: boolean | undefined;
   /** Serve `symbols.json` and render the symbol search component. */
   symbolSearch: boolean;
   /** Serve the plain-Markdown rendition of the API. */

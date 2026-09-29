@@ -92,6 +92,14 @@ export function parseInventory(buffer: Uint8Array): InventoryEntry[] {
   return entries;
 }
 
+/** The project and version from an inventory's header, such as `Python 3`, or undefined when both are empty. */
+export function inventorySource(buffer: Uint8Array): string | undefined {
+  const header = new TextDecoder().decode(buffer.subarray(0, findHeaderEnd(buffer))).split('\n');
+  const field = (line: string | undefined, key: string) => (line?.startsWith(key) ? line.slice(key.length).trim() : '');
+  const source = [field(header[1], '# Project:'), field(header[2], '# Version:')].filter(Boolean).join(' ');
+  return source === '' ? undefined : source;
+}
+
 /**
  * Byte offset just past the fourth newline. Counted on the raw bytes, not on
  * decoded text: a multi-byte character in a header line (a project name,
@@ -144,21 +152,30 @@ export function buildInventory(project: string, version: string, entries: Invent
 }
 
 export interface InventoryLookupEntry {
+  /** Dotted object path, e.g. `pathlib.Path`. */
+  name: string;
   href: string;
   role: string;
   dispname: string;
+  /** Project and version of the inventory, such as `Python 3`. */
+  source: string | undefined;
 }
 
 export interface InventoryLookup {
   /** Resolve a dotted path to an absolute URL, or undefined. */
   lookup(dottedPath: string): InventoryLookupEntry | undefined;
+  /** The entry a resolved link points at, for the text of its hover card. */
+  lookupHref(href: string): InventoryLookupEntry | undefined;
   /** Total number of entries loaded, for logging. */
   size: number;
 }
 
 /** Build a lookup from parsed inventories. Earlier inventories win. */
-export function createInventoryLookup(inventories: { base: string; entries: InventoryEntry[] }[]): InventoryLookup {
+export function createInventoryLookup(
+  inventories: { base: string; entries: InventoryEntry[]; source?: string | undefined }[],
+): InventoryLookup {
   const table = new Map<string, InventoryLookupEntry>();
+  const byHref = new Map<string, InventoryLookupEntry>();
 
   for (const inventory of inventories) {
     for (const entry of inventory.entries) {
@@ -168,12 +185,15 @@ export function createInventoryLookup(inventories: { base: string; entries: Inve
       if (table.has(entry.name)) continue;
       const href = joinUrl(inventory.base, entry.uri);
       if (href === undefined) continue;
-      table.set(entry.name, { href, role: entry.role, dispname: entry.dispname });
+      const found = { name: entry.name, href, role: entry.role, dispname: entry.dispname, source: inventory.source };
+      table.set(entry.name, found);
+      if (!byHref.has(href)) byHref.set(href, found);
     }
   }
 
   return {
     lookup: (dottedPath) => table.get(dottedPath),
+    lookupHref: (href) => byHref.get(href),
     size: table.size,
   };
 }

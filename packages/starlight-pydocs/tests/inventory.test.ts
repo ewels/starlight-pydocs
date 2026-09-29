@@ -14,6 +14,7 @@ import {
   buildInventory,
   createInventoryLookup,
   inventoryRoleFor,
+  inventorySource,
   loadInventories,
   parseInventory,
 } from '../lib/inventory.ts';
@@ -171,12 +172,22 @@ describe('parseInventory', () => {
 
 describe('createInventoryLookup', () => {
   test('resolves python entries against the base URL', () => {
-    const lookup = createInventoryLookup([{ base: 'https://docs.python.org/3/', entries }]);
-    expect(lookup.lookup('pathlib.Path')).toEqual({
+    const lookup = createInventoryLookup([{ base: 'https://docs.python.org/3/', entries, source: 'Python 3' }]);
+    const entry = {
+      name: 'pathlib.Path',
       href: 'https://docs.python.org/3/library/pathlib.html#pathlib.Path',
       role: 'class',
       dispname: 'pathlib.Path',
-    });
+      source: 'Python 3',
+    };
+    expect(lookup.lookup('pathlib.Path')).toEqual(entry);
+    expect(lookup.lookupHref(entry.href)).toEqual(entry);
+    expect(lookup.lookupHref('https://docs.python.org/3/nope.html')).toBeUndefined();
+  });
+
+  test('reads the project and version from the header', () => {
+    expect(inventorySource(buildInventory('Python', '3.13', entries))).toBe('Python 3.13');
+    expect(inventorySource(buildInventory('', '', entries))).toBeUndefined();
   });
 
   test('ignores non-python domains', () => {

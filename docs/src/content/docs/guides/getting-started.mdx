@@ -3,7 +3,7 @@ title: Getting started
 description: Install starlight-pydocs and generate an API reference page for every module of a package.
 ---
 
-import { CardGrid, LinkCard, Steps, TabItem, Tabs } from '@astrojs/starlight/components';
+import { CardGrid, LinkCard, Steps } from '@astrojs/starlight/components';
 
 Name a Python package. The plugin generates an API reference page for each of its
 modules. The pages appear in the Starlight sidebar as a tree that mirrors the package
@@ -19,29 +19,17 @@ your docs does not need a working install of the package it documents.
 
 1. Install the plugin.
 
-   <Tabs syncKey="pkg">
-     <TabItem label="npm">
-
-     ```sh frame="none"
-     npm install starlight-pydocs
-     ```
-
-     </TabItem>
-     <TabItem label="pnpm">
-
-     ```sh frame="none"
-     pnpm add starlight-pydocs
-     ```
-
-     </TabItem>
-     <TabItem label="yarn">
-
-     ```sh frame="none"
-     yarn add starlight-pydocs
-     ```
-
-     </TabItem>
-   </Tabs>
+   :::code-switcher{sync="pm"}
+   ```sh label="npm"
+   npm install starlight-pydocs
+   ```
+   ```sh label="pnpm"
+   pnpm add starlight-pydocs
+   ```
+   ```sh label="Yarn"
+   yarn add starlight-pydocs
+   ```
+   :::
 
 2. Check that the build process can run Griffe.
 
@@ -54,18 +42,16 @@ your docs does not need a working install of the package it documents.
    writes. See [Without Python](#without-python) for more information.
 
    ```sh
-   # Check if uv is available
-   uv --version
+   uv --version  # [!annotate] Prints a version number if uv is installed.
 
-   # If not, on macOS and Linux:
-   curl -LsSf https://astral.sh/uv/install.sh | sh
+   curl -LsSf https://astral.sh/uv/install.sh | sh  # [!annotate] If it is not, installs uv on macOS and Linux.
    ```
 
 
 3. Add the plugin to Starlight, name the package, and reserve a spot in the sidebar for the pages
    it will generate.
 
-   ```js title="astro.config.mjs" {3, 10-15, 17-18}
+   ```js title="astro.config.mjs" {3, 10-15}
    import starlight from '@astrojs/starlight';
    import { defineConfig } from 'astro/config';
    import starlightPydocs, { pydocsSidebarGroup } from 'starlight-pydocs';
@@ -75,14 +61,13 @@ your docs does not need a working install of the package it documents.
        starlight({
          title: 'My project',
 
-         // Name the package and point griffe at its source.
          plugins: [
            starlightPydocs({
+             // [!callout /packages/] Name the package and point Griffe at its source.
              packages: [{ name: 'mypkg', search: ['../src'] }],
            }),
          ],
-
-         // Reserve the sidebar spot for the generated pages.
+         // [!callout /pydocsSidebarGroup/] Reserves the sidebar spot for the generated pages.
          sidebar: [{ label: 'API reference', items: [pydocsSidebarGroup] }],
        }),
      ],
@@ -128,7 +113,7 @@ Set this now if your docstrings are not google style. Griffe parses one flavour 
 package and does not guess. The wrong style leaves parameters and return values as
 plain, undifferentiated prose.
 
-```js title="astro.config.mjs" collapse={1-8, 18-23} "docstringStyle: 'numpy'"
+```js title="astro.config.mjs" hidden={1-8, 18-23} "docstringStyle: 'numpy'"
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 import starlightPydocs, { pydocsSidebarGroup } from 'starlight-pydocs';
@@ -167,7 +152,7 @@ them, give the plugin a Sphinx inventory to resolve them against. An inventory i
 `objects.inv` file that most Python documentation sites publish. It maps object paths
 to page URLs.
 
-```js title="astro.config.mjs" collapse={1-8, 17-22} {12-16}
+```js title="astro.config.mjs" hidden={1-8, 17-22} {12-16}
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 import starlightPydocs, { pydocsSidebarGroup } from 'starlight-pydocs';
@@ -205,7 +190,7 @@ file, because a local file has no URL to derive it from.
 Give the plugin your forge. Then every documented object links to the lines where it
 is defined.
 
-```js title="astro.config.mjs" collapse={1-8, 23-28} {15-20}
+```js title="astro.config.mjs" hidden={1-8, 23-28} {15-20}
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 import starlightPydocs, { pydocsSidebarGroup } from 'starlight-pydocs';

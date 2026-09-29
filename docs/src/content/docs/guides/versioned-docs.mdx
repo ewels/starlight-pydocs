@@ -18,21 +18,21 @@ Python and no checkout of that release.
 
 ## One entry per version
 
-```js title="astro.config.mjs" {3-8, 10-17}
+```js title="astro.config.mjs" {3-7, 9-15}
 starlightPydocs({
   packages: [
-    // The current release, extracted from the working tree.
     {
       name: 'mypkg',
+      // [!callout /search/] The current release, extracted from the working tree.
       search: ['../src'],
       sourceLink: { host: 'github', repo: 'you/mypkg', ref: 'v2.1.0', root: '..' },
     },
 
-    // The 1.x release, pinned to a dump published with it.
     {
       name: 'mypkg',
       base: '1x/api/mypkg',
       label: 'mypkg 1.x',
+      // [!callout /source/] The 1.x release, pinned to a dump published with it.
       source: { url: 'https://github.com/you/mypkg/releases/download/v1.4.3/api.json' },
       sourceLink: { host: 'github', repo: 'you/mypkg', ref: 'v1.4.3' },
     },

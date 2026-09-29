@@ -13,27 +13,27 @@ working.
 
 This handler configuration:
 
-```yaml title="mkdocs.yml" {5-6,8-9,10-11,13-15}
+```yaml title="mkdocs.yml"
 plugins:
   - mkdocstrings:
       handlers:
         python:
-          # 1. paths -> search
+          # [!ref] `paths` becomes `search`.
           paths: [src]
           options:
-            # 2. docstring_style -> docstringStyle
+            # [!ref] `docstring_style` becomes `docstringStyle`.
             docstring_style: google
-            # 3. show_source -> sourceLink
+            # [!ref] `show_source` becomes `sourceLink`.
             show_source: true
             filters: ["!^_"]
-          # 4. inventories -> inventories
+          # [!ref] `inventories` stays `inventories`.
           inventories:
             - url: https://docs.python.org/3/objects.inv
 ```
 
 becomes this, with the same four options at the matching numbers:
 
-```js title="astro.config.mjs" {14-15,16-17,18-19,22-23}
+```js title="astro.config.mjs"
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 import starlightPydocs, { pydocsSidebarGroup } from 'starlight-pydocs';
@@ -47,15 +47,15 @@ export default defineConfig({
           packages: [
             {
               name: 'mypkg',
-              // 1. paths -> search
+              // [!ref] From `paths`.
               search: ['../src'],
-              // 2. docstring_style -> docstringStyle
+              // [!ref] From `docstring_style`.
               docstringStyle: 'google',
-              // 3. show_source -> sourceLink
+              // [!ref] From `show_source`, as a link to the code on your forge.
               sourceLink: { host: 'github', repo: 'you/mypkg', ref: 'main', root: '..' },
             },
           ],
-          // 4. inventories -> inventories
+          // [!ref] From `inventories`. `'python'` is the standard library preset.
           inventories: ['python'],
         }),
       ],

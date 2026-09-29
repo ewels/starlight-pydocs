@@ -40,3 +40,48 @@ export function prepareDoctestMarkdown(example: string): string {
   if (/^(```|~~~)/.test(trimmed)) return trimmed;
   return `\`\`\`python\n${trimmed}\n\`\`\``;
 }
+
+/** What starlight-codeblocks features the docstring Markdown should opt into. */
+export interface CodeblocksMarkup {
+  /** Language suffix for inline code, such as `py`; undefined when the site's inline highlighting is off. */
+  inlineLanguage: string | undefined;
+  /** Base of the package the docstrings belong to, so their code links to the same version's pages. */
+  pydocsBase?: string | undefined;
+}
+
+const FENCE = /^(\s*)(`{3,}|~{3,})(.*)$/;
+const CODE_SPAN = /(`+)(?!`)([^`]|[^`][\s\S]*?[^`])\1(?!`)/g;
+
+/**
+ * Make every fenced block `expandable`, tie it to `pydocsBase` and, when asked,
+ * add a language suffix to inline code, so a site with starlight-codeblocks
+ * collapses long examples, links them to the right version and colours inline
+ * code with no configuration.
+ *
+ * ponytail: line-based, so a code span that wraps onto a second line stays plain.
+ */
+export function addCodeblocksMarkup(markdown: string, { inlineLanguage, pydocsBase }: CodeblocksMarkup): string {
+  let fence: string | undefined;
+  return markdown
+    .split('\n')
+    .map((line) => {
+      const match = FENCE.exec(line);
+      if (fence !== undefined) {
+        if (match?.[2]?.startsWith(fence) === true && match[3]?.trim() === '') fence = undefined;
+        return line;
+      }
+      if (match !== undefined && match !== null) {
+        const [, indent = '', marker = '', info = ''] = match;
+        fence = marker;
+        let meta = info.trim() === '' ? 'text' : info.trimEnd();
+        if (!/(^|\s)expandable\b/.test(meta)) meta += ' expandable';
+        if (pydocsBase !== undefined && !/(^|\s)pydocsBase=/.test(meta)) meta += ` pydocsBase="${pydocsBase}"`;
+        return `${indent}${marker}${meta}`;
+      }
+      if (inlineLanguage === undefined) return line;
+      return line.replace(CODE_SPAN, (span, ticks: string, code: string) =>
+        /\{:[\w+-]+\}$/.test(code) || code.endsWith(' ') ? span : `${ticks}${code}{:${inlineLanguage}}${ticks}`,
+      );
+    })
+    .join('\n');
+}

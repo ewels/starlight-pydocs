@@ -121,8 +121,10 @@ Editing the Python source alone changes nothing. Regenerate the dumps and commit
 commit:
 
 ```sh
-pnpm gen:dumps       # needs uv on PATH; rewrites fixtures/*/dump.json
-pnpm gen:inventory   # only when the fixture Sphinx inventory needs new names
+# [!ref] Needs `uv` on `PATH`. Rewrites `fixtures/*/dump.json`.
+pnpm gen:dumps
+# [!ref] Only when the fixture Sphinx inventory needs new names.
+pnpm gen:inventory
 ```
 
 A guarded test regenerates the dumps live when `uv` is available and compares them against the

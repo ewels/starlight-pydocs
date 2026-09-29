@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { prepareDoctestMarkdown, unwrapParagraph } from '../lib/markdown.ts';
+import { addCodeblocksMarkup, prepareDoctestMarkdown, unwrapParagraph } from '../lib/markdown.ts';
 
 describe('unwrapParagraph', () => {
   test('unwraps a single paragraph', () => {
@@ -36,5 +36,40 @@ describe('prepareDoctestMarkdown', () => {
 
   test('is empty for blank input', () => {
     expect(prepareDoctestMarkdown('   \n ')).toBe('');
+  });
+});
+
+describe('addCodeblocksMarkup', () => {
+  const py = { inlineLanguage: 'py' };
+
+  test('makes every fence expandable, and a fence with no language plain text', () => {
+    expect(addCodeblocksMarkup('```python\nx = 1\n```\n\n~~~\nout\n~~~', { inlineLanguage: undefined })).toBe(
+      '```python expandable\nx = 1\n```\n\n~~~text expandable\nout\n~~~',
+    );
+  });
+
+  test('ties every fence to its package base, unless the author set one', () => {
+    const markup = { inlineLanguage: undefined, pydocsBase: '1x/api/demopkg' };
+    expect(addCodeblocksMarkup('```python\nx\n```', markup)).toBe(
+      '```python expandable pydocsBase="1x/api/demopkg"\nx\n```',
+    );
+    expect(addCodeblocksMarkup('```py pydocsBase="api/other"\nx\n```', markup)).toBe(
+      '```py pydocsBase="api/other" expandable\nx\n```',
+    );
+  });
+
+  test('keeps an author-written expandable', () => {
+    expect(addCodeblocksMarkup('```py expandable={4}\nx\n```', py)).toBe('```py expandable={4}\nx\n```');
+  });
+
+  test('suffixes inline code outside fences only', () => {
+    expect(addCodeblocksMarkup('Call `run(x)` or ``a`b``.\n```py\n`not` this\n```', py)).toBe(
+      'Call `run(x){:py}` or ``a`b{:py}``.\n```py expandable\n`not` this\n```',
+    );
+  });
+
+  test('leaves inline code with a suffix, or with no inline language, alone', () => {
+    expect(addCodeblocksMarkup('`ls -l{:sh}` and `x`', py)).toBe('`ls -l{:sh}` and `x{:py}`');
+    expect(addCodeblocksMarkup('`x`', { inlineLanguage: undefined })).toBe('`x`');
   });
 });

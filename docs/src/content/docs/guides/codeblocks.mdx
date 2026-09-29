@@ -1,0 +1,137 @@
+---
+title: starlight-codeblocks
+description: Install starlight-codeblocks next to this plugin, and code examples link to your API pages, type links get hover cards, and docstring examples collapse and copy cleanly.
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+[starlight-codeblocks](https://ewels.github.io/starlight-codeblocks/) is a separate Starlight
+plugin that adds features to code blocks. When a site has both plugins, they work together with no
+configuration. Without starlight-codeblocks, the pages are exactly as they are today.
+
+## Install it
+
+Add the package, then add `codeblocks()` to the Starlight plugins. The order of the two plugins
+does not matter:
+
+```js title="astro.config.mjs" {3, 10}
+import starlight from '@astrojs/starlight';
+import { defineConfig } from 'astro/config';
+import codeblocks from 'starlight-codeblocks';
+import starlightPydocs, { pydocsSidebarGroup } from 'starlight-pydocs';
+
+export default defineConfig({
+  integrations: [
+    starlight({
+      title: 'My project',
+      plugins: [codeblocks(), starlightPydocs({ packages: [{ name: 'mypkg', search: ['../src'] }] })],
+      sidebar: [{ label: 'API reference', items: [pydocsSidebarGroup] }],
+    }),
+  ],
+});
+```
+
+starlight-codeblocks needs Starlight 0.42 or later. Its
+[getting started guide](https://ewels.github.io/starlight-codeblocks/getting-started/) covers the
+set-up for sites with an `ec.config.mjs` file or with other plugins that change code blocks.
+
+## What you get
+
+### Code examples link to your API pages
+
+Every Python code block on the site links the names it imports from a documented package. That
+includes the pages you write, not only the generated ones. Hover over `Report` or `generate` below:
+
+```python
+from demopkg import Report
+
+path = Report("weekly").generate("summary")
+```
+
+Each link opens a card with the object's signature, the first line of its docstring and the
+package it comes from. The Python standard library links to docs.python.org the same way.
+
+The examples in your docstrings get the same links. On a site that documents several versions of
+one package, each version's examples link to that version's pages. See
+[Versioned docs](/starlight-pydocs/guides/versioned-docs/).
+
+### Type links get the same card
+
+The types in signatures and parameter tables, such as `str` or one of your own classes, show the
+same card when a reader hovers over them or moves keyboard focus to them. The card says what the
+type is, where its documentation comes from, and where the link goes. Screen readers get the same
+text. Without starlight-codeblocks, these links have a plain browser tooltip instead.
+
+### Doctests copy as code
+
+A docstring example written as a `>>>` session gets a **Copy commands** button. It copies the
+code without the prompts and without the output, so a reader can paste it straight into a file:
+
+```python
+>>> from demopkg import Report
+>>> Report("weekly").generate("summary")
+PosixPath('weekly.txt')
+```
+
+### Long examples collapse
+
+A docstring example of 15 lines or more shows its first 12, with a button to show the rest. A
+fence that you write in a docstring can set its own height, as `expandable={20}`, or turn it off
+with `expandable=false`.
+
+### Inline code is highlighted
+
+Inline code in docstrings, such as `` `Report.generate()` ``, gets Python syntax colours. A piece
+of inline code that is not Python can end with `{:txt}` inside the backticks to stay plain, or
+with another language, such as `{:sh}`.
+
+## Turn a feature off
+
+Each feature is a starlight-codeblocks option, so you turn it off there, for the whole site:
+
+| Feature | Option |
+| --- | --- |
+| Links from code, and the cards on type links | `apiLinks: false` |
+| Collapsing long examples | `expandable: false` |
+| Syntax colours on inline code | `inlineHighlighting: false` |
+| Copy commands | `shellCopy: false` |
+
+```js title="astro.config.mjs"
+codeblocks({ expandable: false });
+```
+
+In a fence that you write, `apiLinks=false` and `expandable=false` turn a feature off for that one
+block.
+
+## Limits
+
+- Names link only when the code block imports them. After `report = Report("weekly")`, the
+  name `report.generate` stays plain text, because the link does not follow the variable.
+- starlight-codeblocks is a Starlight plugin. A [vanilla Astro](/starlight-pydocs/guides/vanilla-astro/)
+  site keeps the plain pages.
+- If the site uses starlight-llms-txt, give it `customSelectors: { all: ['.scb-deco'] }`, so that
+  the buttons and labels of starlight-codeblocks stay out of the text files.
+
+## For other plugins
+
+Both plugins find each other through objects on `globalThis`, so neither one depends on the other:
+
+- starlight-pydocs publishes every documented object, with its link, kind, signature and summary,
+  at `globalThis[Symbol.for('starlight-pydocs')]`, from `astro:config:setup`. The shape is
+  `{ version: 1, packages: [{ name, base, symbols }] }`, where `symbols` is a `Map` keyed by
+  dotted path.
+- It reads `globalThis[Symbol.for('starlight-codeblocks')]` at `astro:config:done` or later, to
+  learn which starlight-codeblocks features are on.
+
+<CardGrid>
+  <LinkCard
+    title="starlight-codeblocks"
+    href="https://ewels.github.io/starlight-codeblocks/"
+    description="Every feature of the plugin, with live examples."
+  />
+  <LinkCard
+    title="Cross-references"
+    href="/starlight-pydocs/guides/cross-references/"
+    description="Links from docstring prose to other objects, and to other sites' inventories."
+  />
+</CardGrid>

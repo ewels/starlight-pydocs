@@ -18,13 +18,13 @@ once.
 Astro validates every option when it loads the config. If a value is wrong, the error names it
 directly:
 
-```
+```text error={1}
 packages[1].base: must not be empty or the site root
 ```
 
 ## Where the options go
 
-```js title="astro.config.mjs" {11-25, 27-29}
+```js title="astro.config.mjs" {11-24, 26-27}
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 import starlightPydocs, { pydocsSidebarGroup } from 'starlight-pydocs';
@@ -35,7 +35,7 @@ export default defineConfig({
       title: 'My project',
       plugins: [
         starlightPydocs({
-          // Per-package options, one entry per package.
+          // [!callout /packages/] Per-package options, one entry per package.
           packages: [
             {
               name: 'mypkg',
@@ -51,7 +51,7 @@ export default defineConfig({
             },
           ],
 
-          // Top-level options, shared by every package.
+          // [!callout /inventories/] Top-level options, shared by every package.
           inventories: ['python'],
           cacheDir: '.cache',
         }),

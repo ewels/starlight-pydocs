@@ -1,5 +1,6 @@
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
+import codeblocks from 'starlight-codeblocks';
 import starlightLinksValidator from 'starlight-links-validator';
 import starlightLlmsTxt from 'starlight-llms-txt';
 import starlightPageActions from 'starlight-page-actions';
@@ -48,6 +49,7 @@ export default defineConfig({
       customCss: ['./src/styles/fonts.css'],
       social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/ewels/starlight-pydocs' }],
       plugins: [
+        codeblocks(),
         starlightPydocs({
           packages: [
             {
@@ -101,6 +103,8 @@ export default defineConfig({
         // cannot see them; `optionalLinks` advertises the per-package llms.txt
         // endpoints instead, which is the pattern `/guides/llms-txt/` documents.
         starlightLlmsTxt({
+          // Keeps codeblocks' labels, buttons and notes out of the code in the text files.
+          customSelectors: { all: ['.scb-deco'] },
           description:
             'starlight-pydocs generates Python API reference documentation for Astro and Starlight sites. It extracts the API surface with Griffe and renders it with Astro components on injected routes.',
           details: [
@@ -189,6 +193,7 @@ export default defineConfig({
           label: 'Customising the output',
           items: [
             { label: 'Theming', link: '/guides/theming/' },
+            { label: 'starlight-codeblocks', link: '/guides/codeblocks/' },
             { label: 'Component overrides', link: '/guides/component-overrides/' },
             { label: 'Internationalisation', link: '/guides/i18n/' },
             { label: 'Search', link: '/guides/search/' },

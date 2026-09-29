@@ -57,12 +57,12 @@ mechanism, so there is no loop.
 A useful override often needs only three things: an import, the markup you add, and one line that
 hands the rest back. Here, the override adds a warning above every abstract class:
 
-```astro title="src/components/pydocs/ClassDoc.astro" {2, 15, 18-22}
+```astro title="src/components/pydocs/ClassDoc.astro" {2, 14, 17-21}
 ---
 import { ClassDoc } from 'starlight-pydocs/components';
 import type { RenderScope } from 'starlight-pydocs/render';
 
-// `DocObject` is the shape of every documented object, reachable through the scope type.
+// [!callout /DocObject/] The shape of every documented object, reachable through the scope type.
 type DocObject = RenderScope['model']['root'];
 
 interface Props {
@@ -147,11 +147,11 @@ When the built-in markup is not the starting point you want, declare the same pr
 whatever you like. For example, make the `View source` link carry a forge icon and open in a new
 tab:
 
-```astro title="src/components/pydocs/SourceLink.astro" {18-19}
+```astro title="src/components/pydocs/SourceLink.astro" {17-18}
 ---
 import type { RenderScope } from 'starlight-pydocs/render';
 
-// `DocObject` is the shape of every documented object, reachable through the scope type.
+// [!callout /DocObject/] The shape of every documented object, reachable through the scope type.
 type DocObject = RenderScope['model']['root'];
 
 interface Props {

@@ -29,13 +29,12 @@ starlight({
 
 Both kinds of change go in that file. To retint, set tokens. To override, write a rule:
 
-```css title="src/styles/custom.css" {5-10}
+```css title="src/styles/custom.css" {5-8}
 :root {
   --pyd-accent: #b45309;
   --pyd-radius: 0;
 }
-/* Unlayered, so this rule beats the plugin
-   stylesheet with no !important. */
+/* [!callout /.pyd-signature/] Unlayered, so this rule beats the plugin stylesheet with no `!important`. */
 .pyd-signature {
   background: transparent;
   border-inline-start: 3px solid var(--pyd-accent);
