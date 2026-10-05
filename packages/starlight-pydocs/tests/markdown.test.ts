@@ -89,6 +89,18 @@ describe('addCodeblocksMarkup', () => {
 
   test('leaves inline code with a suffix, or with no inline language, alone', () => {
     expect(addCodeblocksMarkup('`ls -l{:sh}` and `x`', py)).toBe('`ls -l{:sh}` and `x{:py}`');
+    expect(addCodeblocksMarkup('`x{:c#}` and `x{:objective.c}`', py)).toBe('`x{:c#}` and `x{:objective.c}`');
     expect(addCodeblocksMarkup('`x`', { inlineLanguage: undefined })).toBe('`x`');
+  });
+
+  test('suffixes code that only looks like a suffix, such as a format spec', () => {
+    expect(addCodeblocksMarkup('Pad with `{:02d}`.', py)).toBe('Pad with `{:02d}{:py}`.');
+  });
+
+  test('leaves HTML blocks as written, up to the next blank line', () => {
+    expect(addCodeblocksMarkup('<div>\n`x`\n</div>\n\nSee `y` and <https://a.b> `z`.', py)).toBe(
+      '<div>\n`x`\n</div>\n\nSee `y{:py}` and <https://a.b> `z{:py}`.',
+    );
+    expect(addCodeblocksMarkup('<https://a.b> has `z`.', py)).toBe('<https://a.b> has `z{:py}`.');
   });
 });

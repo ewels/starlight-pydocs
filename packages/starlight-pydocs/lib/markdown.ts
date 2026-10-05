@@ -53,21 +53,27 @@ const BLOCKQUOTE = /^(?: {0,3}> ?)*/;
 const FENCE = /^(\s*)(`{3,}|~{3,})(.*)$/;
 const LIST_ITEM = /^\s*(?:[-*+]|\d+[.)])\s/;
 const CODE_SPAN = /(?<!\\)(`+)(?!`)([^`]|[^`][\s\S]*?[^`])\1(?!`)/g;
+const HTML_START = /^ {0,3}<(?:[A-Za-z][\w-]*(?=[\s/>]|$)|\/[A-Za-z]|[!?])/;
+// Keep in sync with starlight-codeblocks' `INNER_SUFFIX`: the suffixes it reads.
+const LANGUAGE_SUFFIX = /\S\{:[\w#+-][\w#+.-]*\}$/;
 
 /**
  * Make every fenced block `expandable`, tie it to `pydocsBase` and, when asked,
  * add a language suffix to inline code, so a site with starlight-codeblocks
  * collapses long examples, links them to the right version and colours inline
- * code with no configuration. Indented code blocks are left exactly as written.
+ * code with no configuration. Indented code blocks and HTML blocks are left
+ * exactly as written.
  *
  * ponytail: line-based, so a code span that wraps onto a second line stays plain,
- * and an indented code block nested in a list item is treated as prose.
+ * an indented code block nested in a list item is treated as prose, and a
+ * paragraph that opens with an inline HTML tag stays plain.
  */
 export function addCodeblocksMarkup(markdown: string, { inlineLanguage, pydocsBase }: CodeblocksMarkup): string {
   let fence: string | undefined;
   let afterBlank = true;
   let inIndentedCode = false;
   let inList = false;
+  let inHtml = false;
   return markdown
     .split('\n')
     .map((line) => {
@@ -80,17 +86,19 @@ export function addCodeblocksMarkup(markdown: string, { inlineLanguage, pydocsBa
       }
       if (rest.trim() === '') {
         afterBlank = true;
+        inHtml = false;
         return line;
       }
       const indent = (/^[ \t]*/.exec(rest)?.[0] ?? '').replace(/\t/g, '    ').length;
       // Indented code cannot interrupt a paragraph, so it needs a blank line before it.
       inIndentedCode = indent >= 4 && !inList && (afterBlank || inIndentedCode);
+      inHtml ||= !inIndentedCode && afterBlank && HTML_START.test(rest);
       if (!inIndentedCode) {
         if (LIST_ITEM.test(rest)) inList = true;
         else if (indent === 0 && afterBlank) inList = false;
       }
       afterBlank = false;
-      if (inIndentedCode) return line;
+      if (inIndentedCode || inHtml) return line;
 
       if (match !== null) {
         const [, indentText = '', marker = '', info = ''] = match;
@@ -104,7 +112,7 @@ export function addCodeblocksMarkup(markdown: string, { inlineLanguage, pydocsBa
       return (
         quote +
         rest.replace(CODE_SPAN, (span, ticks: string, code: string) =>
-          /\{:[\w+-]+\}$/.test(code) || code.endsWith(' ') ? span : `${ticks}${code}{:${inlineLanguage}}${ticks}`,
+          LANGUAGE_SUFFIX.test(code) || code.endsWith(' ') ? span : `${ticks}${code}{:${inlineLanguage}}${ticks}`,
         )
       );
     })
