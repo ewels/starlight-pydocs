@@ -10,7 +10,8 @@ import type { PydocsContext } from './context.ts';
 import { getAllModels } from './data.ts';
 import type { PackageModel } from './model.ts';
 import { objectHref } from './paths.ts';
-import { signatureText } from './signature.ts';
+import { truncate } from './render.ts';
+import { defaultSignatureText } from './signature.ts';
 
 export interface PydocsRegistrySymbol {
   /** Root-relative, without Astro's `base`. */
@@ -28,7 +29,10 @@ export interface PydocsRegistry {
 
 const KEY = Symbol.for('starlight-pydocs');
 
-/** Every documented path of a model, re-exports included, as registry entries. */
+/**
+ * Every documented path of a model, re-exports included, as registry entries,
+ * plus the definition path of each object documented only at a re-export.
+ */
 export function registrySymbols(
   model: PackageModel,
   trailingSlash: PydocsContext['trailingSlash'],
@@ -40,9 +44,13 @@ export function registrySymbols(
     if (doc === undefined || doc.kind === 'alias') continue;
     const kind = doc.kind === 'function' && doc.parentKind === 'class' ? 'method' : doc.kind;
     const symbol: PydocsRegistrySymbol = { href: objectHref('', entry.pageSlug, entry.anchor, trailingSlash), kind };
-    if (doc.kind !== 'module') symbol.signature = signatureText(doc);
-    if (entry.brief !== '') symbol.summary = entry.brief;
+    if (doc.kind !== 'module') symbol.signature = defaultSignatureText(doc);
+    if (entry.brief !== '') symbol.summary = truncate(entry.brief);
     symbols.set(entry.path, symbol);
+  }
+  for (const [canonical, documented] of model.documentedByCanonicalPath) {
+    const symbol = symbols.get(documented);
+    if (symbol !== undefined && !symbols.has(canonical)) symbols.set(canonical, symbol);
   }
   return symbols;
 }

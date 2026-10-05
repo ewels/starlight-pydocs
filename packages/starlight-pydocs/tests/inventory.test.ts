@@ -14,7 +14,6 @@ import {
   buildInventory,
   createInventoryLookup,
   inventoryRoleFor,
-  inventorySource,
   loadInventories,
   parseInventory,
 } from '../lib/inventory.ts';
@@ -68,14 +67,14 @@ function rawInventory(lines: string[], header = '# Sphinx inventory version 2'):
 
 describe('parseInventory', () => {
   test('round-trips what buildInventory writes', () => {
-    const parsed = parseInventory(buildInventory('demopkg', '1.0', entries));
+    const parsed = parseInventory(buildInventory('demopkg', '1.0', entries)).entries;
     expect(parsed).toEqual(entries);
   });
 
   test('round-trips a project name with multi-byte characters', () => {
     // The header end must be counted in bytes, not decoded characters, or the
     // zlib payload is sliced at the wrong offset and fails to decompress.
-    const parsed = parseInventory(buildInventory('prøjekt — ünicode', '1.0', entries));
+    const parsed = parseInventory(buildInventory('prøjekt — ünicode', '1.0', entries)).entries;
     expect(parsed).toEqual(entries);
   });
 
@@ -90,7 +89,7 @@ describe('parseInventory', () => {
   });
 
   test('expands a trailing $ in the uri to the object name', () => {
-    const parsed = parseInventory(rawInventory(['demopkg.Report py:class 1 api/demopkg/#$ -']));
+    const parsed = parseInventory(rawInventory(['demopkg.Report py:class 1 api/demopkg/#$ -'])).entries;
     expect(parsed[0]).toEqual({
       name: 'demopkg.Report',
       domain: 'py',
@@ -113,30 +112,30 @@ describe('parseInventory', () => {
       },
     ]);
     // Inflate by hand to see the compressed form on the wire.
-    const parsed = parseInventory(built);
+    const parsed = parseInventory(built).entries;
     expect(parsed[0]?.uri).toBe('api/demopkg/#demopkg.Report');
     expect(built.byteLength).toBeLessThan(200);
   });
 
   test('treats a dispname of - as the name', () => {
-    const parsed = parseInventory(rawInventory(['x.y py:function 1 mod.html#x.y -']));
+    const parsed = parseInventory(rawInventory(['x.y py:function 1 mod.html#x.y -'])).entries;
     expect(parsed[0]?.dispname).toBe('x.y');
   });
 
   test('keeps dispnames containing spaces', () => {
-    const parsed = parseInventory(rawInventory(['x.y py:function 1 mod.html#x.y a nice name']));
+    const parsed = parseInventory(rawInventory(['x.y py:function 1 mod.html#x.y a nice name'])).entries;
     expect(parsed[0]?.dispname).toBe('a nice name');
   });
 
   test('accepts negative priorities and empty roles', () => {
-    const parsed = parseInventory(rawInventory(['x py: -1 mod.html -']));
+    const parsed = parseInventory(rawInventory(['x py: -1 mod.html -'])).entries;
     expect(parsed[0]).toMatchObject({ priority: -1, role: '', domain: 'py' });
   });
 
   test('skips malformed lines instead of failing', () => {
     const parsed = parseInventory(
       rawInventory(['garbage', '', 'good.one py:class 1 a.html#good.one -', 'also bad line']),
-    );
+    ).entries;
     expect(parsed.map((entry) => entry.name)).toEqual(['good.one']);
   });
 
@@ -166,7 +165,7 @@ describe('parseInventory', () => {
   });
 
   test('handles an empty inventory', () => {
-    expect(parseInventory(buildInventory('demopkg', '1.0', []))).toEqual([]);
+    expect(parseInventory(buildInventory('demopkg', '1.0', [])).entries).toEqual([]);
   });
 });
 
@@ -181,13 +180,11 @@ describe('createInventoryLookup', () => {
       source: 'Python 3',
     };
     expect(lookup.lookup('pathlib.Path')).toEqual(entry);
-    expect(lookup.lookupHref(entry.href)).toEqual(entry);
-    expect(lookup.lookupHref('https://docs.python.org/3/nope.html')).toBeUndefined();
   });
 
   test('reads the project and version from the header', () => {
-    expect(inventorySource(buildInventory('Python', '3.13', entries))).toBe('Python 3.13');
-    expect(inventorySource(buildInventory('', '', entries))).toBeUndefined();
+    expect(parseInventory(buildInventory('Python', '3.13', entries)).source).toBe('Python 3.13');
+    expect(parseInventory(buildInventory('', '', entries)).source).toBeUndefined();
   });
 
   test('ignores non-python domains', () => {

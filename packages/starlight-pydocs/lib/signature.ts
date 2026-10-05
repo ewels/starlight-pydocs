@@ -214,6 +214,18 @@ export function signatureText(doc: DocObject, options: SignatureOptions = {}): s
   return tokensText(signatureTokens(doc, options));
 }
 
+const defaultSignatures = new WeakMap<DocObject, string>();
+
+/** {@link signatureText} with default options, memoized: hover cards ask for the same object on every link to it. */
+export function defaultSignatureText(doc: DocObject): string {
+  let text = defaultSignatures.get(doc);
+  if (text === undefined) {
+    text = signatureText(doc);
+    defaultSignatures.set(doc, text);
+  }
+  return text;
+}
+
 /** Signature of one `@overload` variant, which has no model object of its own. */
 export function overloadSignatureTokens(
   overload: GriffeFunction,

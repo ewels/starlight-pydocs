@@ -23,6 +23,20 @@ describe('registrySymbols', async () => {
     expect(symbols.get('demopkg.report.Report')?.href).toBe('/api/demopkg/report/#demopkg.report.Report');
   });
 
+  test('lists the definition path of an object documented only at its re-export', async () => {
+    const model = await fixtureModel('demopkg', { members: { exclude: ['demopkg.report.Report'] } });
+    expect(model.objectsByPath.has('demopkg.report.Report')).toBe(false);
+    expect(registrySymbols(model, 'always').get('demopkg.report.Report')?.href).toBe('/api/demopkg/#demopkg.Report');
+  });
+
+  test('truncates a long summary, as the signature tooltips do', async () => {
+    const model = await fixtureModel('demopkg');
+    const entry = model.symbols.find((symbol) => symbol.path === 'demopkg.Report');
+    if (entry === undefined) throw new Error('missing fixture symbol');
+    entry.brief = 'word '.repeat(60);
+    expect(registrySymbols(model, 'always').get('demopkg.Report')?.summary).toMatch(/^.{1,141}…$/);
+  });
+
   test('links a module to its page, with no anchor and no signature', () => {
     expect(symbols.get('demopkg.report')).toEqual({
       href: '/api/demopkg/report/',

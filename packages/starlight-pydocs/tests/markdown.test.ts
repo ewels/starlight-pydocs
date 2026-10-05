@@ -68,6 +68,25 @@ describe('addCodeblocksMarkup', () => {
     );
   });
 
+  test('leaves indented code blocks as written', () => {
+    expect(addCodeblocksMarkup('Usage::\n\n    echo `date`\n    ```\n\nRun `x`.', py)).toBe(
+      'Usage::\n\n    echo `date`\n    ```\n\nRun `x{:py}`.',
+    );
+    expect(addCodeblocksMarkup('- item\n\n    `x` and\n    ```py\n    y\n    ```', py)).toBe(
+      '- item\n\n    `x{:py}` and\n    ```py expandable\n    y\n    ```',
+    );
+  });
+
+  test('finds fences inside blockquotes', () => {
+    expect(addCodeblocksMarkup('> ```python\n> a = `b`\n> ```\n> see `c`', py)).toBe(
+      '> ```python expandable\n> a = `b`\n> ```\n> see `c{:py}`',
+    );
+  });
+
+  test('leaves escaped backticks in prose alone', () => {
+    expect(addCodeblocksMarkup('Escaped \\`not code\\` here', py)).toBe('Escaped \\`not code\\` here');
+  });
+
   test('leaves inline code with a suffix, or with no inline language, alone', () => {
     expect(addCodeblocksMarkup('`ls -l{:sh}` and `x`', py)).toBe('`ls -l{:sh}` and `x{:py}`');
     expect(addCodeblocksMarkup('`x`', { inlineLanguage: undefined })).toBe('`x`');

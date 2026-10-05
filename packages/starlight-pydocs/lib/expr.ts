@@ -24,6 +24,11 @@ export interface ExternalAnnotationTarget {
   kind: 'external';
   /** Absolute URL, already resolved against the inventory's base. */
   href: string;
+  /** The inventory entry the name resolved to, for the link's hover card. */
+  name?: string | undefined;
+  role?: string | undefined;
+  /** Project and version of the inventory, such as `Python 3`. */
+  source?: string | undefined;
 }
 
 export type AnnotationTarget = InternalAnnotationTarget | ExternalAnnotationTarget;
@@ -132,8 +137,8 @@ export interface AnnotationResolverOptions {
   isDocumented: (dottedPath: string) => boolean;
   /** Resolve a name in a module or class scope to a dotted path, following aliases. */
   lookupScope?: ((scopePath: string, name: string) => string | undefined) | undefined;
-  /** Resolve a dotted path to an external URL, usually through a Sphinx inventory. */
-  lookupExternal?: ((dottedPath: string) => string | undefined) | undefined;
+  /** Resolve a dotted path to an external link, usually through a Sphinx inventory. */
+  lookupExternal?: ((dottedPath: string) => Omit<ExternalAnnotationTarget, 'kind'> | undefined) | undefined;
 }
 
 /**
@@ -147,8 +152,7 @@ export function createAnnotationResolver(options: AnnotationResolverOptions): An
 
   const asTarget = (dottedPath: string): AnnotationTarget | undefined => {
     if (isDocumented(dottedPath)) return { kind: 'internal', path: dottedPath };
-    const href = lookupExternal?.(dottedPath);
-    return href === undefined ? undefined : { kind: 'external', href };
+    return external(lookupExternal?.(dottedPath));
   };
 
   return {
@@ -175,13 +179,17 @@ export function createAnnotationResolver(options: AnnotationResolverOptions): An
       if (direct !== undefined) return direct;
 
       if (BUILTIN_NAMES.has(name)) {
-        const href = lookupExternal?.(name) ?? lookupExternal?.(`builtins.${name}`);
-        return href === undefined ? undefined : { kind: 'external', href };
+        return external(lookupExternal?.(name) ?? lookupExternal?.(`builtins.${name}`));
       }
 
       return undefined;
     },
   };
+}
+
+function external(found: Omit<ExternalAnnotationTarget, 'kind'> | undefined): AnnotationTarget | undefined {
+  if (found === undefined) return undefined;
+  return { kind: 'external', href: found.href, name: found.name, role: found.role, source: found.source };
 }
 
 /** `a.b.C.d` → `['a.b.C.d', 'a.b.C', 'a.b', 'a']`. */

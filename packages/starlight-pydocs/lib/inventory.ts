@@ -47,13 +47,19 @@ const HEADER_LINE = '# Sphinx inventory version 2';
 /** One object line. `dispname` may contain spaces, so it is matched last. */
 const ENTRY_PATTERN = /^(.+?)\s+(\S+):(\S*)\s+(-?\d+)\s+(\S*)\s+(.*)$/;
 
+export interface ParsedInventory {
+  entries: InventoryEntry[];
+  /** Project and version from the header, such as `Python 3`; undefined when both are empty. */
+  source: string | undefined;
+}
+
 /**
  * Parse an `objects.inv`.
  *
  * Malformed lines are skipped rather than fatal: inventories in the wild contain
  * odd entries, and one bad line should not cost every link.
  */
-export function parseInventory(buffer: Uint8Array): InventoryEntry[] {
+export function parseInventory(buffer: Uint8Array): ParsedInventory {
   const headerEnd = findHeaderEnd(buffer);
   const header = new TextDecoder().decode(buffer.subarray(0, headerEnd)).split('\n');
 
@@ -89,15 +95,9 @@ export function parseInventory(buffer: Uint8Array): InventoryEntry[] {
     });
   }
 
-  return entries;
-}
-
-/** The project and version from an inventory's header, such as `Python 3`, or undefined when both are empty. */
-export function inventorySource(buffer: Uint8Array): string | undefined {
-  const header = new TextDecoder().decode(buffer.subarray(0, findHeaderEnd(buffer))).split('\n');
   const field = (line: string | undefined, key: string) => (line?.startsWith(key) ? line.slice(key.length).trim() : '');
   const source = [field(header[1], '# Project:'), field(header[2], '# Version:')].filter(Boolean).join(' ');
-  return source === '' ? undefined : source;
+  return { entries, source: source === '' ? undefined : source };
 }
 
 /**
@@ -164,8 +164,6 @@ export interface InventoryLookupEntry {
 export interface InventoryLookup {
   /** Resolve a dotted path to an absolute URL, or undefined. */
   lookup(dottedPath: string): InventoryLookupEntry | undefined;
-  /** The entry a resolved link points at, for the text of its hover card. */
-  lookupHref(href: string): InventoryLookupEntry | undefined;
   /** Total number of entries loaded, for logging. */
   size: number;
 }
@@ -175,7 +173,6 @@ export function createInventoryLookup(
   inventories: { base: string; entries: InventoryEntry[]; source?: string | undefined }[],
 ): InventoryLookup {
   const table = new Map<string, InventoryLookupEntry>();
-  const byHref = new Map<string, InventoryLookupEntry>();
 
   for (const inventory of inventories) {
     for (const entry of inventory.entries) {
@@ -185,15 +182,18 @@ export function createInventoryLookup(
       if (table.has(entry.name)) continue;
       const href = joinUrl(inventory.base, entry.uri);
       if (href === undefined) continue;
-      const found = { name: entry.name, href, role: entry.role, dispname: entry.dispname, source: inventory.source };
-      table.set(entry.name, found);
-      if (!byHref.has(href)) byHref.set(href, found);
+      table.set(entry.name, {
+        name: entry.name,
+        href,
+        role: entry.role,
+        dispname: entry.dispname,
+        source: inventory.source,
+      });
     }
   }
 
   return {
     lookup: (dottedPath) => table.get(dottedPath),
-    lookupHref: (href) => byHref.get(href),
     size: table.size,
   };
 }
@@ -257,7 +257,7 @@ export async function loadInventories(
         continue;
       }
 
-      const entries = parseInventory(await readFile(filePath));
+      const { entries } = parseInventory(await readFile(filePath));
       loaded.push({ base: config.base, entries, path: filePath, cache: config.cache });
       logger.debug(`loaded ${entries.length} inventory entries from ${config.url ?? config.file ?? filePath}`);
     } catch (cause) {

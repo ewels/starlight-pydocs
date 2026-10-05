@@ -13,19 +13,17 @@ import type { RenderedDocstrings } from './docstrings.ts';
 import type { AnnotationResolver, AnnotationTarget } from './expr.ts';
 import {
   getAnnotationResolver,
-  getInventoryLookup,
   getModel,
   getRenderedDocstrings,
   getSignatureHighlights,
   requirePackage,
 } from './data.ts';
 import type { SignatureHighlights } from './highlight.ts';
-import type { InventoryLookup } from './inventory.ts';
 import { kindLabelKey, labelBadges } from './markdown-doc.ts';
 import type { DocObject, PackageModel } from './model.ts';
 import { documentedPathFor } from './model.ts';
 import { assetHref, buildHref, objectHref } from './paths.ts';
-import { signatureText } from './signature.ts';
+import { defaultSignatureText } from './signature.ts';
 import type { StringKey } from './strings.ts';
 import type { Annotation } from './types.ts';
 
@@ -48,8 +46,6 @@ export interface RenderScope {
    * built inside the SSR bundle cannot resolve its themes.
    */
   highlights: SignatureHighlights;
-  /** The site's inventories, for the text of the card on a link to another site. */
-  inventories: InventoryLookup;
 }
 
 /**
@@ -60,14 +56,13 @@ export interface RenderScope {
  */
 export async function createRenderScope(context: PydocsContext, base: string): Promise<RenderScope> {
   const pkg = requirePackage(context, base);
-  const [model, resolver, rendered, highlights, inventories] = await Promise.all([
+  const [model, resolver, rendered, highlights] = await Promise.all([
     getModel(context, base),
     getAnnotationResolver(context, base),
     getRenderedDocstrings(context, base),
     getSignatureHighlights(context, base),
-    getInventoryLookup(context),
   ]);
-  return { context, pkg, model, resolver, rendered, highlights, inventories };
+  return { context, pkg, model, resolver, rendered, highlights };
 }
 
 /** Href of a documented object, or undefined when nothing documents it. */
@@ -87,7 +82,7 @@ export function hrefForPath(scope: RenderScope, dottedPath: string): string | un
 const TITLE_LIMIT = 140;
 
 /** Cut at the last word boundary inside the limit, with an ellipsis. */
-function truncate(value: string, limit = TITLE_LIMIT): string {
+export function truncate(value: string, limit = TITLE_LIMIT): string {
   if (value.length <= limit) return value;
   const clipped = value.slice(0, limit);
   const lastSpace = clipped.lastIndexOf(' ');
@@ -139,18 +134,18 @@ export interface ApiCard {
 export function apiCardFor(scope: RenderScope, target: AnnotationTarget, openDocsAt: string): ApiCard | undefined {
   if (target.kind === 'external') {
     const site = externalSiteName(target.href);
-    const entry = scope.inventories.lookupHref(target.href);
-    const head = entry === undefined ? site : [entry.role, entry.name].filter(Boolean).join(' ');
+    const head = target.name === undefined ? site : [target.role, target.name].filter(Boolean).join(' ');
     if (head === undefined) return undefined;
-    return { head, source: entry?.source, action: site === undefined ? undefined : `${openDocsAt} ${site}` };
+    return { head, source: target.source, action: site === undefined ? undefined : `${openDocsAt} ${site}` };
   }
   const documented = documentedPathFor(scope.model, target.path);
   const doc = documented === undefined ? undefined : scope.model.objectsByPath.get(documented);
   if (doc === undefined) return undefined;
   return {
-    head: doc.kind === 'module' ? `module ${doc.path}` : signatureText(doc),
+    head: doc.kind === 'module' ? `module ${doc.path}` : defaultSignatureText(doc),
     summary: summaryForPath(scope, target.path),
-    source: scope.pkg.label,
+    // Must match the source line starlight-codeblocks writes for the same symbol in a code block.
+    source: `${scope.pkg.name} API reference`,
   };
 }
 
