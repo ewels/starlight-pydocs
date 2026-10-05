@@ -5,6 +5,7 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 ## Unreleased
 
 - ✨ An agent skill with a setup checklist, shipped in the package at `skills/starlight-pydocs/SKILL.md` and shown on the docs site.
+- ✨ Works with [starlight-codeblocks](https://github.com/ewels/starlight-codeblocks) when a site installs it, with no configuration. Names in Python code blocks anywhere on the site link to their API reference pages (docstring examples to the pages of their own version), type links in signatures and parameter tables get the same hover card as code (what the type is, where it comes from, and where the link goes), long docstring examples collapse behind an expand button, and inline code in docstrings is highlighted as Python when the site has inline highlighting on. The symbols are published for other plugins at `globalThis[Symbol.for('starlight-pydocs')]`.
 - 🐛 Fixed signatures rendering without syntax colours on sites that don't install `@astrojs/markdown-remark` (the Astro 7.2+ default). Shiki is now a direct dependency. If your site added `@astrojs/markdown-remark` only for signature colours, you can remove it.
 
 ## v0.2.1 (2026-08-14)

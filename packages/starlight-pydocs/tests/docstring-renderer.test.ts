@@ -9,7 +9,12 @@ import { afterEach, describe, expect, test } from 'vitest';
 import { renderedSectionBlock, renderedSectionBody, type RenderedDocstrings } from '../lib/docstrings.ts';
 import { PydocsError } from '../lib/errors.ts';
 import type { DocstringRenderer } from '../libs/docstring-renderer.ts';
-import { renderDocstringsForDump, resolveDocstringRenderer } from '../libs/docstring-renderer.ts';
+import {
+  detectApiCards,
+  detectCodeblocks,
+  renderDocstringsForDump,
+  resolveDocstringRenderer,
+} from '../libs/docstring-renderer.ts';
 import { fixturePath } from './helpers.ts';
 
 type MarkdownConfig = AstroConfig['markdown'];
@@ -176,5 +181,32 @@ describe('renderDocstringsForDump', () => {
     await expect(
       renderDocstringsForDump({ dumpPath: '/nonexistent/dump.json', renderedPath: '/tmp/x.json', renderer }),
     ).rejects.toBeInstanceOf(PydocsError);
+  });
+});
+
+describe('detectCodeblocks', () => {
+  const key = Symbol.for('starlight-codeblocks');
+  const store = globalThis as { [key]?: unknown };
+  afterEach(() => {
+    delete store[key];
+  });
+
+  test('is undefined without the starlight-codeblocks registry', () => {
+    expect(detectCodeblocks()).toBeUndefined();
+    expect(detectApiCards()).toBe(false);
+  });
+
+  test('turns API cards on only when the site has API links on', () => {
+    store[key] = { options: { apiLinks: {} } };
+    expect(detectApiCards()).toBe(true);
+    store[key] = { options: { apiLinks: false } };
+    expect(detectApiCards()).toBe(false);
+  });
+
+  test('asks for a py suffix only when inline highlighting is on', () => {
+    store[key] = { options: { inlineHighlighting: {} } };
+    expect(detectCodeblocks('api/demopkg')).toEqual({ inlineLanguage: 'py', pydocsBase: 'api/demopkg' });
+    store[key] = { options: { inlineHighlighting: false } };
+    expect(detectCodeblocks()).toEqual({ inlineLanguage: undefined, pydocsBase: undefined });
   });
 });

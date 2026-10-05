@@ -325,6 +325,57 @@ for vanilla sites. i18n mirrors quiz: `lib/strings.ts` holds English defaults,
 `translations.ts` holds locale tables injected via `i18n:setup`, and every component
 accepts label props as the vanilla override.
 
+### 14. starlight-codeblocks: optional, detected, no configuration
+
+[starlight-codeblocks](https://github.com/ewels/starlight-codeblocks) adds features to
+Expressive Code blocks. When a site installs it, the generated pages use it without any
+pydocs option; without it, the output is byte-for-byte what it was. Neither package
+depends on the other. They find each other through two objects on `globalThis`, each
+a contract its owner keeps stable:
+
+- **Ours, `Symbol.for('starlight-pydocs')`.** `lib/registry.ts` publishes
+  `{ version: 1, packages: [{ name, base, symbols }] }`, where `symbols` maps every
+  documented dotted path (re-exports and their members included) to
+  `{ href, kind, signature?, summary? }`. `href` has no Astro `base`; `kind` is one of
+  `module`, `class`, `function`, `method`, `attribute`. It is published at the end of
+  `preparePydocs` (`astro:config:setup`) and replaced after each dev re-extraction.
+  Packages are in configuration order, and the first one with a path wins. A change to
+  this shape needs a new `version`.
+- **Theirs, `Symbol.for('starlight-codeblocks')`.** It exists after codeblocks' own
+  `config:setup`, and Starlight plugins run their setup in either order, so it is read at
+  `astro:config:done` or later. `options.inlineHighlighting` and `options.apiLinks` are
+  truthy when those features are on. Nothing else on it is public.
+
+What pydocs does with it:
+
+- **Docstring Markdown.** `addCodeblocksMarkup()` (`lib/markdown.ts`) runs after
+  cross-reference resolution, before the host renderer (decision 7). Every fence gets
+  `expandable` and `pydocsBase="<base>"`, and a fence with no language becomes `text`.
+  Inline code outside fences gets `{:py}`, but only when inline highlighting is on,
+  because without codeblocks the suffix would show as text. `pydocsBase` is the answer
+  to decision 11 for code: the registry is first-wins, and docstrings render several at
+  a time with no `fileURL`, so a per-page global would race. A fence attribute ties each
+  example to its own base.
+- **Annotation links.** With codeblocks' API links on, `AnnotationTokens.astro` writes
+  `data-scb-api-head`, `-summary`, `-source` and `-action` and an `aria-description`, and
+  drops the `title`, which would otherwise show at the same time as the card. The links
+  go inside a `data-scb-api-links` span, which tells codeblocks' page script to load the
+  card. `apiCardFor()` (`lib/render.ts`) builds the text. The flag (`context.apiCards`)
+  is set when the virtual context module loads, not at setup, for the same ordering
+  reason. External cards read the inventory entry by href, and `inventorySource()`
+  keeps each inventory's project and version, so the resolver and its tests are
+  untouched.
+
+Doctest blocks need nothing from us: codeblocks gives a `python` block that starts with
+`>>>` its Copy commands button.
+
+Rejected alternatives. A pydocs option to turn each feature on: the point is that
+installing both is enough, and codeblocks' own options already turn each feature off.
+Building the hover card in pydocs: two designs, and the positioning, keyboard and
+contrast work codeblocks already did, in duplicate. codeblocks reading our cache files
+(its first version did): it rebuilt our model and got re-exports, `__all__`, member
+filters and `source.file`/`source.url` dumps wrong.
+
 ## Implementation decisions
 
 Finer-grained decisions, each answering a "why is it like this" the code alone does not.

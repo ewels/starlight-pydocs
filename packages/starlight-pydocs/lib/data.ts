@@ -290,7 +290,7 @@ async function buildInventoryLookup(context: PydocsContext): Promise<InventoryLo
   const read = await Promise.all(
     context.inventories.map(async (inventory) => {
       try {
-        return { base: inventory.base, entries: parseInventory(await fs.readFile(inventory.path)) };
+        return { base: inventory.base, ...parseInventory(await fs.readFile(inventory.path)) };
       } catch {
         // A broken cached inventory must not break a page render; annotations
         // simply stay unlinked. The build-time loader already warned.
@@ -306,7 +306,7 @@ async function buildInventoryLookup(context: PydocsContext): Promise<InventoryLo
 /** Annotation resolver for a package, wired to the site's inventories. */
 export async function getAnnotationResolver(context: PydocsContext, base: string): Promise<AnnotationResolver> {
   const [model, inventories] = await Promise.all([getModel(context, base), getInventoryLookup(context)]);
-  return buildAnnotationResolver(model, (dottedPath) => inventories.lookup(dottedPath)?.href);
+  return buildAnnotationResolver(model, (dottedPath) => inventories.lookup(dottedPath));
 }
 
 /**

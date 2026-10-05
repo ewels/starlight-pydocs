@@ -198,3 +198,17 @@ test('a long attribute value is line-broken and folds without breaking its links
   await link.click();
   await expect(input).not.toBeChecked();
 });
+
+test('with starlight-codeblocks, type links get its hover card instead of a title tooltip', async ({ page }) => {
+  // No code blocks on this page, so the card script comes from starlight-codeblocks' page script.
+  await page.goto('api/demopkg/models/');
+  await expect(page.locator('.expressive-code')).toHaveCount(0);
+
+  const link = page.locator('a.pyd-type--external', { hasText: 'str' }).first();
+  await expect(link).not.toHaveAttribute('title');
+  await expect(link).toHaveAttribute('aria-description', 'class str. Python 3. Open docs at docs.python.org.');
+  await link.hover();
+  const card = page.locator('.scb-api-card');
+  await expect(card).toBeVisible();
+  await expect(card.locator('span')).toHaveText(['class str', 'Python 3', 'Open docs at docs.python.org']);
+});

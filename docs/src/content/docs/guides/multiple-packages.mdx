@@ -67,7 +67,7 @@ Each entry needs a distinct base. No base may contain another's. `api/mypkg` and
 `api/mypkg_plugins` are fine. `api` and `api/mypkg` are rejected: the pages of one would land
 inside the other's page tree:
 
-```text
+```text error={1}
 packages[1].base: 'api/mypkg' overlaps packages[0].base ('api'); give each package a distinct base
 ```
 
@@ -85,7 +85,7 @@ mean. So the components resolve their `package` prop as a base first, then as an
 
 With `mypkg` documented at two bases, `<Autodoc name="mypkg.Report" />` cannot pick one:
 
-```text wrap
+```text wrap error={1}
 starlight-pydocs: <Autodoc name="mypkg.Report"> is ambiguous: 'mypkg' is documented at 2 bases. Set the package prop to one of these bases: 'api/mypkg', '1x/api/mypkg'.
 ```
 
@@ -141,7 +141,7 @@ in the sidebar.
 
 `sidebar.label` renames a package's group and `sidebar.collapsed` collapses it:
 
-```js title="astro.config.mjs" collapse={1-8, 21-26} {15-18}
+```js title="astro.config.mjs" hidden={1-8, 21-26} {15-18}
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 import starlightPydocs, { pydocsSidebarGroup } from 'starlight-pydocs';

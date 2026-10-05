@@ -23,6 +23,7 @@ import { kindLabelKey, labelBadges } from './markdown-doc.ts';
 import type { DocObject, PackageModel } from './model.ts';
 import { documentedPathFor } from './model.ts';
 import { assetHref, buildHref, objectHref } from './paths.ts';
+import { defaultSignatureText } from './signature.ts';
 import type { StringKey } from './strings.ts';
 import type { Annotation } from './types.ts';
 
@@ -81,7 +82,7 @@ export function hrefForPath(scope: RenderScope, dottedPath: string): string | un
 const TITLE_LIMIT = 140;
 
 /** Cut at the last word boundary inside the limit, with an ellipsis. */
-function truncate(value: string, limit = TITLE_LIMIT): string {
+export function truncate(value: string, limit = TITLE_LIMIT): string {
   if (value.length <= limit) return value;
   const clipped = value.slice(0, limit);
   const lastSpace = clipped.lastIndexOf(' ');
@@ -113,6 +114,39 @@ export function summaryForPath(scope: RenderScope, dottedPath: string): string |
   if (documented === undefined) return undefined;
   const brief = scope.model.symbolsByPath.get(documented)?.brief ?? '';
   return brief === '' ? undefined : truncate(brief);
+}
+
+/** The lines of starlight-codeblocks' hover card for a link to an annotation target. */
+export interface ApiCard {
+  head: string;
+  summary?: string | undefined;
+  source?: string | undefined;
+  action?: string | undefined;
+}
+
+/**
+ * The card for a link: the object's signature, summary and package for a
+ * same-site target; the inventory's role, name and project for another site,
+ * with where the link goes.
+ *
+ * @param openDocsAt - The localised "Open docs at" label.
+ */
+export function apiCardFor(scope: RenderScope, target: AnnotationTarget, openDocsAt: string): ApiCard | undefined {
+  if (target.kind === 'external') {
+    const site = externalSiteName(target.href);
+    const head = target.name === undefined ? site : [target.role, target.name].filter(Boolean).join(' ');
+    if (head === undefined) return undefined;
+    return { head, source: target.source, action: site === undefined ? undefined : `${openDocsAt} ${site}` };
+  }
+  const documented = documentedPathFor(scope.model, target.path);
+  const doc = documented === undefined ? undefined : scope.model.objectsByPath.get(documented);
+  if (doc === undefined) return undefined;
+  return {
+    head: doc.kind === 'module' ? `module ${doc.path}` : defaultSignatureText(doc),
+    summary: summaryForPath(scope, target.path),
+    // Must match the source line starlight-codeblocks writes for the same symbol in a code block.
+    source: `${scope.pkg.name} API reference`,
+  };
 }
 
 /** Href for a resolved annotation target: same-site page or external doc site. */

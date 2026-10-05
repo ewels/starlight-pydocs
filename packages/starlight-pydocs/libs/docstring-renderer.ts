@@ -27,6 +27,8 @@ import { assembleRenderedDocstrings, collectDocstringMarkdown } from '../lib/doc
 import { errorMessage, PydocsError } from '../lib/errors.ts';
 import type { PydocsLogger } from '../lib/logger.ts';
 import { silentLogger } from '../lib/logger.ts';
+import type { CodeblocksMarkup } from '../lib/markdown.ts';
+import { addCodeblocksMarkup } from '../lib/markdown.ts';
 
 const legacyMarkdownRemark = import('@astrojs/markdown-remark').catch(() => null);
 
@@ -97,6 +99,27 @@ export async function resolveDocstringRenderer(markdown: AstroConfig['markdown']
   );
 }
 
+/**
+ * What starlight-codeblocks' public registry says about the site, or undefined
+ * when the site does not use it. The registry only exists after every plugin's
+ * `config:setup`, so call this at `astro:config:done` or later.
+ */
+export function detectCodeblocks(pydocsBase?: string): CodeblocksMarkup | undefined {
+  const registry = codeblocksRegistry();
+  if (registry === undefined) return undefined;
+  return { inlineLanguage: registry.options?.inlineHighlighting ? 'py' : undefined, pydocsBase };
+}
+
+/** True when starlight-codeblocks shows its hover card on API links. Same timing rule as {@link detectCodeblocks}. */
+export function detectApiCards(): boolean {
+  return Boolean(codeblocksRegistry()?.options?.apiLinks);
+}
+
+function codeblocksRegistry() {
+  return (globalThis as { [key: symbol]: unknown })[Symbol.for('starlight-codeblocks')] as
+    { options?: { inlineHighlighting?: unknown; apiLinks?: unknown } } | undefined;
+}
+
 /** How many docstring strings are rendered concurrently. */
 const RENDER_BATCH = 8;
 
@@ -111,6 +134,8 @@ export interface RenderDocstringsOptions {
    * references are left as written.
    */
   crossReferences?: CrossReferenceResolver | undefined;
+  /** starlight-codeblocks markup to add, when the site uses that plugin. */
+  codeblocks?: CodeblocksMarkup | undefined;
   logger?: PydocsLogger | undefined;
 }
 
@@ -135,8 +160,10 @@ export async function renderDocstringsForDump(options: RenderDocstringsOptions):
         batch.map(async (item) => {
           // Cross-references become ordinary Markdown links before the
           // processor sees them; nothing downstream knows they were special.
-          const markdown =
+          const resolved =
             crossReferences === undefined ? item.markdown : resolveCrossReferences(item.markdown, crossReferences);
+          const markdown =
+            options.codeblocks === undefined ? resolved : addCodeblocksMarkup(resolved, options.codeblocks);
           try {
             return (await options.renderer.render(markdown)).trim();
           } catch (cause) {

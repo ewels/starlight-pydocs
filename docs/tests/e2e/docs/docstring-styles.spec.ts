@@ -57,3 +57,27 @@ test('google-style docstrings render examples as highlighted code', async ({ pag
   await expect(examples.locator('.expressive-code figure pre')).toHaveCount(1);
   await expect(examples).toContainText('from demopkg import Report');
 });
+
+test('with starlight-codeblocks, docstring examples link to the API pages and inline code is coloured', async ({
+  page,
+}) => {
+  await page.goto('api/demopkg/');
+
+  const examples = section(page.locator('.pyd-module[data-pydocs-path="demopkg"]'), 'examples').first();
+  // Resolved through the symbol registry, under the re-export path the example imports.
+  await expect(examples.locator('a[data-scb-api-head="class Report(BaseReport)"]').first()).toHaveAttribute(
+    'href',
+    '/starlight-pydocs/api/demopkg/#demopkg.Report',
+  );
+  await expect(page.locator('.pyd-module .scb-inline').first()).toBeVisible();
+});
+
+test('docstring examples of an older version link to that version', async ({ page }) => {
+  await page.goto('1x/api/demopkg/');
+
+  const examples = section(page.locator('.pyd-module[data-pydocs-path="demopkg"]'), 'examples').first();
+  await expect(examples.locator('a[data-scb-api-head="class Report(BaseReport)"]').first()).toHaveAttribute(
+    'href',
+    '/starlight-pydocs/1x/api/demopkg/#demopkg.Report',
+  );
+});

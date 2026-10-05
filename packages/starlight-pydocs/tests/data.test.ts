@@ -350,9 +350,11 @@ describe('inventories at render time', () => {
     expect(lookup.lookup('pathlib.Path')?.href).toBe('https://docs.python.org/3/library/pathlib.html#pathlib.Path');
 
     const resolver = await getAnnotationResolver(context, 'api/demopkg');
-    expect(resolver.resolve('pathlib.Path', 'demopkg.report.Report.generate')).toEqual({
+    expect(resolver.resolve('pathlib.Path', 'demopkg.report.Report.generate')).toMatchObject({
       kind: 'external',
       href: 'https://docs.python.org/3/library/pathlib.html#pathlib.Path',
+      name: 'pathlib.Path',
+      role: 'class',
     });
     expect(resolver.resolve('Report', 'demopkg.report.generate_report')).toEqual({
       kind: 'internal',

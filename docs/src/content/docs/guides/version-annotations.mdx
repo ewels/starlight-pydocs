@@ -12,15 +12,14 @@ This page describes how to label the pages of one release. If you want each rele
 own set of pages at its own URL instead, see
 [Versioned docs](/starlight-pydocs/guides/versioned-docs/).
 
-```js title="astro.config.mjs" {7-13}
+```js title="astro.config.mjs" {7-11}
 starlightPydocs({
   packages: [
     {
       name: 'mypkg',
       search: ['../src'],
       versions: {
-        // Oldest first. The working tree is the
-        // newest version, so it is not listed.
+        // [!callout /refs/] Oldest first. The working tree is the newest version, so it is not listed.
         refs: [
           { ref: 'v1.0.0', label: '1.0' },
           { ref: 'v1.1.0', label: '1.1' },
@@ -75,21 +74,17 @@ read back when pages render. Only the label text reaches the browser.
 `refs` is a plain array, so build it from your tags instead of editing the config on every
 release:
 
-```js title="astro.config.mjs" {8-15,24}
+```js title="astro.config.mjs" {7-11, 18}
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-// The repository root, one level above this Astro project.
-const repo = fileURLToPath(new URL('..', import.meta.url));
+const repo = fileURLToPath(new URL('..', import.meta.url)); // [!annotate] The repository root, one level above this Astro project.
 const opts = { cwd: repo, encoding: 'utf8' };
 
-// Every release tag, oldest first. `v:refname` sorts 1.10 after
-// 1.9, which an alphabetical sort does not.
-const args = ['tag', '--list', 'v*', '--sort=v:refname'];
+const args = ['tag', '--list', 'v*', '--sort=v:refname']; // [!annotate] Every release tag, oldest first. `v:refname` sorts 1.10 after 1.9.
 const refs = execFileSync('git', args, opts)
   .split('\n')
-  // Releases only: drops `v2.0.0.dev0` and other prereleases.
-  .filter((tag) => /^v\d+\.\d+(\.\d+)?$/.test(tag))
+  .filter((tag) => /^v\d+\.\d+(\.\d+)?$/.test(tag)) // [!annotate] Releases only: drops `v2.0.0.dev0` and other prereleases.
   .map((tag) => ({ ref: tag, label: tag.slice(1) }));
 
 starlightPydocs({
@@ -97,9 +92,7 @@ starlightPydocs({
     {
       name: 'mypkg',
       search: ['../src'],
-      // A checkout with no tags gives no labels, rather than a
-      // build that stops on a ref it cannot resolve.
-      ...(refs.length > 0 && { versions: { refs } }),
+      ...(refs.length > 0 && { versions: { refs } }), // [!annotate] No tags gives no labels, rather than a build that stops on a ref it cannot resolve.
     },
   ],
 });
@@ -193,7 +186,7 @@ starlightPydocs({
 steps:
   - uses: actions/checkout@v7
     with:
-      # Version refs are resolved in your own repository.
+      # [!callout /fetch-depth/] Version refs are resolved in your own repository.
       fetch-depth: 0
 
   - id: refs
@@ -203,7 +196,7 @@ steps:
 
   - uses: actions/cache@v6
     with:
-      # Only the dumps. Worktrees are rebuilt on demand and are large.
+      # [!callout /path/] Only the dumps. Worktrees are rebuilt on demand and are large.
       path: .cache/starlight-pydocs/versions
       key: pydocs-versions-${{ steps.refs.outputs.key }}
       restore-keys: pydocs-versions-

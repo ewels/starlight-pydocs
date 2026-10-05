@@ -13,7 +13,7 @@
 import type { AnnotationToken } from '../lib/expr.ts';
 import { createStringResolver } from '../lib/i18n.ts';
 import type { RenderScope } from '../lib/render.ts';
-import { externalSiteName, hrefForTarget, summaryForPath } from '../lib/render.ts';
+import { apiCardFor, externalSiteName, hrefForTarget, summaryForPath } from '../lib/render.ts';
 import type { StringOverrides } from '../lib/strings.ts';
 
 interface Props {
@@ -25,6 +25,7 @@ interface Props {
 const { tokens, scope, labels } = Astro.props;
 
 const resolve = createStringResolver(Astro.locals, labels);
+const cards = scope.context.apiCards === true;
 
 /**
  * What the reader gets for hovering: where an external link lands, or what the
@@ -38,35 +39,56 @@ function titleFor(token: AnnotationToken): string | undefined {
   return site === undefined ? undefined : `${resolve('openDocsAt')} ${site}`;
 }
 
+/**
+ * With starlight-codeblocks, its hover card replaces the `title` tooltip, which
+ * would otherwise show at the same time. Screen readers get the card's text.
+ */
+function cardAttributes(token: AnnotationToken): Record<string, string | undefined> {
+  const card = token.target === undefined ? undefined : apiCardFor(scope, token.target, resolve('openDocsAt'));
+  if (card === undefined) return { title: titleFor(token) };
+  const lines = [card.head, card.summary, card.source, card.action].filter((line) => line !== undefined);
+  return {
+    'aria-description': lines.map((line) => (/[.!?]$/.test(line) ? line : `${line}.`)).join(' '),
+    'data-scb-api-head': card.head,
+    'data-scb-api-summary': card.summary,
+    'data-scb-api-source': card.source,
+    'data-scb-api-action': card.action,
+  };
+}
+
 const rendered = tokens.map((token) => ({
   text: token.text,
   href: hrefForTarget(scope, token.target),
   external: token.target?.kind === 'external',
   style: token.style,
-  title: titleFor(token),
+  attributes: cards ? cardAttributes(token) : { title: titleFor(token) },
 }));
+
+const Wrapper = cards && rendered.some((token) => token.href !== undefined) ? 'span' : Fragment;
 ---
 
-{
-  rendered.map((token) =>
-    token.href === undefined ? (
-      token.style === undefined ? (
-        token.text
+<Wrapper {...Wrapper === 'span' ? { 'data-scb-api-links': '' } : {}}
+  >{
+    rendered.map((token) =>
+      token.href === undefined ? (
+        token.style === undefined ? (
+          token.text
+        ) : (
+          <span class="pyd-tok" style={token.style}>
+            {token.text}
+          </span>
+        )
       ) : (
-        <span class="pyd-tok" style={token.style}>
+        <a
+          class:list={['pyd-type', token.external && 'pyd-type--external']}
+          href={token.href}
+          target={token.external ? '_blank' : undefined}
+          rel={token.external ? 'noreferrer' : undefined}
+          {...token.attributes}
+        >
           {token.text}
-        </span>
-      )
-    ) : (
-      <a
-        class:list={['pyd-type', token.external && 'pyd-type--external']}
-        href={token.href}
-        title={token.title}
-        target={token.external ? '_blank' : undefined}
-        rel={token.external ? 'noreferrer' : undefined}
-      >
-        {token.text}
-      </a>
-    ),
-  )
-}
+        </a>
+      ),
+    )
+  }</Wrapper
+>

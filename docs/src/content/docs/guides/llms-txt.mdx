@@ -108,9 +108,7 @@ on the generated pages as well as on the ones you wrote. This site runs
 starlight({
   plugins: [
     starlightPydocs({ packages: [{ name: 'demopkg', search: ['../fixtures/demopkg/src'] }] }),
-    // Copies `src/content/docs/**` to `<path>.md` and adds the buttons. The
-    // generated pages are not files there, but they answer at `<path>.md`
-    // themselves, so the same buttons work on both.
+    // [!callout /starlightPageActions/] Copies `src/content/docs/**` to `<path>.md` and adds the buttons. The generated pages answer at `<path>.md` themselves, so the same buttons work on both.
     starlightPageActions({ position: 'page-title' }),
   ],
 });

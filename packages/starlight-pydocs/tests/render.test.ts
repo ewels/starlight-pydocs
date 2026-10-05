@@ -4,6 +4,7 @@ import type { PydocsContext } from '../lib/context.ts';
 import { EMPTY_RENDERED_DOCSTRINGS } from '../lib/docstrings.ts';
 import {
   admonitionKind,
+  apiCardFor,
   admonitionTitle,
   externalSiteName,
   hrefForPath,
@@ -50,7 +51,13 @@ async function scope(): Promise<RenderScope> {
   const model = await fixtureModel('demopkg');
   const pkg = context.packages[0];
   if (pkg === undefined) throw new Error('missing fixture package');
-  return { context, pkg, model, resolver: { resolve: () => undefined }, rendered: EMPTY_RENDERED_DOCSTRINGS };
+  return {
+    context,
+    pkg,
+    model,
+    resolver: { resolve: () => undefined },
+    rendered: EMPTY_RENDERED_DOCSTRINGS,
+  } as RenderScope;
 }
 
 describe('hrefs', () => {
@@ -199,6 +206,40 @@ describe('class signatures merge __init__', () => {
         .join(''),
     ).toBe("def generate_report(source, /, name: str, *, fmt: str = 'md') -> Report");
     expect(renderedParameterCount(fn!)).toBe(3);
+  });
+});
+
+describe('apiCardFor', () => {
+  test('describes a link to another site from its inventory entry, and where it goes', async () => {
+    const card = apiCardFor(
+      await scope(),
+      {
+        kind: 'external',
+        href: 'https://docs.python.org/3/library/stdtypes.html#str',
+        name: 'str',
+        role: 'class',
+        source: 'Python 3.13',
+      },
+      'Open docs at',
+    );
+    expect(card).toEqual({ head: 'class str', source: 'Python 3.13', action: 'Open docs at docs.python.org' });
+  });
+
+  test('falls back to the host for a link that no inventory lists', async () => {
+    const card = apiCardFor(await scope(), { kind: 'external', href: 'https://example.dev/x' }, 'Open docs at');
+    expect(card).toEqual({ head: 'example.dev', source: undefined, action: 'Open docs at example.dev' });
+  });
+
+  test('describes a same-site link with its signature, summary and package', async () => {
+    const rendered = await scope();
+    const card = apiCardFor(rendered, { kind: 'internal', path: 'demopkg.report.Report' }, 'Open docs at');
+    expect(card).toEqual({
+      head: 'class Report(BaseReport)',
+      summary: summaryForPath(rendered, 'demopkg.report.Report'),
+      source: 'demopkg API reference',
+    });
+    expect(apiCardFor(rendered, { kind: 'internal', path: 'demopkg.report' }, 'x')?.head).toBe('module demopkg.report');
+    expect(apiCardFor(rendered, { kind: 'internal', path: 'demopkg.nope' }, 'x')).toBeUndefined();
   });
 });
 

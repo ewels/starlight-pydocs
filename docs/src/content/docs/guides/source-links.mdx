@@ -9,7 +9,7 @@ Griffe records the file path and the first and last line of every object it find
 then link straight to the code that defines it. Set `sourceLink` on a package and every heading gets a
 **View source** link:
 
-```js title="astro.config.mjs" {16-22}
+```js title="astro.config.mjs" {15-20}
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 import starlightPydocs from 'starlight-pydocs';
@@ -24,12 +24,11 @@ export default defineConfig({
             {
               name: 'mypkg',
               search: ['../src'],
-
-              // Paths are relative to the repository root.
               sourceLink: {
                 host: 'github',
                 repo: 'you/mypkg',
                 ref: 'main',
+                // [!callout /'..'/] The repository root, relative to the Astro project. Links use paths from here.
                 root: '..',
               },
             },
@@ -84,7 +83,7 @@ This is the common layout:
 `root` names the directory that `{path}` is computed against. This directory is itself relative to
 the Astro project root. For this layout, the repository root is one level up:
 
-```js title="astro.config.mjs" collapse={1-6, 22-28} {15-20}
+```js title="astro.config.mjs" hidden={1-6, 22-28} {15-20}
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 import starlightPydocs, { pydocsSidebarGroup } from 'starlight-pydocs';
@@ -127,7 +126,7 @@ documentation site does exactly that.
 For a self-hosted forge, Gitea, Sourcehut, or an internal code browser, give a template instead of a
 host.
 
-```js title="astro.config.mjs" collapse={1-6, 20-27} {15-19} wrap
+```js title="astro.config.mjs" hidden={1-6, 20-27} {15-19} wrap
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 import starlightPydocs, { pydocsSidebarGroup } from 'starlight-pydocs';

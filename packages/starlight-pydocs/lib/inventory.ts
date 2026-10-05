@@ -47,13 +47,19 @@ const HEADER_LINE = '# Sphinx inventory version 2';
 /** One object line. `dispname` may contain spaces, so it is matched last. */
 const ENTRY_PATTERN = /^(.+?)\s+(\S+):(\S*)\s+(-?\d+)\s+(\S*)\s+(.*)$/;
 
+export interface ParsedInventory {
+  entries: InventoryEntry[];
+  /** Project and version from the header, such as `Python 3`; undefined when both are empty. */
+  source: string | undefined;
+}
+
 /**
  * Parse an `objects.inv`.
  *
  * Malformed lines are skipped rather than fatal: inventories in the wild contain
  * odd entries, and one bad line should not cost every link.
  */
-export function parseInventory(buffer: Uint8Array): InventoryEntry[] {
+export function parseInventory(buffer: Uint8Array): ParsedInventory {
   const headerEnd = findHeaderEnd(buffer);
   const header = new TextDecoder().decode(buffer.subarray(0, headerEnd)).split('\n');
 
@@ -89,7 +95,9 @@ export function parseInventory(buffer: Uint8Array): InventoryEntry[] {
     });
   }
 
-  return entries;
+  const field = (line: string | undefined, key: string) => (line?.startsWith(key) ? line.slice(key.length).trim() : '');
+  const source = [field(header[1], '# Project:'), field(header[2], '# Version:')].filter(Boolean).join(' ');
+  return { entries, source: source === '' ? undefined : source };
 }
 
 /**
@@ -144,9 +152,13 @@ export function buildInventory(project: string, version: string, entries: Invent
 }
 
 export interface InventoryLookupEntry {
+  /** Dotted object path, e.g. `pathlib.Path`. */
+  name: string;
   href: string;
   role: string;
   dispname: string;
+  /** Project and version of the inventory, such as `Python 3`. */
+  source: string | undefined;
 }
 
 export interface InventoryLookup {
@@ -157,7 +169,9 @@ export interface InventoryLookup {
 }
 
 /** Build a lookup from parsed inventories. Earlier inventories win. */
-export function createInventoryLookup(inventories: { base: string; entries: InventoryEntry[] }[]): InventoryLookup {
+export function createInventoryLookup(
+  inventories: { base: string; entries: InventoryEntry[]; source?: string | undefined }[],
+): InventoryLookup {
   const table = new Map<string, InventoryLookupEntry>();
 
   for (const inventory of inventories) {
@@ -168,7 +182,13 @@ export function createInventoryLookup(inventories: { base: string; entries: Inve
       if (table.has(entry.name)) continue;
       const href = joinUrl(inventory.base, entry.uri);
       if (href === undefined) continue;
-      table.set(entry.name, { href, role: entry.role, dispname: entry.dispname });
+      table.set(entry.name, {
+        name: entry.name,
+        href,
+        role: entry.role,
+        dispname: entry.dispname,
+        source: inventory.source,
+      });
     }
   }
 
@@ -237,7 +257,7 @@ export async function loadInventories(
         continue;
       }
 
-      const entries = parseInventory(await readFile(filePath));
+      const { entries } = parseInventory(await readFile(filePath));
       loaded.push({ base: config.base, entries, path: filePath, cache: config.cache });
       logger.debug(`loaded ${entries.length} inventory entries from ${config.url ?? config.file ?? filePath}`);
     } catch (cause) {

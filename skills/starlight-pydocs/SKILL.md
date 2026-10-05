@@ -1,6 +1,6 @@
 ---
 name: starlight-pydocs
-description: Set up, configure or publish Python API reference docs with starlight-pydocs in an Astro or Starlight site. Use when adding the plugin to a site, choosing how Griffe runs in CI, deciding which parts of a package to document, or checking a build before deploying.
+description: Set up, configure or publish Python API reference docs with starlight-pydocs in an Astro or Starlight site. Use when adding the plugin to a site, choosing how Griffe runs in CI, deciding which parts of a package to document, pairing it with starlight-codeblocks, or checking a build before deploying.
 ---
 
 # Setting up starlight-pydocs
@@ -55,10 +55,26 @@ own. [Configuration → Member selection](https://ewels.github.io/starlight-pydo
 - Add source links to the repository.
   [Source links](https://ewels.github.io/starlight-pydocs/guides/source-links/)
 
-## 5. Check a built site, not only the dev server
+## 5. Optional: add starlight-codeblocks
 
-Run `astro build` and read the `[starlight-pydocs]` lines in the log. Warnings
-passed through from Griffe (`griffe: WARNING …`) point at docstrings worth
-fixing. Any other warning usually means something is missing from the output,
-such as uncoloured signatures. Then open a generated page from `astro preview`
-and check that signatures are coloured and annotation links resolve.
+starlight-codeblocks is a separate Starlight plugin. With both installed, they
+work together with no pydocs option.
+[starlight-codeblocks](https://ewels.github.io/starlight-pydocs/guides/codeblocks/)
+
+- Install `starlight-codeblocks` and add `codeblocks()` to the Starlight plugins.
+- Python code blocks anywhere on the site then link to the API pages, and type
+  links in signatures get hover cards. Long docstring examples collapse, and
+  doctests get a Copy commands button.
+- To link a hand-written example to an older version of the package, add
+  `pydocsBase="<base>"` to its fence line.
+- In `mdx` code blocks, codeblocks reads directives only in `{/* */}` comments.
+- To turn a feature off, use the codeblocks option, such as `apiLinks: false`.
+
+## 6. Check a built site, not only the dev server
+
+Run `astro build` and read the `[starlight-pydocs]` lines in the log, and any
+starlight-codeblocks warnings. Warnings passed through from Griffe
+(`griffe: WARNING …`) point at docstrings worth fixing. Any other warning
+usually means something is missing from the output, such as uncoloured
+signatures. Then open a generated page from `astro preview` and check that
+signatures are coloured and annotation links resolve.

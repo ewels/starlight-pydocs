@@ -195,7 +195,10 @@ describe('name resolution', () => {
 
   beforeAll(async () => {
     demopkg = await fixtureModel('demopkg');
-    resolver = buildAnnotationResolver(demopkg, (dottedPath) => inventory[dottedPath]);
+    resolver = buildAnnotationResolver(demopkg, (dottedPath) => {
+      const href = inventory[dottedPath];
+      return href === undefined ? undefined : { href };
+    });
   });
 
   test('resolves a name defined in the same module to an internal target', () => {
@@ -274,7 +277,7 @@ describe('createAnnotationResolver', () => {
     const resolver = createAnnotationResolver({
       isDocumented: (path) => path === 'pkg.mod.Thing',
       lookupScope: (scope, lookupName) => (scope === 'pkg.mod' && lookupName === 'Thing' ? 'pkg.mod.Thing' : undefined),
-      lookupExternal: () => 'https://example.dev/Thing',
+      lookupExternal: () => ({ href: 'https://example.dev/Thing' }),
     });
     expect(resolver.resolve('Thing', 'pkg.mod.func')).toEqual({ kind: 'internal', path: 'pkg.mod.Thing' });
   });
@@ -288,7 +291,7 @@ describe('createAnnotationResolver', () => {
   test('falls back to builtins.<name> in the inventory', () => {
     const resolver = createAnnotationResolver({
       isDocumented: () => false,
-      lookupExternal: (path) => (path === 'builtins.str' ? 'https://docs/str' : undefined),
+      lookupExternal: (path) => (path === 'builtins.str' ? { href: 'https://docs/str' } : undefined),
     });
     expect(resolver.resolve('str', 'pkg')).toEqual({ kind: 'external', href: 'https://docs/str' });
   });

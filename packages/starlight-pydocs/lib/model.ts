@@ -21,7 +21,7 @@ import path from 'node:path';
 import type { NormalisedFilters, NormalisedMembers, NormalisedSourceLink } from './config.ts';
 import { formatSourceLink } from './config.ts';
 import { PydocsError } from './errors.ts';
-import type { AnnotationResolver } from './expr.ts';
+import type { AnnotationResolver, AnnotationResolverOptions } from './expr.ts';
 import { createAnnotationResolver, expressionToPath } from './expr.ts';
 import { isInside, matchesDottedGlob, moduleSlug, parentPath, safeHref, shortName } from './paths.ts';
 import type {
@@ -839,7 +839,7 @@ function deprecationFrom(object: GriffeObject): DocDeprecation | undefined {
  */
 export function buildAnnotationResolver(
   model: PackageModel,
-  lookupExternal?: (dottedPath: string) => string | undefined,
+  lookupExternal?: AnnotationResolverOptions['lookupExternal'],
 ): AnnotationResolver {
   return createAnnotationResolver({
     // Canonical paths count as documented too: an annotation may name the

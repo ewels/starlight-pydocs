@@ -27,9 +27,15 @@ import { errorMessage } from '../lib/errors.ts';
 import { loadInventories } from '../lib/inventory.ts';
 import type { PydocsLogger } from '../lib/logger.ts';
 import { computeVersionAnnotations } from '../lib/ref-extract.ts';
+import { publishRegistry } from '../lib/registry.ts';
 import { resolveAllExtractions, watchPaths } from '../lib/runner.ts';
 import type { DocstringRenderer } from './docstring-renderer.ts';
-import { renderDocstringsForDump, resolveDocstringRenderer } from './docstring-renderer.ts';
+import {
+  detectApiCards,
+  detectCodeblocks,
+  renderDocstringsForDump,
+  resolveDocstringRenderer,
+} from './docstring-renderer.ts';
 import { highlightSignaturesForPackage } from './signature-highlighter.ts';
 import { vitePluginStarlightPydocs, PYDOCS_CONTEXT_MODULE, resolveVirtualModuleId } from './vite.ts';
 
@@ -170,6 +176,7 @@ async function preparePydocs(options: PydocsSetupOptions): Promise<PydocsSetup> 
   for (const pkg of config.packages) {
     logger.debug(`'${pkg.label}' (${pkg.name}) documented at /${pkg.base}`);
   }
+  await publishRegistry(context);
 
   return { config, context };
 }
@@ -230,6 +237,7 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
         renderedPath: pkg.renderedPath,
         renderer,
         crossReferences: await getCrossReferenceResolver(setup.context, pkg.base),
+        codeblocks: detectCodeblocks(pkg.base),
         logger,
       });
       logger.debug(`rendered ${String(count)} docstring strings of '/${pkg.base}' with ${renderer.name}`);
@@ -289,7 +297,7 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
           vite: {
             plugins: [
               vitePluginStarlightPydocs({
-                getContext: () => setup.context,
+                getContext: () => ({ ...setup.context, apiCards: detectApiCards() }),
                 components: setup.config.components,
                 projectRoot: setup.config.projectRoot,
                 vanillaLayout: options.starlight ? undefined : options.layout,
@@ -342,6 +350,7 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
             // dump is a new key; clearing keeps memory flat rather than being
             // required for correctness.
             clearCaches();
+            await publishRegistry(setup.context);
             // Prose and signature colours have to be remade for the new dump,
             // here in the config process: nothing in the SSR graph can make
             // either one.

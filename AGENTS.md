@@ -23,7 +23,8 @@ A pnpm workspace:
   packages: `demopkg` (extracted through uvx, google docstrings, pydantic,
   deprecations, inheritance, `__all__`), `numpkg` (numpy docstrings) and `sphpkg`
   (sphinx docstrings from a pre-generated dump, so the no-extraction path is built
-  too). The Playwright configuration lives here and owns both sites.
+  too). The Playwright configuration lives here and owns both sites. It also uses
+  starlight-codeblocks, so its pages and the generated ones exercise that integration.
 - `examples/vanilla`: a plain Astro site proving the no-Starlight path, pinned to the
   unified markdown pipeline so CI renders docstrings through both engines; also an e2e
   fixture.
@@ -146,6 +147,16 @@ cache directory, search paths rebased onto the worktree, the same `griffe dump` 
 re-made; the labels reach render time as a sidecar, like docstring HTML. Objects in the
 oldest listed ref and objects in none of the refs are deliberately unbadged.
 
+### starlight-codeblocks
+
+Optional and detected, with no pydocs option (ARCHITECTURE.md decision 14). pydocs
+publishes its symbols at `globalThis[Symbol.for('starlight-pydocs')]` (`lib/registry.ts`,
+`version: 1`, a contract with that package), and reads codeblocks' public registry at
+`astro:config:done` or later, never in `config:setup`. With codeblocks present,
+`addCodeblocksMarkup()` adds `expandable`, `pydocsBase` and `{:py}` to docstring Markdown,
+and `AnnotationTokens.astro` writes `data-scb-api-*` card attributes in place of `title`.
+Without it, the output must stay exactly as it is.
+
 ### Two runtime contexts for `lib/` code
 
 - **Browser**: only the search element (`lib/search-element.ts`) and any component
@@ -184,6 +195,15 @@ them. `pnpm typecheck` runs both.
   repo root because that is where `npx skills add` looks first.
 - MDX is excluded from Prettier and `*.md` uses `embeddedLanguageFormatting: 'off'`:
   Prettier reflows the Python signatures and directive examples in docs pages.
+- **A codeblocks directive in the wrong comment syntax renders as text, silently.**
+  `mdx` blocks read only `{/* */}`, not `<!-- -->`. After a codeblocks upgrade, grep the
+  built HTML for `[!callout`, `[!annotate`, `[!ref` and `[!code` to catch it.
+- **Signature text can contain `>`** (`-> pathlib.Path`), including inside `data-scb-api-*`
+  attribute values. A regex such as `<a [^>]*>` over built HTML stops early; parse the
+  HTML, or match the attribute you need.
+- `astro preview` allows one server per machine, and Playwright's `webServer` uses it.
+  Stop stray previews (`astro preview stop`) before `pnpm test:e2e`, or the run fails at
+  start.
 
 ## Starlight integration gotchas (learned the hard way, some inherited from starlight-quiz)
 
