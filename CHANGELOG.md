@@ -4,6 +4,8 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 
 ## Unreleased
 
+- 🐛 Fixed raw `{:py}` suffixes on inline code in docstrings after you remove starlight-codeblocks from the config of a running `astro dev`. pydocs now uses the starlight-codeblocks registry only when the plugin is in the current config.
+
 ## v0.3.0 (2026-10-05)
 
 - ✨ An agent skill with a setup checklist, shipped in the package at `skills/starlight-pydocs/SKILL.md` and shown on the docs site.

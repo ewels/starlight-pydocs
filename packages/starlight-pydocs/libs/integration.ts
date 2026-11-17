@@ -228,6 +228,7 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
   // Created at `astro:config:done` and kept for the dev watcher: the host's
   // processor only exists in this process, so re-renders must reuse it.
   let renderer: DocstringRenderer | undefined;
+  let integrations: readonly AstroIntegration[] = [];
 
   const renderDocstrings = async (logger: AstroIntegrationLogger): Promise<void> => {
     if (renderer === undefined) return;
@@ -237,7 +238,7 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
         renderedPath: pkg.renderedPath,
         renderer,
         crossReferences: await getCrossReferenceResolver(setup.context, pkg.base),
-        codeblocks: detectCodeblocks(pkg.base),
+        codeblocks: detectCodeblocks(integrations, pkg.base),
         logger,
       });
       logger.debug(`rendered ${String(count)} docstring strings of '/${pkg.base}' with ${renderer.name}`);
@@ -297,7 +298,7 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
           vite: {
             plugins: [
               vitePluginStarlightPydocs({
-                getContext: () => ({ ...setup.context, apiCards: detectApiCards() }),
+                getContext: () => ({ ...setup.context, apiCards: detectApiCards(integrations) }),
                 components: setup.config.components,
                 projectRoot: setup.config.projectRoot,
                 vanillaLayout: options.starlight ? undefined : options.layout,
@@ -311,6 +312,7 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
       // now, so docstrings render through the same final pipeline as the site's
       // own content (ARCHITECTURE.md decision 7).
       'astro:config:done': async ({ config, logger }) => {
+        integrations = config.integrations;
         renderer = await resolveDocstringRenderer(config.markdown);
         await renderDocstrings(logger);
         await highlightSignatures(logger);

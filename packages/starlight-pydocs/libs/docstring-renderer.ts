@@ -102,20 +102,26 @@ export async function resolveDocstringRenderer(markdown: AstroConfig['markdown']
 /**
  * What starlight-codeblocks' public registry says about the site, or undefined
  * when the site does not use it. The registry only exists after every plugin's
- * `config:setup`, so call this at `astro:config:done` or later.
+ * `config:setup`, so call this at `astro:config:done` or later, with that hook's
+ * `config.integrations`.
  */
-export function detectCodeblocks(pydocsBase?: string): CodeblocksMarkup | undefined {
-  const registry = codeblocksRegistry();
+export function detectCodeblocks(
+  integrations: readonly { name: string }[],
+  pydocsBase?: string,
+): CodeblocksMarkup | undefined {
+  const registry = codeblocksRegistry(integrations);
   if (registry === undefined) return undefined;
   return { inlineLanguage: registry.options?.inlineHighlighting ? 'py' : undefined, pydocsBase };
 }
 
 /** True when starlight-codeblocks shows its hover card on API links. Same timing rule as {@link detectCodeblocks}. */
-export function detectApiCards(): boolean {
-  return Boolean(codeblocksRegistry()?.options?.apiLinks);
+export function detectApiCards(integrations: readonly { name: string }[]): boolean {
+  return Boolean(codeblocksRegistry(integrations)?.options?.apiLinks);
 }
 
-function codeblocksRegistry() {
+function codeblocksRegistry(integrations: readonly { name: string }[]) {
+  // The registry is a global, so it outlives an in-place `astro dev` restart that removed codeblocks.
+  if (!integrations.some((integration) => integration.name === 'starlight-codeblocks')) return undefined;
   return (globalThis as { [key: symbol]: unknown })[Symbol.for('starlight-codeblocks')] as
     { options?: { inlineHighlighting?: unknown; apiLinks?: unknown } } | undefined;
 }

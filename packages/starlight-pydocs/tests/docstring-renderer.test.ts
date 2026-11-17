@@ -191,22 +191,30 @@ describe('detectCodeblocks', () => {
     delete store[key];
   });
 
+  const site = [{ name: 'starlight-codeblocks' }];
+
   test('is undefined without the starlight-codeblocks registry', () => {
-    expect(detectCodeblocks()).toBeUndefined();
-    expect(detectApiCards()).toBe(false);
+    expect(detectCodeblocks(site)).toBeUndefined();
+    expect(detectApiCards(site)).toBe(false);
+  });
+
+  test('ignores a registry left by a config that no longer has starlight-codeblocks', () => {
+    store[key] = { options: { inlineHighlighting: {}, apiLinks: {} } };
+    expect(detectCodeblocks([{ name: 'starlight-pydocs' }])).toBeUndefined();
+    expect(detectApiCards([])).toBe(false);
   });
 
   test('turns API cards on only when the site has API links on', () => {
     store[key] = { options: { apiLinks: {} } };
-    expect(detectApiCards()).toBe(true);
+    expect(detectApiCards(site)).toBe(true);
     store[key] = { options: { apiLinks: false } };
-    expect(detectApiCards()).toBe(false);
+    expect(detectApiCards(site)).toBe(false);
   });
 
   test('asks for a py suffix only when inline highlighting is on', () => {
     store[key] = { options: { inlineHighlighting: {} } };
-    expect(detectCodeblocks('api/demopkg')).toEqual({ inlineLanguage: 'py', pydocsBase: 'api/demopkg' });
+    expect(detectCodeblocks(site, 'api/demopkg')).toEqual({ inlineLanguage: 'py', pydocsBase: 'api/demopkg' });
     store[key] = { options: { inlineHighlighting: false } };
-    expect(detectCodeblocks()).toEqual({ inlineLanguage: undefined, pydocsBase: undefined });
+    expect(detectCodeblocks(site)).toEqual({ inlineLanguage: undefined, pydocsBase: undefined });
   });
 });
