@@ -29,6 +29,20 @@ describe('registrySymbols', async () => {
     expect(registrySymbols(model, 'always').get('demopkg.report.Report')?.href).toBe('/api/demopkg/#demopkg.Report');
   });
 
+  test('lists a re-export that the member filters leave out, at the page of its target', async () => {
+    const model = await fixtureModel('demopkg', { members: { exclude: ['demopkg.Report'] } });
+    expect(model.objectsByPath.has('demopkg.Report')).toBe(false);
+    expect(registrySymbols(model, 'always').get('demopkg.Report')).toMatchObject({
+      href: '/api/demopkg/report/#demopkg.report.Report',
+      kind: 'class',
+    });
+  });
+
+  test('leaves out a re-export of an object outside the package', () => {
+    expect(symbols.has('demopkg.models.BaseModel')).toBe(false);
+    expect(symbols.has('demopkg.models.Field')).toBe(false);
+  });
+
   test('truncates a long summary, as the signature tooltips do', async () => {
     const model = await fixtureModel('demopkg');
     const entry = model.symbols.find((symbol) => symbol.path === 'demopkg.Report');

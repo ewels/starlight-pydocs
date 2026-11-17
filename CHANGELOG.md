@@ -4,6 +4,8 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 
 ## Unreleased
 
+- 🐛 Fixed names that a package re-exports without `__all__`, such as `click.command` after `import rich_click as click`, not linking from code blocks. The member filters leave these re-exports off the pages (`imported: false`), but they now link to the page of the object they name.
+
 ## v0.3.0 (2026-10-05)
 
 - ✨ An agent skill with a setup checklist, shipped in the package at `skills/starlight-pydocs/SKILL.md` and shown on the docs site.

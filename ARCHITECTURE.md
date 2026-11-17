@@ -336,7 +336,9 @@ a contract its owner keeps stable:
 - **Ours, `Symbol.for('starlight-pydocs')`.** `lib/registry.ts` publishes
   `{ version: 1, packages: [{ name, base, symbols }] }`, where `symbols` maps every
   documented dotted path (re-exports and their members included) to
-  `{ href, kind, signature?, summary? }`. `href` has no Astro `base`; `kind` is one of
+  `{ href, kind, signature?, summary? }`. A module name that re-exports a documented
+  object gets the target's entry even when the member filters leave the re-export out
+  (`imported: false`), so `import rich_click as click; click.command` links. `href` has no Astro `base`; `kind` is one of
   `module`, `class`, `function`, `method`, `attribute`. It is published at the end of
   `preparePydocs` (`astro:config:setup`) and replaced after each dev re-extraction.
   Packages are in configuration order, and the first one with a path wins. A change to
