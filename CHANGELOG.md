@@ -4,6 +4,8 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 
 ## Unreleased
 
+- 🐛 Fixed parameter tables pushing the description column out of view. Inline code in a description now wraps, so the table fits more often. When a table must scroll, a shadow at the edge shows that it does, and on Starlight sites the table scrolls inside its own box.
+
 ## v0.3.0 (2026-10-05)
 
 - ✨ An agent skill with a setup checklist, shipped in the package at `skills/starlight-pydocs/SKILL.md` and shown on the docs site.

@@ -348,10 +348,19 @@
   .pyd-table-wrap {
     /* Wide parameter tables scroll inside their own box, never the page. */
     overflow-x: auto;
+    /* A shadow at each edge that hides more of the table. Overlay scrollbars give no hint. */
+    --pyd-scroll-shadow: color-mix(in srgb, var(--pyd-text) 35%, transparent);
+    background:
+      linear-gradient(to right, var(--pyd-bg) 30%, transparent) left / 2.5rem 100% no-repeat local,
+      linear-gradient(to left, var(--pyd-bg) 30%, transparent) right / 2.5rem 100% no-repeat local,
+      radial-gradient(farthest-side at 0 50%, var(--pyd-scroll-shadow), transparent) left / 1rem 100% no-repeat,
+      radial-gradient(farthest-side at 100% 50%, var(--pyd-scroll-shadow), transparent) right / 1rem 100% no-repeat;
   }
 
   .pyd-params,
   .pyd-summary-table {
+    /* Starlight makes content tables scroll themselves; the wrapper does that here. */
+    display: table;
     width: 100%;
     border-collapse: collapse;
     font-size: 0.9375rem;
@@ -383,6 +392,15 @@
   .pyd-value-type {
     font-family: var(--pyd-mono);
     font-size: 0.8125rem;
+  }
+
+  /* Long code in the prose would otherwise set the column's minimum width and push the table wider. */
+  .pyd-param-description {
+    min-width: 8rem;
+  }
+
+  .pyd-param-description code {
+    overflow-wrap: anywhere;
   }
 
   .pyd-param-description > :first-child {
