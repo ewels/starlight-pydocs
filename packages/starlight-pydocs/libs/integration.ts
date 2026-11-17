@@ -231,6 +231,8 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
 
   const renderDocstrings = async (logger: AstroIntegrationLogger): Promise<void> => {
     if (renderer === undefined) return;
+    // A pre-generated dump was parsed with whatever style its author chose.
+    const preDumped = new Set(setup.config.packages.filter((pkg) => pkg.source !== undefined).map((pkg) => pkg.base));
     for (const pkg of setup.context.packages) {
       const { count } = await renderDocstringsForDump({
         dumpPath: pkg.dumpPath,
@@ -238,7 +240,7 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
         renderer,
         crossReferences: await getCrossReferenceResolver(setup.context, pkg.base),
         codeblocks: detectCodeblocks(pkg.base),
-        styleCheck: { name: pkg.name, docstringStyle: pkg.docstringStyle },
+        styleCheck: preDumped.has(pkg.base) ? undefined : { base: pkg.base, docstringStyle: pkg.docstringStyle },
         logger,
       });
       logger.debug(`rendered ${String(count)} docstring strings of '/${pkg.base}' with ${renderer.name}`);

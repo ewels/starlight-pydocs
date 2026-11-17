@@ -213,6 +213,7 @@ const listId = `pyd-search-list-${idSuffix}`;
         return;
       }
       if (event.key === 'Enter') {
+        if (event.isComposing) return;
         const target = this.#options[this.#active] ?? this.#options[0];
         if (target) {
           event.preventDefault();

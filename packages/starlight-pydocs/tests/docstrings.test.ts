@@ -178,6 +178,11 @@ describe('findUnparsedSections', () => {
     ]);
   });
 
+  test('ignores markup inside code', () => {
+    const items = [body('pkg.f', 'Example:\n\n```rst\n:param x: one.\n```\n\nInline `:param y: two.`')];
+    expect(findUnparsedSections(items, 'google')).toEqual([]);
+  });
+
   test('ignores parameter descriptions and other slots', () => {
     const items: DocstringMarkdownItem[] = [{ ...body('pkg.f', ':param x: one.'), slot: 'entry' }];
     expect(findUnparsedSections(items, 'google')).toEqual([]);

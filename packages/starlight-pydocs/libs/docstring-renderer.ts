@@ -137,8 +137,8 @@ export interface RenderDocstringsOptions {
   crossReferences?: CrossReferenceResolver | undefined;
   /** starlight-codeblocks markup to add, when the site uses that plugin. */
   codeblocks?: CodeblocksMarkup | undefined;
-  /** The package's import name and docstring style, to warn about sections in another style. */
-  styleCheck?: { name: string; docstringStyle: DocstringStyle } | undefined;
+  /** The package's base and docstring style, to warn about sections in another style. */
+  styleCheck?: { base: string; docstringStyle: DocstringStyle } | undefined;
   logger?: PydocsLogger | undefined;
 }
 
@@ -156,10 +156,10 @@ export async function renderDocstringsForDump(options: RenderDocstringsOptions):
   const crossReferences = options.crossReferences;
 
   if (options.styleCheck !== undefined) {
-    const { name, docstringStyle } = options.styleCheck;
+    const { base, docstringStyle } = options.styleCheck;
     for (const found of findUnparsedSections(items, docstringStyle)) {
       logger.warn(
-        `${String(found.count)} docstrings in '${name}' have ${found.style}-style sections that the ` +
+        `${String(found.count)} docstrings in '/${base}' have ${found.style}-style sections that the ` +
           `'${docstringStyle}' parser left as plain text, such as ${found.examples.join(', ')}. ` +
           (docstringStyle === 'auto'
             ? `Fix the docstrings, or set docstringStyle to '${found.style}'.`

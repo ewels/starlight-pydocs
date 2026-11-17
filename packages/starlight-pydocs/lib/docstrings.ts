@@ -16,6 +16,7 @@
  */
 
 import type { DocstringStyle } from './config.ts';
+import { codeRanges } from './crossrefs.ts';
 import { prepareDoctestMarkdown } from './markdown.ts';
 import type {
   DocstringSection,
@@ -255,14 +256,25 @@ export function findUnparsedSections(items: DocstringMarkdownItem[], style: Docs
   const found = new Map<SectionStyle, Set<string>>();
   for (const item of items) {
     if (item.slot !== 'body') continue;
+    const prose = withoutCode(item.markdown);
     for (const [marker, pattern] of Object.entries(STYLE_MARKERS) as [SectionStyle, RegExp][]) {
-      if (marker === style || !pattern.test(item.markdown)) continue;
+      if (marker === style || !pattern.test(prose)) continue;
       const paths = found.get(marker) ?? new Set<string>();
       paths.add(item.objectPath);
       found.set(marker, paths);
     }
   }
   return [...found].map(([marker, paths]) => ({ style: marker, count: paths.size, examples: [...paths].slice(0, 3) }));
+}
+
+function withoutCode(markdown: string): string {
+  let prose = '';
+  let cursor = 0;
+  for (const range of codeRanges(markdown)) {
+    prose += markdown.slice(cursor, range.start);
+    cursor = range.end;
+  }
+  return prose + markdown.slice(cursor);
 }
 
 // -- Accessors -------------------------------------------------------------

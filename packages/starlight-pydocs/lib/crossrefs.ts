@@ -19,7 +19,7 @@
  * packages', then the Sphinx inventories.
  */
 
-import type { AnnotationResolver } from './expr.ts';
+import { scopeChain } from './expr.ts';
 import type { PackageModel } from './model.ts';
 import { documentedPathFor } from './model.ts';
 import { parseSphinxRole, SPHINX_ROLE_PATTERN } from './markdown.ts';
@@ -41,8 +41,8 @@ export interface CrossReferenceResolverOptions {
   trailingSlash: 'always' | 'never' | 'ignore';
   /** Sphinx inventory lookup, for targets in other projects' documentation. */
   lookupExternal?: ((dottedPath: string) => string | undefined) | undefined;
-  /** Resolves a name in the scope of an object, as annotations do. Used when a scope is given. */
-  scoped?: AnnotationResolver | undefined;
+  /** Names bound in each module and class of the rendered package, to resolve a bare name where it is written. */
+  scopes?: PackageModel['scopes'] | undefined;
 }
 
 /**
@@ -67,9 +67,12 @@ export function createCrossReferenceResolver(options: CrossReferenceResolverOpti
   };
 
   const lookupInScope = (name: string, scopePath: string): string | undefined => {
-    const found = options.scoped?.resolve(name, scopePath);
-    if (found === undefined) return undefined;
-    return found.kind === 'external' ? found.href : lookup(found.path);
+    const [first = '', ...rest] = name.split('.');
+    for (const scope of scopeChain(scopePath)) {
+      const bound = options.scopes?.get(scope)?.get(first);
+      if (bound !== undefined) return lookup([bound, ...rest].join('.'));
+    }
+    return undefined;
   };
 
   const cached = (key: string, find: () => string | undefined): string | undefined => {
@@ -111,8 +114,8 @@ export function resolveSphinxRoles(
       // The role's own content is a code span; only its leading colon has to sit outside code.
       if (overlapsCode(code, offset, offset + 1) || isEscaped(markdown, offset)) return whole;
 
-      const { text, object, target } = parseSphinxRole(domain, role, content);
-      if (!object) return text;
+      const { text, kind, target } = parseSphinxRole(domain, role, content);
+      if (kind === 'text') return text.replace(/[\\`*_[\]<>&]/g, '\\$&');
       const href = target === undefined ? undefined : resolve?.(target, scopePath);
       return href === undefined ? `\`${text}\`` : `[\`${text}\`](${formatUrl(href)})`;
     },
@@ -128,7 +131,7 @@ const DEFINITION_PATTERN = /^ {0,3}\[([^\][]+)\]:\s+\S/;
 /** Opens or closes a fenced code block. */
 const FENCE_PATTERN = /^ {0,3}(`{3,}|~{3,})(.*)$/;
 
-interface Range {
+export interface Range {
   start: number;
   end: number;
 }
@@ -224,7 +227,7 @@ function referenceDefinitions(markdown: string, code: Range[]): Set<string> {
  * from a list continuation needs a block parser, and griffe hands us dedented
  * prose where examples arrive fenced.
  */
-function codeRanges(markdown: string): Range[] {
+export function codeRanges(markdown: string): Range[] {
   const fences = fencedRanges(markdown);
   return [...fences, ...inlineCodeRanges(markdown, fences)].sort((a, b) => a.start - b.start);
 }

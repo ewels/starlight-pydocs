@@ -121,37 +121,46 @@ export function addCodeblocksMarkup(markdown: string, { inlineLanguage, pydocsBa
     .join('\n');
 }
 
-/** `:role:`content``, with an optional domain such as `:py:class:`. */
-export const SPHINX_ROLE_PATTERN = /(?<![\w:`]):(?:([a-z]+):)?([a-z][a-z0-9-]*):`([^`\n]+)`/g;
+/** `:role:`content``, with an optional domain such as `:py:class:`. Content may wrap, but not across a blank line. */
+export const SPHINX_ROLE_PATTERN = /(?<![\w:`]):(?:([a-z]+):)?([a-z][a-z0-9-]*):`((?:[^`\n]|\n(?![ \t]*\n))+)`/g;
 
 /** The Python domain's object roles: the ones that name something to link to. */
 const PYTHON_ROLES = new Set(['mod', 'func', 'data', 'const', 'class', 'meth', 'attr', 'exc', 'obj', 'type']);
 
+/** Standard roles Sphinx renders as prose; every other role renders as code. */
+const TEXT_ROLES = new Set(['ref', 'doc', 'term', 'numref', 'download', 'abbr', 'dfn', 'guilabel', 'menuselection']);
+
 export interface SphinxRole {
   /** What Sphinx shows. */
   text: string;
-  /** Whether this is a Python object role, shown as code. */
-  object: boolean;
+  /** `object` names a Python object and `literal` shows as code; `text` is prose. */
+  kind: 'object' | 'literal' | 'text';
   /** The object to link to; absent for other roles and for `!target`. */
   target?: string | undefined;
 }
 
 /**
  * Read a role as Sphinx does: `title <target>` sets the text, `~a.b.C` shows
- * only `C`, `!target` suppresses the link, and a leading `.` is dropped.
+ * only `C`, `!target` suppresses the link, and a leading `.` and trailing `()`
+ * are not part of the target.
  */
 export function parseSphinxRole(domain: string | undefined, role: string, content: string): SphinxRole {
-  const explicit = /^(.+?)\s*<([^<>]+)>$/s.exec(content);
+  const explicit = /^(.+?)\s*<([^<>]+)>$/s.exec(content.replace(/\s+/g, ' ').trim());
   const title = explicit?.[1];
-  let target = (explicit?.[2] ?? content).trim();
-  if ((domain !== undefined && domain !== 'py') || !PYTHON_ROLES.has(role)) {
-    return { text: title ?? target, object: false };
-  }
+  let target = explicit?.[2] ?? content.replace(/\s+/g, ' ').trim();
 
-  const noLink = target.startsWith('!');
-  if (noLink) target = target.slice(1);
-  const short = target.startsWith('~');
-  if (short) target = target.slice(1);
-  target = target.replace(/^\./, '');
-  return { text: title ?? (short ? shortName(target) : target), object: true, target: noLink ? undefined : target };
+  if ((domain === undefined || domain === 'py') && PYTHON_ROLES.has(role)) {
+    const noLink = target.startsWith('!');
+    if (noLink) target = target.slice(1);
+    const short = target.startsWith('~');
+    if (short) target = target.slice(1);
+    target = target.replace(/^\./, '');
+    const text = title ?? (short ? shortName(target) : target);
+    return { text, kind: 'object', target: noLink ? undefined : target.replace(/\(\)$/, '') };
+  }
+  if (domain === undefined && (role === 'pep' || role === 'rfc')) {
+    return { text: title ?? `${role.toUpperCase()} ${target}`, kind: 'text' };
+  }
+  const prose = domain === undefined && TEXT_ROLES.has(role);
+  return { text: title ?? target, kind: prose ? 'text' : 'literal' };
 }

@@ -321,11 +321,7 @@ export async function getAnnotationResolver(context: PydocsContext, base: string
  */
 export async function getCrossReferenceResolver(context: PydocsContext, base: string): Promise<CrossReferenceResolver> {
   const own = requirePackage(context, base);
-  const [models, inventories, scoped] = await Promise.all([
-    getAllModels(context),
-    getInventoryLookup(context),
-    getAnnotationResolver(context, base),
-  ]);
+  const [models, inventories] = await Promise.all([getAllModels(context), getInventoryLookup(context)]);
 
   const ownModel = models.get(own.base);
   const others = context.packages
@@ -338,7 +334,7 @@ export async function getCrossReferenceResolver(context: PydocsContext, base: st
     siteBase: context.siteBase,
     trailingSlash: context.trailingSlash,
     lookupExternal: (dottedPath) => inventories.lookup(dottedPath)?.href,
-    scoped,
+    scopes: ownModel?.scopes,
   });
 }
 
