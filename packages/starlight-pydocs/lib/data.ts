@@ -14,6 +14,7 @@ import { packageByBase } from './context.ts';
 import type { CrossReferenceResolver } from './crossrefs.ts';
 import { createCrossReferenceResolver } from './crossrefs.ts';
 import type { RenderedDocstrings } from './docstrings.ts';
+import { mergeInitDocstrings } from './docstrings.ts';
 import { PydocsError } from './errors.ts';
 import type { AnnotationResolver } from './expr.ts';
 import type { SignatureHighlights } from './highlight.ts';
@@ -130,7 +131,7 @@ export async function loadDump(dumpPath: string): Promise<GriffeDump> {
             'regenerate it with `griffe dump -f -d <style>`',
         );
       }
-      return parsed as GriffeDump;
+      return mergeInitDocstrings(parsed as GriffeDump);
     },
   });
 }

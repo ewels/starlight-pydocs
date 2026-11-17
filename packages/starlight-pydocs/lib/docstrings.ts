@@ -87,6 +87,35 @@ const ENTRY_SECTION_KINDS = new Set([
 type EntrySection = DocstringSectionNamedValues | DocstringSectionThrown | DocstringSectionReferences;
 
 /**
+ * Append each class's own `__init__` docstring to the class docstring, in place.
+ *
+ * mkdocstrings' `merge_init_into_class`: the class signature already shows the
+ * `__init__` parameters, so their descriptions belong under it too. The default
+ * filters hide `__init__`, so without this its `Args:` never render. It runs as
+ * the dump loads, so the model and the rendered prose agree on section indices.
+ * `__init__` keeps its own docstring, for `filters.special` and `<Autodoc>`.
+ */
+export function mergeInitDocstrings(dump: GriffeDump): GriffeDump {
+  const seen = new Set<GriffeObject>();
+  const visit = (object: GriffeObject): void => {
+    if (typeof object !== 'object' || object === null || seen.has(object)) return;
+    seen.add(object);
+
+    const init = object.kind === 'class' ? object.members?.['__init__'] : undefined;
+    const initSections = init?.kind === 'function' ? (init.docstring?.parsed ?? []) : [];
+    if (initSections.length > 0 && init?.docstring) {
+      object.docstring = object.docstring
+        ? { ...object.docstring, parsed: [...(object.docstring.parsed ?? []), ...initSections] }
+        : { ...init.docstring, parsed: [...initSections] };
+    }
+
+    for (const member of memberList(object)) visit(member);
+  };
+  for (const entry of Object.values(dump)) visit(entry);
+  return dump;
+}
+
+/**
  * Every Markdown string in a dump that needs rendering.
  *
  * The whole dump, not the filtered model: `<Autodoc>` can name anything, and the

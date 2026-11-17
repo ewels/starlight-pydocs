@@ -4,6 +4,8 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 
 ## Unreleased
 
+- 🐛 A class's `__init__` docstring now shows under the class, after the class's own docstring, as mkdocstrings' `merge_init_into_class` does. The default filters hide `__init__`, so before this its `Args:` section never rendered.
+
 ## v0.3.0 (2026-10-05)
 
 - ✨ An agent skill with a setup checklist, shipped in the package at `skills/starlight-pydocs/SKILL.md` and shown on the docs site.
