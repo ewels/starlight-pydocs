@@ -800,14 +800,18 @@ function firstLine(value: string): string {
 }
 
 function stripMarkdown(value: string): string {
-  return value
-    .replace(/:(?:[a-z]+:)?[a-z][a-z0-9-]*:`([^`]+)`/g, (_, content: string) => sphinxRoleText(content))
-    .replace(/`{1,3}([^`]*)`{1,3}/g, '$1')
-    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/\[([^\]]*)\]\[[^\]]*\]/g, '$1')
-    .replace(/\*\*([^*]+)\*\*/g, '$1')
-    .replace(/(^|\s)[*_]([^*_]+)[*_]/g, '$1$2')
-    .trim();
+  return (
+    value
+      .replace(/:(?:[a-z]+:)?[a-z][a-z0-9-]*:`([^`]+)`/g, (_, content: string) => sphinxRoleText(content))
+      // RST hyperlinks: `text <url>`_ keeps its text, a bare `<url>`_ its URL.
+      .replace(/`([^`<]*?)\s*<([^`<>\s]+)>`__?/g, (_, text: string, url: string) => text.trim() || url)
+      .replace(/`{1,3}([^`]*)`{1,3}/g, '$1')
+      .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+      .replace(/\[([^\]]*)\]\[[^\]]*\]/g, '$1')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/(^|\s)[*_]([^*_]+)[*_]/g, '$1$2')
+      .trim()
+  );
 }
 
 /** What Sphinx shows for a role's content: `title <target>` → title, `~a.b.C` → C. */

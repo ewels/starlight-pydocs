@@ -148,7 +148,7 @@ const DEFINITION_PATTERN = /^ {0,3}\[([^\][]+)\]:\s+\S/;
 /** Opens or closes a fenced code block. */
 const FENCE_PATTERN = /^ {0,3}(`{3,}|~{3,})(.*)$/;
 
-interface Range {
+export interface Range {
   start: number;
   end: number;
 }
@@ -201,7 +201,7 @@ export function resolveCrossReferences(markdown: string, resolve: CrossReference
 }
 
 /** Wrap a URL in angle brackets when bare parentheses or spaces would break it. */
-function formatUrl(href: string): string {
+export function formatUrl(href: string): string {
   return /[()\s]/.test(href) ? `<${href}>` : href;
 }
 
@@ -215,7 +215,7 @@ function isEscaped(markdown: string, index: number): boolean {
   return backslashes % 2 === 1;
 }
 
-function overlapsCode(ranges: Range[], start: number, end: number): boolean {
+export function overlapsCode(ranges: Range[], start: number, end: number): boolean {
   return ranges.some((range) => range.start < end && start < range.end);
 }
 
@@ -244,7 +244,7 @@ function referenceDefinitions(markdown: string, code: Range[]): Set<string> {
  * from a list continuation needs a block parser, and griffe hands us dedented
  * prose where examples arrive fenced.
  */
-function codeRanges(markdown: string): Range[] {
+export function codeRanges(markdown: string): Range[] {
   const fences = fencedRanges(markdown);
   return [...fences, ...inlineCodeRanges(markdown, fences)].sort((a, b) => a.start - b.start);
 }
