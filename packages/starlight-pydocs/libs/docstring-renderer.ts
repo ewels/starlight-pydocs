@@ -21,9 +21,9 @@ import type { AstroConfig } from 'astro';
 
 import { writeAtomic } from '../lib/cache.ts';
 import type { CrossReferenceResolver } from '../lib/crossrefs.ts';
-import { resolveCrossReferences } from '../lib/crossrefs.ts';
+import { resolveCrossReferences, resolveSphinxRoles } from '../lib/crossrefs.ts';
 import { loadDump } from '../lib/data.ts';
-import { assembleRenderedDocstrings, collectDocstringMarkdown } from '../lib/docstrings.ts';
+import { assembleRenderedDocstrings, collectDocstringMarkdown, findUnparsedSections } from '../lib/docstrings.ts';
 import { errorMessage, PydocsError } from '../lib/errors.ts';
 import type { PydocsLogger } from '../lib/logger.ts';
 import { silentLogger } from '../lib/logger.ts';
@@ -136,6 +136,8 @@ export interface RenderDocstringsOptions {
   crossReferences?: CrossReferenceResolver | undefined;
   /** starlight-codeblocks markup to add, when the site uses that plugin. */
   codeblocks?: CodeblocksMarkup | undefined;
+  /** The package's import name and docstring style, to warn about sections in another style. */
+  styleCheck?: { name: string; docstringStyle: string } | undefined;
   logger?: PydocsLogger | undefined;
 }
 
@@ -152,6 +154,19 @@ export async function renderDocstringsForDump(options: RenderDocstringsOptions):
   const items = collectDocstringMarkdown(await loadDump(options.dumpPath));
   const crossReferences = options.crossReferences;
 
+  if (options.styleCheck !== undefined) {
+    const { name, docstringStyle } = options.styleCheck;
+    for (const found of findUnparsedSections(items, docstringStyle)) {
+      logger.warn(
+        `${String(found.count)} docstrings in '${name}' have ${found.style}-style sections that the ` +
+          `'${docstringStyle}' parser left as plain text, such as ${found.examples.join(', ')}. ` +
+          (docstringStyle === 'auto'
+            ? `Fix the docstrings, or set docstringStyle to '${found.style}'.`
+            : `Set docstringStyle to '${found.style}' or 'auto', or fix the docstrings.`),
+      );
+    }
+  }
+
   const html: string[] = [];
   for (let start = 0; start < items.length; start += RENDER_BATCH) {
     const batch = items.slice(start, start + RENDER_BATCH);
@@ -160,8 +175,11 @@ export async function renderDocstringsForDump(options: RenderDocstringsOptions):
         batch.map(async (item) => {
           // Cross-references become ordinary Markdown links before the
           // processor sees them; nothing downstream knows they were special.
-          const resolved =
-            crossReferences === undefined ? item.markdown : resolveCrossReferences(item.markdown, crossReferences);
+          const resolved = resolveSphinxRoles(
+            crossReferences === undefined ? item.markdown : resolveCrossReferences(item.markdown, crossReferences),
+            crossReferences,
+            item.objectPath,
+          );
           const markdown =
             options.codeblocks === undefined ? resolved : addCodeblocksMarkup(resolved, options.codeblocks);
           try {

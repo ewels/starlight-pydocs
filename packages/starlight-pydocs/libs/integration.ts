@@ -238,6 +238,7 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
         renderer,
         crossReferences: await getCrossReferenceResolver(setup.context, pkg.base),
         codeblocks: detectCodeblocks(pkg.base),
+        styleCheck: { name: pkg.name, docstringStyle: pkg.docstringStyle },
         logger,
       });
       logger.debug(`rendered ${String(count)} docstring strings of '/${pkg.base}' with ${renderer.name}`);

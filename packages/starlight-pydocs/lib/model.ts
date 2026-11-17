@@ -801,12 +801,21 @@ function firstLine(value: string): string {
 
 function stripMarkdown(value: string): string {
   return value
+    .replace(/:(?:[a-z]+:)?[a-z][a-z0-9-]*:`([^`]+)`/g, (_, content: string) => sphinxRoleText(content))
     .replace(/`{1,3}([^`]*)`{1,3}/g, '$1')
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/\[([^\]]*)\]\[[^\]]*\]/g, '$1')
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/(^|\s)[*_]([^*_]+)[*_]/g, '$1$2')
     .trim();
+}
+
+/** What Sphinx shows for a role's content: `title <target>` → title, `~a.b.C` → C. */
+function sphinxRoleText(content: string): string {
+  const explicit = /^(.+?)\s*<[^<>]+>$/s.exec(content);
+  if (explicit?.[1] !== undefined) return explicit[1];
+  const target = content.replace(/^[!.]+/, '');
+  return target.startsWith('~') ? (target.split('.').pop() ?? target) : target;
 }
 
 /**

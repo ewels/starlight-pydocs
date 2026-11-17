@@ -4,6 +4,7 @@ import type { DocstringMarkdownItem } from '../lib/docstrings.ts';
 import {
   assembleRenderedDocstrings,
   collectDocstringMarkdown,
+  findUnparsedSections,
   renderedDeprecation,
   renderedSectionBlock,
   renderedSectionBody,
@@ -135,5 +136,50 @@ describe('assembleRenderedDocstrings', () => {
   test('survives a round trip through JSON', () => {
     const parsed = JSON.parse(JSON.stringify(rendered)) as typeof rendered;
     expect(renderedSectionEntry(parsed, 'pkg.f', 1, 2)).toBe('<p>c</p>');
+  });
+});
+
+describe('findUnparsedSections', () => {
+  const body = (objectPath: string, markdown: string): DocstringMarkdownItem => ({
+    objectPath,
+    sectionIndex: 0,
+    slot: 'body',
+    index: 0,
+    markdown,
+  });
+
+  test('finds sections of each other style left in the prose', () => {
+    const items = [
+      body('pkg.sphinx', 'Greet someone.\n\n:param name: who to greet.\n:returns: the greeting.'),
+      body('pkg.numpy', 'Greet someone.\n\nParameters\n----------\nname : str\n    Who to greet.'),
+      // Griffe's google parser reads `Args:` as a header and leaves the underline.
+      body('pkg.underline', '----\n    name: Who to greet.'),
+      body('pkg.plain', 'Greet someone.\n\nIt is 10:30, and `a:b` is not a field list.'),
+    ];
+    expect(findUnparsedSections(items, 'google')).toEqual([
+      { style: 'sphinx', count: 1, examples: ['pkg.sphinx'] },
+      { style: 'numpy', count: 2, examples: ['pkg.numpy', 'pkg.underline'] },
+    ]);
+  });
+
+  test('finds google sections under another style, and skips the configured one', () => {
+    const items = [body('pkg.google', 'Greet someone.\n\nArgs:\n    name: Who to greet.')];
+    expect(findUnparsedSections(items, 'numpy')).toEqual([{ style: 'google', count: 1, examples: ['pkg.google'] }]);
+    expect(findUnparsedSections(items, 'google')).toEqual([]);
+  });
+
+  test('counts an object once and lists at most three examples', () => {
+    const items = ['a', 'b', 'c', 'd'].flatMap((name) => [
+      body(`pkg.${name}`, ':param x: one.'),
+      body(`pkg.${name}`, ':param y: two.'),
+    ]);
+    expect(findUnparsedSections(items, 'google')).toEqual([
+      { style: 'sphinx', count: 4, examples: ['pkg.a', 'pkg.b', 'pkg.c'] },
+    ]);
+  });
+
+  test('ignores parameter descriptions and other slots', () => {
+    const items: DocstringMarkdownItem[] = [{ ...body('pkg.f', ':param x: one.'), slot: 'entry' }];
+    expect(findUnparsedSections(items, 'google')).toEqual([]);
   });
 });

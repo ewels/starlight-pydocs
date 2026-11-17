@@ -219,6 +219,54 @@ export function assembleRenderedDocstrings(items: DocstringMarkdownItem[], html:
   return { objects };
 }
 
+// -- Style mismatches ------------------------------------------------------
+
+type SectionStyle = 'google' | 'numpy' | 'sphinx';
+
+/**
+ * Section markup of each style. A match in prose means the configured parser
+ * did not read that section.
+ */
+const STYLE_MARKERS: Record<SectionStyle, RegExp> = {
+  sphinx:
+    /^[ \t]*:(?:param|parameter|arg|argument|key|keyword|type|raises?|except|exception|returns?|rtype|yields?|ytype|var|ivar|cvar|vartype)\b[^:\n]*:/m,
+  // A numpy header with its underline, or an underline alone: under google, griffe
+  // reads `Args:` as a header and leaves the `----` below it in the prose.
+  numpy:
+    /^[ \t]*(?:(?:Parameters|Other Parameters|Returns|Yields|Receives|Raises|Warns|Attributes|Methods|See Also|Notes|References|Examples)[ \t]*\n[ \t]*-{3,}[ \t]*$|-{3,}[ \t]*\n[ \t]+\S)/m,
+  google:
+    /^[ \t]*(?:Args|Arguments|Parameters|Params|Keyword Args|Keyword Arguments|Returns?|Raises|Yields?|Attributes):[ \t]*\n[ \t]+\S/m,
+};
+
+export interface UnparsedSections {
+  style: SectionStyle;
+  /** Number of objects with prose that holds this style's sections. */
+  count: number;
+  /** Up to three of those objects, in dump order. */
+  examples: string[];
+}
+
+/**
+ * Find docstring sections the configured parser left as prose, because they use
+ * another style. Their parameters and return values then render as plain text.
+ *
+ * @param items - What `collectDocstringMarkdown` returned.
+ * @param style - The style griffe parsed with.
+ */
+export function findUnparsedSections(items: DocstringMarkdownItem[], style: string): UnparsedSections[] {
+  const found = new Map<SectionStyle, Set<string>>();
+  for (const item of items) {
+    if (item.slot !== 'body') continue;
+    for (const [marker, pattern] of Object.entries(STYLE_MARKERS) as [SectionStyle, RegExp][]) {
+      if (marker === style || !pattern.test(item.markdown)) continue;
+      const paths = found.get(marker) ?? new Set<string>();
+      paths.add(item.objectPath);
+      found.set(marker, paths);
+    }
+  }
+  return [...found].map(([marker, paths]) => ({ style: marker, count: paths.size, examples: [...paths].slice(0, 3) }));
+}
+
 // -- Accessors -------------------------------------------------------------
 
 function sectionOf(
