@@ -21,8 +21,8 @@ import type { RenderScope } from '../lib/render.ts';
 import { hrefForPath, splitInherited } from '../lib/render.ts';
 import type { StringKey, StringOverrides } from '../lib/strings.ts';
 import { AttributeDoc, ClassDoc, FunctionDoc, Heading, SourceLink } from 'virtual:starlight-pydocs/components';
+import Aside from './Aside.astro';
 import Badges from './Badges.astro';
-import Markdown from './Markdown.astro';
 
 interface Props {
   doc: DocObject;
@@ -121,14 +121,18 @@ const deprecationHtml = deprecation === undefined ? '' : renderedDeprecation(sco
 
   {
     deprecation === undefined ? null : (
-      <aside class="pyd-aside pyd-aside--caution pyd-deprecated" data-pydocs-aside="deprecated">
-        <p class="pyd-aside-title">
-          {deprecation.version === undefined
+      <Aside
+        kind="caution"
+        title={
+          deprecation.version === undefined
             ? resolve('deprecated')
-            : `${resolve('deprecatedSince')} ${deprecation.version}`}
-        </p>
-        <Markdown html={deprecationHtml} />
-      </aside>
+            : `${resolve('deprecatedSince')} ${deprecation.version}`
+        }
+        html={deprecationHtml}
+        starlight={scope.context.starlight}
+        name="deprecated"
+        class="pyd-deprecated"
+      />
     )
   }
 

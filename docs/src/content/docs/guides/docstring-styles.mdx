@@ -186,8 +186,9 @@ the docstring gives none. They link exactly like the types in the signature; see
 ## Admonition flavours
 
 Griffe records an admonition's annotation (`note`, `warning`, `danger`, `seealso`, `hint`, …).
-Each annotation maps onto one of four asides styled to match Starlight's: note, tip, caution
-and danger. An annotation we do not recognise renders as a note, and keeps its own title.
+Each annotation maps onto one of Starlight's four aside types: note, tip, caution and danger.
+On a Starlight site, they are Starlight's own asides. Without Starlight, they are plain
+`.pyd-aside` boxes, styled by the `--pyd-*` tokens. An annotation we do not recognise renders as a note, and keeps its own title.
 `Deprecated:` blocks are the exception. The google parser routes them through the admonition
 machinery. This plugin turns them into the deprecation notice instead of an aside, so the
 badge and the explanation stay together.

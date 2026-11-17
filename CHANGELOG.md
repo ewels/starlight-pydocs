@@ -4,6 +4,8 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 
 ## Unreleased
 
+- 🐛 On Starlight sites, docstring admonitions and deprecation notices now use Starlight's own aside markup, so they look exactly like Starlight's asides, icons included, and follow themes that restyle them. Sites without Starlight keep the plain `.pyd-aside`.
+
 ## v0.3.0 (2026-10-05)
 
 - ✨ An agent skill with a setup checklist, shipped in the package at `skills/starlight-pydocs/SKILL.md` and shown on the docs site.

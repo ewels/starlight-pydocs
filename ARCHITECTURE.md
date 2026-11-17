@@ -166,8 +166,10 @@ through the same final pipeline as the site's own content. The rendered HTML is 
 to a sidecar JSON beside the cached dump; `lib/data.ts` loads it like the dump and
 components consume pre-rendered HTML strings. The dev watcher re-renders after
 re-extraction. Doctest `>>>` blocks are fenced as `python` before rendering (`pycon`
-is not in Sätteri's bundled Shiki set). Griffe admonition sections render as our own
-aside markup in components, not through directives.
+is not in Sätteri's bundled Shiki set). Griffe admonition sections render as aside
+markup in components, not through directives: Starlight's own `starlight-aside` markup
+and icons (copied, since components cannot import Starlight) when `context.starlight`
+is set, so Starlight's styles apply, and a minimal `.pyd-aside` otherwise.
 
 Rendered docstring HTML is deliberately **not sanitised**: whatever a docstring says
 lands on the page, the same trust model as mkdocstrings. The tool is used almost
