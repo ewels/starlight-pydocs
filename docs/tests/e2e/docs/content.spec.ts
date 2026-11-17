@@ -211,4 +211,5 @@ test('with starlight-codeblocks, type links get its hover card instead of a titl
   const card = page.locator('.scb-api-card');
   await expect(card).toBeVisible();
   await expect(card.locator('span')).toHaveText(['class str', 'Python 3', 'Open docs at docs.python.org']);
+  await expect(card.locator('.scb-api-card-source svg')).toBeVisible();
 });

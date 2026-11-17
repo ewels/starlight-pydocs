@@ -4,6 +4,8 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 
 ## Unreleased
 
+- ✨ Hover cards on type links show the project's logo before the source line, as cards in code blocks do: Python, NumPy or Click, for example. The logos come from Simple Icons, plus logos traced from 12 Python projects that it lacks, such as Click, attrs, xarray and rich-click.
+
 ## v0.3.0 (2026-10-05)
 
 - ✨ An agent skill with a setup checklist, shipped in the package at `skills/starlight-pydocs/SKILL.md` and shown on the docs site.
