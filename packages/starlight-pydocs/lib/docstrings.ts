@@ -15,6 +15,7 @@
  * the definition's prose, so components look up `doc.canonicalPath`.
  */
 
+import type { DocstringStyle } from './config.ts';
 import { prepareDoctestMarkdown } from './markdown.ts';
 import type {
   DocstringSection,
@@ -221,12 +222,9 @@ export function assembleRenderedDocstrings(items: DocstringMarkdownItem[], html:
 
 // -- Style mismatches ------------------------------------------------------
 
-type SectionStyle = 'google' | 'numpy' | 'sphinx';
+type SectionStyle = Exclude<DocstringStyle, 'auto'>;
 
-/**
- * Section markup of each style. A match in prose means the configured parser
- * did not read that section.
- */
+/** Section markup of each style. A match in prose means the parser did not read it. */
 const STYLE_MARKERS: Record<SectionStyle, RegExp> = {
   sphinx:
     /^[ \t]*:(?:param|parameter|arg|argument|key|keyword|type|raises?|except|exception|returns?|rtype|yields?|ytype|var|ivar|cvar|vartype)\b[^:\n]*:/m,
@@ -253,7 +251,7 @@ export interface UnparsedSections {
  * @param items - What `collectDocstringMarkdown` returned.
  * @param style - The style griffe parsed with.
  */
-export function findUnparsedSections(items: DocstringMarkdownItem[], style: string): UnparsedSections[] {
+export function findUnparsedSections(items: DocstringMarkdownItem[], style: DocstringStyle): UnparsedSections[] {
   const found = new Map<SectionStyle, Set<string>>();
   for (const item of items) {
     if (item.slot !== 'body') continue;

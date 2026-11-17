@@ -8,6 +8,8 @@
  * live here, where they can be unit tested without an engine at all.
  */
 
+import { shortName } from './paths.ts';
+
 /** Matches HTML that is a single paragraph and nothing else. */
 const SINGLE_PARAGRAPH = /^<p>([\s\S]*)<\/p>$/;
 
@@ -117,4 +119,39 @@ export function addCodeblocksMarkup(markdown: string, { inlineLanguage, pydocsBa
       );
     })
     .join('\n');
+}
+
+/** `:role:`content``, with an optional domain such as `:py:class:`. */
+export const SPHINX_ROLE_PATTERN = /(?<![\w:`]):(?:([a-z]+):)?([a-z][a-z0-9-]*):`([^`\n]+)`/g;
+
+/** The Python domain's object roles: the ones that name something to link to. */
+const PYTHON_ROLES = new Set(['mod', 'func', 'data', 'const', 'class', 'meth', 'attr', 'exc', 'obj', 'type']);
+
+export interface SphinxRole {
+  /** What Sphinx shows. */
+  text: string;
+  /** Whether this is a Python object role, shown as code. */
+  object: boolean;
+  /** The object to link to; absent for other roles and for `!target`. */
+  target?: string | undefined;
+}
+
+/**
+ * Read a role as Sphinx does: `title <target>` sets the text, `~a.b.C` shows
+ * only `C`, `!target` suppresses the link, and a leading `.` is dropped.
+ */
+export function parseSphinxRole(domain: string | undefined, role: string, content: string): SphinxRole {
+  const explicit = /^(.+?)\s*<([^<>]+)>$/s.exec(content);
+  const title = explicit?.[1];
+  let target = (explicit?.[2] ?? content).trim();
+  if ((domain !== undefined && domain !== 'py') || !PYTHON_ROLES.has(role)) {
+    return { text: title ?? target, object: false };
+  }
+
+  const noLink = target.startsWith('!');
+  if (noLink) target = target.slice(1);
+  const short = target.startsWith('~');
+  if (short) target = target.slice(1);
+  target = target.replace(/^\./, '');
+  return { text: title ?? (short ? shortName(target) : target), object: true, target: noLink ? undefined : target };
 }

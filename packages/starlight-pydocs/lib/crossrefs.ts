@@ -22,6 +22,7 @@
 import type { AnnotationResolver } from './expr.ts';
 import type { PackageModel } from './model.ts';
 import { documentedPathFor } from './model.ts';
+import { parseSphinxRole, SPHINX_ROLE_PATTERN } from './markdown.ts';
 import { objectHref } from './paths.ts';
 
 /**
@@ -71,37 +72,27 @@ export function createCrossReferenceResolver(options: CrossReferenceResolverOpti
     return found.kind === 'external' ? found.href : lookup(found.path);
   };
 
+  const cached = (key: string, find: () => string | undefined): string | undefined => {
+    if (!cache.has(key)) cache.set(key, find());
+    return cache.get(key);
+  };
+
   return (target, scopePath) => {
     const trimmed = target.trim();
     if (trimmed === '') return undefined;
-    const key = scopePath === undefined ? trimmed : `${scopePath}\u0000${trimmed}`;
-    if (cache.has(key)) return cache.get(key);
-    const href = (scopePath === undefined ? undefined : lookupInScope(trimmed, scopePath)) ?? lookup(trimmed);
-    cache.set(key, href);
-    return href;
+    const scoped =
+      scopePath === undefined
+        ? undefined
+        : cached(`${scopePath}\u0000${trimmed}`, () => lookupInScope(trimmed, scopePath));
+    return scoped ?? cached(trimmed, () => lookup(trimmed));
   };
 }
 
-/** `:role:`content``, with an optional domain such as `:py:class:`. */
-const ROLE_PATTERN = /(?<![\w:`\\]):(?:([a-z]+):)?([a-z][a-z0-9-]*):`([^`\n]+)`/g;
-
-/** The Python domain's object roles: the ones that name something to link to. */
-const PYTHON_ROLES = new Set(['mod', 'func', 'data', 'const', 'class', 'meth', 'attr', 'exc', 'obj', 'type']);
-
-/** `title <target>`: Sphinx's explicit-title form. */
-const EXPLICIT_TITLE_PATTERN = /^(.+?)\s*<([^<>]+)>$/s;
-
 /**
- * Rewrite Sphinx roles, such as `:class:`Report``, as Markdown.
- *
- * Docstrings written for Sphinx mark references with roles, which Markdown
- * renders as a stray `:class:` before a code span. A Python object role becomes
- * a code span, linked when its target resolves in the scope of the object the
- * docstring belongs to, the way Sphinx resolves it. Other roles, such as `:ref:`,
- * point at things this plugin cannot see, so they keep only their text.
- *
- * Sphinx's target syntax is followed: `title <target>` sets the text, `~a.b.C`
- * shows only `C`, `!target` suppresses the link, and a leading `.` is dropped.
+ * Rewrite Sphinx roles, such as `:class:`Report``, as Markdown, which would
+ * otherwise show a stray `:class:` before a code span. A Python object role is
+ * linked when its target resolves in the scope of the docstring's object; other
+ * roles keep only their text.
  *
  * @param scopePath - Dotted path of the object whose docstring this is.
  */
@@ -115,25 +106,14 @@ export function resolveSphinxRoles(
   const code = codeRanges(markdown);
 
   return markdown.replace(
-    ROLE_PATTERN,
+    SPHINX_ROLE_PATTERN,
     (whole: string, domain: string | undefined, role: string, content: string, offset: number) => {
       // The role's own content is a code span; only its leading colon has to sit outside code.
-      if (overlapsCode(code, offset, offset + 1)) return whole;
+      if (overlapsCode(code, offset, offset + 1) || isEscaped(markdown, offset)) return whole;
 
-      const explicit = EXPLICIT_TITLE_PATTERN.exec(content);
-      const title = explicit?.[1];
-      let target = (explicit?.[2] ?? content).trim();
-
-      if ((domain !== undefined && domain !== 'py') || !PYTHON_ROLES.has(role)) return title ?? target;
-
-      const noLink = target.startsWith('!');
-      if (noLink) target = target.slice(1);
-      const short = target.startsWith('~');
-      if (short) target = target.slice(1);
-      target = target.replace(/^\./, '');
-
-      const text = title ?? (short ? (target.split('.').pop() ?? target) : target);
-      const href = noLink ? undefined : resolve?.(target, scopePath);
+      const { text, object, target } = parseSphinxRole(domain, role, content);
+      if (!object) return text;
+      const href = target === undefined ? undefined : resolve?.(target, scopePath);
       return href === undefined ? `\`${text}\`` : `[\`${text}\`](${formatUrl(href)})`;
     },
   );

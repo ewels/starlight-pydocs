@@ -20,6 +20,7 @@
 import type { AstroConfig } from 'astro';
 
 import { writeAtomic } from '../lib/cache.ts';
+import type { DocstringStyle } from '../lib/config.ts';
 import type { CrossReferenceResolver } from '../lib/crossrefs.ts';
 import { resolveCrossReferences, resolveSphinxRoles } from '../lib/crossrefs.ts';
 import { loadDump } from '../lib/data.ts';
@@ -137,7 +138,7 @@ export interface RenderDocstringsOptions {
   /** starlight-codeblocks markup to add, when the site uses that plugin. */
   codeblocks?: CodeblocksMarkup | undefined;
   /** The package's import name and docstring style, to warn about sections in another style. */
-  styleCheck?: { name: string; docstringStyle: string } | undefined;
+  styleCheck?: { name: string; docstringStyle: DocstringStyle } | undefined;
   logger?: PydocsLogger | undefined;
 }
 
