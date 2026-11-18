@@ -348,10 +348,19 @@
   .pyd-table-wrap {
     /* Wide parameter tables scroll inside their own box, never the page. */
     overflow-x: auto;
+    /* A shadow at each edge that hides more of the table. Overlay scrollbars give no hint. */
+    --pyd-scroll-shadow: color-mix(in srgb, var(--pyd-text) 35%, transparent);
+    background:
+      linear-gradient(to right, var(--pyd-bg) 30%, transparent) left / 2.5rem 100% no-repeat local,
+      linear-gradient(to left, var(--pyd-bg) 30%, transparent) right / 2.5rem 100% no-repeat local,
+      radial-gradient(farthest-side at 0 50%, var(--pyd-scroll-shadow), transparent) left / 1rem 100% no-repeat,
+      radial-gradient(farthest-side at 100% 50%, var(--pyd-scroll-shadow), transparent) right / 1rem 100% no-repeat;
   }
 
   .pyd-params,
   .pyd-summary-table {
+    /* Starlight makes content tables scroll themselves; the wrapper does that here. */
+    display: table;
     width: 100%;
     border-collapse: collapse;
     font-size: 0.9375rem;
@@ -385,6 +394,15 @@
     font-size: 0.8125rem;
   }
 
+  /* Long code in the prose would otherwise set the column's minimum width and push the table wider. */
+  .pyd-param-description {
+    min-width: 8rem;
+  }
+
+  .pyd-param-description code {
+    overflow-wrap: anywhere;
+  }
+
   .pyd-param-description > :first-child {
     margin-block-start: 0;
   }
@@ -398,6 +416,71 @@
     color: var(--pyd-text-muted);
     font-size: 0.8125rem;
     font-style: italic;
+  }
+
+  .pyd-table-wrap {
+    container-type: inline-size;
+  }
+
+  /*
+   * Narrower than this, four columns squeeze each description to a few words a line,
+   * so every row becomes `name: type = default` with its description underneath.
+   * The table stays a table for screen readers; its column headings are only hidden.
+   */
+  @container (max-width: 40rem) {
+    .pyd-params thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    /* Every margin is reset: Starlight spaces adjacent content blocks, and rows and cells are blocks now. */
+    .pyd-params,
+    .pyd-params tbody {
+      display: block;
+      margin: 0;
+    }
+
+    .pyd-params tr {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      margin: 0;
+      padding-block: 0.5rem;
+      border-bottom: 1px solid var(--pyd-border);
+    }
+
+    .pyd-params th,
+    .pyd-params td {
+      display: block;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    .pyd-params .pyd-param-type:has(code)::before {
+      content: ':\00a0';
+      color: var(--pyd-text-muted);
+    }
+
+    .pyd-params .pyd-param-default {
+      margin-inline-start: 0.5em;
+    }
+
+    .pyd-params .pyd-param-default:has(code)::before {
+      content: '=\00a0';
+      color: var(--pyd-text-muted);
+    }
+
+    .pyd-params .pyd-param-description {
+      flex-basis: 100%;
+      min-width: 0;
+      margin-block-start: 0.25rem;
+      padding-inline-start: 1rem;
+    }
   }
 
   .pyd-values {
