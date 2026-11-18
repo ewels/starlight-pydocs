@@ -57,6 +57,25 @@ test.describe('demopkg.report', () => {
     await expect(rows.nth(1)).toContainText('None');
   });
 
+  test('parameter rows move the description under the name in a narrow column', async ({ page }) => {
+    const row = section(member(page, 'demopkg.report.Report'), 'parameters')
+      .first()
+      .locator('.pyd-params tbody tr')
+      .first();
+    const name = row.locator('.pyd-param-name');
+    const description = row.locator('.pyd-param-description');
+
+    await page.setViewportSize({ width: 1600, height: 900 });
+    let [nameBox, descriptionBox] = [await name.boundingBox(), await description.boundingBox()];
+    expect(descriptionBox!.y).toBeLessThan(nameBox!.y + nameBox!.height);
+    expect(descriptionBox!.x).toBeGreaterThan(nameBox!.x + nameBox!.width);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    [nameBox, descriptionBox] = [await name.boundingBox(), await description.boundingBox()];
+    expect(descriptionBox!.y).toBeGreaterThanOrEqual(nameBox!.y + nameBox!.height);
+    await expect(row.locator('.pyd-param-type')).toBeVisible();
+  });
+
   test('the table of contents is built from dotted-path anchors', async ({ page }) => {
     const toc = page.locator('starlight-toc');
     await expect(toc.locator('a[href="#demopkg.report.Report"]')).toBeVisible();

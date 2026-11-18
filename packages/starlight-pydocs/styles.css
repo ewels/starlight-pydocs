@@ -418,6 +418,71 @@
     font-style: italic;
   }
 
+  .pyd-table-wrap {
+    container-type: inline-size;
+  }
+
+  /*
+   * Narrower than this, four columns squeeze each description to a few words a line,
+   * so every row becomes `name: type = default` with its description underneath.
+   * The table stays a table for screen readers; its column headings are only hidden.
+   */
+  @container (max-width: 40rem) {
+    .pyd-params thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    /* Every margin is reset: Starlight spaces adjacent content blocks, and rows and cells are blocks now. */
+    .pyd-params,
+    .pyd-params tbody {
+      display: block;
+      margin: 0;
+    }
+
+    .pyd-params tr {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      margin: 0;
+      padding-block: 0.5rem;
+      border-bottom: 1px solid var(--pyd-border);
+    }
+
+    .pyd-params th,
+    .pyd-params td {
+      display: block;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    .pyd-params .pyd-param-type:has(code)::before {
+      content: ':\00a0';
+      color: var(--pyd-text-muted);
+    }
+
+    .pyd-params .pyd-param-default {
+      margin-inline-start: 0.5em;
+    }
+
+    .pyd-params .pyd-param-default:has(code)::before {
+      content: '=\00a0';
+      color: var(--pyd-text-muted);
+    }
+
+    .pyd-params .pyd-param-description {
+      flex-basis: 100%;
+      min-width: 0;
+      margin-block-start: 0.25rem;
+      padding-inline-start: 1rem;
+    }
+  }
+
   .pyd-values {
     margin-block: 0.25rem;
   }
