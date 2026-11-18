@@ -5,6 +5,7 @@ import {
   assembleRenderedDocstrings,
   collectDocstringMarkdown,
   findUnparsedSections,
+  mergeInitDocstrings,
   renderedDeprecation,
   renderedSectionBlock,
   renderedSectionBody,
@@ -136,6 +137,60 @@ describe('assembleRenderedDocstrings', () => {
   test('survives a round trip through JSON', () => {
     const parsed = JSON.parse(JSON.stringify(rendered)) as typeof rendered;
     expect(renderedSectionEntry(parsed, 'pkg.f', 1, 2)).toBe('<p>c</p>');
+  });
+});
+
+describe('mergeInitDocstrings', () => {
+  const text = (value: string) => ({ kind: 'text', value });
+  const params = { kind: 'parameters', value: [{ name: 'name', description: 'Who to greet.' }] };
+  const init = (parsed: unknown[]) => ({
+    kind: 'function',
+    name: '__init__',
+    path: 'pkg.A.__init__',
+    docstring: { value: 'Make one.', parsed },
+  });
+  const dumpWith = (classDocstring: unknown, initMember: unknown): GriffeDump =>
+    ({
+      pkg: {
+        kind: 'module',
+        name: 'pkg',
+        path: 'pkg',
+        members: {
+          A: { kind: 'class', name: 'A', path: 'pkg.A', docstring: classDocstring, members: { __init__: initMember } },
+        },
+      },
+    }) as unknown as GriffeDump;
+  const classOf = (dump: GriffeDump) => dump['pkg']?.members?.['A'];
+
+  test("appends the __init__ sections to the class's own, and keeps them on __init__", () => {
+    const dump = mergeInitDocstrings(
+      dumpWith({ value: 'A thing.', parsed: [text('A thing.')] }, init([text('Make one.'), params])),
+    );
+    expect(classOf(dump)?.docstring?.parsed).toEqual([text('A thing.'), text('Make one.'), params]);
+    expect(classOf(dump)?.members?.['__init__']?.docstring?.parsed).toEqual([text('Make one.'), params]);
+  });
+
+  test('gives a class with no docstring the __init__ docstring', () => {
+    const dump = mergeInitDocstrings(dumpWith(undefined, init([params])));
+    expect(classOf(dump)?.docstring).toEqual({ value: 'Make one.', parsed: [params] });
+  });
+
+  test('changes nothing when __init__ has no parsed docstring', () => {
+    const own = { value: 'A thing.', parsed: [text('A thing.')] };
+    const dump = mergeInitDocstrings(dumpWith(own, { kind: 'function', name: '__init__', path: 'pkg.A.__init__' }));
+    expect(classOf(dump)?.docstring).toEqual(own);
+  });
+
+  test('joins the raw text, and leaves a deprecation on __init__', () => {
+    const deprecated = { kind: 'deprecated', value: { version: '1.5', description: 'The x argument.' } };
+    const dump = mergeInitDocstrings(
+      dumpWith({ value: 'A thing.', parsed: [text('A thing.')], lineno: 3 }, init([params, deprecated])),
+    );
+    expect(classOf(dump)?.docstring).toEqual({
+      value: 'A thing.\n\nMake one.',
+      parsed: [text('A thing.'), params],
+      lineno: 3,
+    });
   });
 });
 
