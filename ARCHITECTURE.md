@@ -166,8 +166,10 @@ through the same final pipeline as the site's own content. The rendered HTML is 
 to a sidecar JSON beside the cached dump; `lib/data.ts` loads it like the dump and
 components consume pre-rendered HTML strings. The dev watcher re-renders after
 re-extraction. Doctest `>>>` blocks are fenced as `python` before rendering (`pycon`
-is not in Sätteri's bundled Shiki set). Griffe admonition sections render as our own
-aside markup in components, not through directives.
+is not in Sätteri's bundled Shiki set). Griffe admonition sections render as aside
+markup in components, not through directives: Starlight's own `starlight-aside` markup
+and icons (copied, since components cannot import Starlight) when `context.starlight`
+is set, so Starlight's styles apply, and a minimal `.pyd-aside` otherwise.
 
 Rendered docstring HTML is deliberately **not sanitised**: whatever a docstring says
 lands on the page, the same trust model as mkdocstrings. The tool is used almost
@@ -378,6 +380,26 @@ contrast work codeblocks already did, in duplicate. codeblocks reading our cache
 (its first version did): it rebuilt our model and got re-exports, `__all__`, member
 filters and `source.file`/`source.url` dumps wrong.
 
+### 15. reStructuredText: targeted rewrites, not an RST parser
+
+Griffe's sphinx parser structures field lists (`:param x:`, `:returns:`) but leaves
+everything else, directives and hyperlinks included, as raw text in `text` sections.
+`lib/rst.ts` rewrites only the constructs we recognise: admonition and `deprecated`
+directives become griffe `admonition`/`deprecated` sections; version notes and
+`code-block` become Markdown; `` `text <url>`_ `` becomes a Markdown link, all at
+`loadDump`. Everything
+else passes through to the host's processor (decision 7) untouched.
+
+Rejected alternatives. A full RST parser, in Python (docutils) or JavaScript
+(`rst-compiler`, the only maintained npm one; `restructured` and `rst2mdown` are
+abandoned): real docstrings mix Markdown with the odd role or `.. note::`, and parsing
+a whole docstring as RST misreads Markdown fences, `**bold**`, single-backtick code and
+`[title][path]` cross-references. Its output (HTML, or another Markdown dialect) also
+bypasses the host's pipeline, and `rst-compiler` covers none of Sphinx's directives
+(`versionadded`, `deprecated`, `seealso`), so a translation layer would still be needed
+on top. docutils would also need Python at build time, which `source.file`/`source.url`
+dumps and the test suite avoid (decision 3).
+
 ## Implementation decisions
 
 Finer-grained decisions, each answering a "why is it like this" the code alone does not.
@@ -445,7 +467,18 @@ Finer-grained decisions, each answering a "why is it like this" the code alone d
   brackets. Resolution order is the rendered package's symbol index, then the other
   configured packages', then the Sphinx inventories. Indented (four-space) code blocks
   are not detected as code: telling them from list continuations needs a block parser,
-  and griffe hands us dedented prose whose examples arrive fenced.
+  and griffe hands us dedented prose whose examples arrive fenced. Sphinx roles
+  (`:class:`Report``) are rewritten the same way, but resolve a bare name in the
+  scope of the docstring's object first (through the annotation resolver), as Sphinx
+  does, except `:mod:`, which Sphinx matches exactly. A role inside a link's text
+  stays code, since Markdown links cannot nest. `lib/markdown.ts` parses role content once for the rendered prose,
+  the plain-text briefs and `llms.txt`, which has no resolver and writes every role as code.
+- **Other reStructuredText markup is rewritten once, at `loadDump`** (decision 15),
+  unlike roles, which need the object's scope at render time. Admonition and
+  `deprecated` directives in a `text` section become real `admonition`/`deprecated`
+  sections, so they render and badge like their google equivalents; version notes, code
+  blocks and hyperlinks become Markdown in every prose field. Every consumer of the dump
+  (pages, briefs, llms.txt) then sees the same text and the same section indices.
 
 ## Griffe dump field names, as actually emitted (2.1.0)
 

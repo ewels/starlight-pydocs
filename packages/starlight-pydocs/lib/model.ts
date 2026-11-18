@@ -21,6 +21,7 @@ import path from 'node:path';
 import type { NormalisedFilters, NormalisedMembers, NormalisedSourceLink } from './config.ts';
 import { formatSourceLink } from './config.ts';
 import { PydocsError } from './errors.ts';
+import { parseSphinxRole, SPHINX_ROLE_PATTERN } from './markdown.ts';
 import type { AnnotationResolver, AnnotationResolverOptions } from './expr.ts';
 import { createAnnotationResolver, expressionToPath } from './expr.ts';
 import { isInside, matchesDottedGlob, moduleSlug, parentPath, safeHref, shortName } from './paths.ts';
@@ -786,10 +787,20 @@ function overloadsFrom(object: GriffeObject): GriffeFunction[] | undefined {
  * markdown parser.
  */
 function briefFrom(object: GriffeObject): string {
-  const sections = object.docstring?.parsed ?? [];
-  const text = sections.find((section): section is DocstringSectionText => section.kind === 'text');
-  const raw = typeof text?.value === 'string' ? text.value : (object.docstring?.value ?? '');
-  return stripMarkdown(firstLine(raw));
+  const parsed = object.docstring?.parsed;
+  const text = parsed?.find((section): section is DocstringSectionText => section.kind === 'text');
+  // Raw text only without parsed sections: with them, it holds the RST that `convertRst` rewrote.
+  const raw =
+    typeof text?.value === 'string' ? text.value : Array.isArray(parsed) ? '' : (object.docstring?.value ?? '');
+  // A role may wrap onto the next line, so roles go before the line is cut.
+  return stripMarkdown(firstLine(withoutSphinxRoles(raw)));
+}
+
+function withoutSphinxRoles(value: string): string {
+  return value.replace(
+    SPHINX_ROLE_PATTERN,
+    (_, domain: string | undefined, role: string, content: string) => parseSphinxRole(domain, role, content).text,
+  );
 }
 
 function firstLine(value: string): string {
@@ -821,7 +832,7 @@ function deprecationFrom(object: GriffeObject): DocDeprecation | undefined {
   for (const section of sections) {
     if (section.kind === 'deprecated') {
       const value = (section as DocstringSectionDeprecated).value;
-      return { version: value?.version, description: value?.description };
+      return { version: value?.version || undefined, description: value?.description };
     }
     if (section.kind === 'admonition') {
       const value = (section as DocstringSectionAdmonition).value;

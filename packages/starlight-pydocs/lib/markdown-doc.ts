@@ -8,6 +8,7 @@
  * Docstring prose is passed through verbatim; it is already Markdown.
  */
 
+import { resolveSphinxRoles } from './crossrefs.ts';
 import { annotationText } from './expr.ts';
 import type { DocObject, MemberGroup, PackageModel, PageModel } from './model.ts';
 import { overloadSignatureText, signatureText } from './signature.ts';
@@ -17,7 +18,6 @@ import type {
   DocstringNamedValue,
   DocstringSection,
   DocstringSectionAdmonition,
-  DocstringSectionDeprecated,
   DocstringSectionExamples,
   DocstringSectionNamedValues,
   DocstringSectionReferences,
@@ -43,8 +43,8 @@ export function renderPageMarkdown(page: PageModel, options: MarkdownDocOptions 
     lines.push('');
   }
 
-  return `${lines
-    .join('\n')
+  // No resolver here: roles become code, as the pages show them when the target is unknown.
+  return `${resolveSphinxRoles(lines.join('\n'), undefined, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim()}\n`;
 }
@@ -277,11 +277,9 @@ function renderSection(section: DocstringSection, lines: string[], options: Mark
       return;
     }
 
-    case 'deprecated': {
-      const value = (section as DocstringSectionDeprecated).value;
-      pushDeprecation(value?.version, value?.description, lines, options);
+    case 'deprecated':
+      // The deprecation line above already carries this content.
       return;
-    }
 
     case 'functions':
     case 'classes':
