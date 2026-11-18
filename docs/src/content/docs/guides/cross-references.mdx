@@ -58,6 +58,31 @@ The plugin passes docstring prose through to
 than a resolved URL.
 :::
 
+### Sphinx roles
+
+Docstrings written for Sphinx reference objects with roles instead, and those link too:
+
+```python
+def generate_report(source, /, name: str, *, fmt: str = "md") -> Report:
+    """Build a :class:`Report` and call :meth:`~Report.generate` on it.
+
+    Raises :exc:`ValueError` when ``fmt`` is unknown.
+    """
+```
+
+- A Python object role (`:class:`, `:func:`, `:meth:`, `:attr:`, `:exc:`, `:mod:`, `:data:`,
+  `:const:`, `:obj:`, `:type:`, with or without the `py:` domain) renders as code, linked when
+  its target resolves.
+- A bare name resolves as it would in the source of the object that holds the docstring, the
+  way annotations resolve: so `Report` above finds `mypkg.report.Report`. A dotted path
+  resolves as a cross-reference does, inventories included.
+- Sphinx's target syntax works: `~a.b.C` shows only `C`, `title <target>` sets the text,
+  `!target` shows the code without a link, and a trailing `()` is not part of the target.
+- A target that does not resolve stays as code, without its role.
+- A prose role, such as `:ref:`, `:doc:` or `:term:`, points at something this plugin cannot
+  see, so only its text is kept; ``:pep:`8` `` reads "PEP 8". Any other role, such as `:file:`,
+  `:kbd:` or `:c:func:`, renders as code.
+
 ## Linked annotations
 
 Griffe serialises annotations as expression trees. Every name in one is a bare source name:

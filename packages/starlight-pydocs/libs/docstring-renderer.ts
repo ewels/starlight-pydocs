@@ -20,10 +20,11 @@
 import type { AstroConfig } from 'astro';
 
 import { writeAtomic } from '../lib/cache.ts';
+import type { DocstringStyle } from '../lib/config.ts';
 import type { CrossReferenceResolver } from '../lib/crossrefs.ts';
-import { resolveCrossReferences } from '../lib/crossrefs.ts';
+import { resolveCrossReferences, resolveSphinxRoles } from '../lib/crossrefs.ts';
 import { loadDump } from '../lib/data.ts';
-import { assembleRenderedDocstrings, collectDocstringMarkdown } from '../lib/docstrings.ts';
+import { assembleRenderedDocstrings, collectDocstringMarkdown, findUnparsedSections } from '../lib/docstrings.ts';
 import { errorMessage, PydocsError } from '../lib/errors.ts';
 import type { PydocsLogger } from '../lib/logger.ts';
 import { silentLogger } from '../lib/logger.ts';
@@ -103,19 +104,24 @@ export async function resolveDocstringRenderer(markdown: AstroConfig['markdown']
  * What starlight-codeblocks' public registry says about the site, or undefined
  * when the site does not use it. The registry only exists after every plugin's
  * `config:setup`, so call this at `astro:config:done` or later.
+ *
+ * @param hasCodeblocks Whether that hook's `config.integrations` holds
+ *   `starlight-codeblocks`. The registry is a global, so it outlives an
+ *   in-place `astro dev` restart that removed codeblocks.
  */
-export function detectCodeblocks(pydocsBase?: string): CodeblocksMarkup | undefined {
-  const registry = codeblocksRegistry();
+export function detectCodeblocks(hasCodeblocks: boolean, pydocsBase?: string): CodeblocksMarkup | undefined {
+  const registry = codeblocksRegistry(hasCodeblocks);
   if (registry === undefined) return undefined;
   return { inlineLanguage: registry.options?.inlineHighlighting ? 'py' : undefined, pydocsBase };
 }
 
-/** True when starlight-codeblocks shows its hover card on API links. Same timing rule as {@link detectCodeblocks}. */
-export function detectApiCards(): boolean {
-  return Boolean(codeblocksRegistry()?.options?.apiLinks);
+/** True when starlight-codeblocks shows its hover card on API links. Same rules as {@link detectCodeblocks}. */
+export function detectApiCards(hasCodeblocks: boolean): boolean {
+  return Boolean(codeblocksRegistry(hasCodeblocks)?.options?.apiLinks);
 }
 
-function codeblocksRegistry() {
+function codeblocksRegistry(hasCodeblocks: boolean) {
+  if (!hasCodeblocks) return undefined;
   return (globalThis as { [key: symbol]: unknown })[Symbol.for('starlight-codeblocks')] as
     { options?: { inlineHighlighting?: unknown; apiLinks?: unknown } } | undefined;
 }
@@ -136,6 +142,11 @@ export interface RenderDocstringsOptions {
   crossReferences?: CrossReferenceResolver | undefined;
   /** starlight-codeblocks markup to add, when the site uses that plugin. */
   codeblocks?: CodeblocksMarkup | undefined;
+  /**
+   * The package's base and docstring style, to warn about sections in another
+   * style, and the canonical paths of the objects it documents.
+   */
+  styleCheck?: { base: string; docstringStyle: DocstringStyle; rendered: ReadonlySet<string> } | undefined;
   logger?: PydocsLogger | undefined;
 }
 
@@ -152,6 +163,20 @@ export async function renderDocstringsForDump(options: RenderDocstringsOptions):
   const items = collectDocstringMarkdown(await loadDump(options.dumpPath));
   const crossReferences = options.crossReferences;
 
+  if (options.styleCheck !== undefined) {
+    const { base, docstringStyle, rendered } = options.styleCheck;
+    for (const found of findUnparsedSections(items, docstringStyle, rendered)) {
+      const subject = found.count === 1 ? '1 docstring' : `${String(found.count)} docstrings`;
+      logger.warn(
+        `${subject} in '/${base}' ${found.count === 1 ? 'has' : 'have'} ${found.style}-style sections that the ` +
+          `'${docstringStyle}' parser left as plain text, such as ${found.examples.join(', ')}. ` +
+          (docstringStyle === 'auto'
+            ? 'Write each of these docstrings in one style.'
+            : `Set docstringStyle to '${found.style}' or 'auto', or fix the docstrings.`),
+      );
+    }
+  }
+
   const html: string[] = [];
   for (let start = 0; start < items.length; start += RENDER_BATCH) {
     const batch = items.slice(start, start + RENDER_BATCH);
@@ -160,8 +185,11 @@ export async function renderDocstringsForDump(options: RenderDocstringsOptions):
         batch.map(async (item) => {
           // Cross-references become ordinary Markdown links before the
           // processor sees them; nothing downstream knows they were special.
-          const resolved =
-            crossReferences === undefined ? item.markdown : resolveCrossReferences(item.markdown, crossReferences);
+          const resolved = resolveSphinxRoles(
+            crossReferences === undefined ? item.markdown : resolveCrossReferences(item.markdown, crossReferences),
+            crossReferences,
+            item.objectPath,
+          );
           const markdown =
             options.codeblocks === undefined ? resolved : addCodeblocksMarkup(resolved, options.codeblocks);
           try {

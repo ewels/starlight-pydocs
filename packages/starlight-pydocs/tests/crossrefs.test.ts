@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { createCrossReferenceResolver, resolveCrossReferences } from '../lib/crossrefs.ts';
+import { createCrossReferenceResolver, resolveCrossReferences, resolveSphinxRoles } from '../lib/crossrefs.ts';
 import { fixtureModel } from './helpers.ts';
 
 /** Resolves the two paths the tests use, and nothing else. */
@@ -169,5 +169,130 @@ describe('createCrossReferenceResolver', () => {
     const resolver = createCrossReferenceResolver({ models: [model], siteBase: '', trailingSlash: 'always' });
     expect(resolver('  demopkg.report.Report  ')).toBe('/api/demopkg/report/#demopkg.report.Report');
     expect(resolver('   ')).toBeUndefined();
+  });
+
+  test('resolves a bare name in the scope of the object that holds the docstring', async () => {
+    const model = await fixtureModel('demopkg');
+    const resolver = createCrossReferenceResolver({
+      models: [model],
+      siteBase: '',
+      trailingSlash: 'always',
+      scopes: model.scopes,
+      lookupExternal: (path) => (path === 'pathlib.Path' ? 'https://docs.python.org/3/pathlib.html' : undefined),
+    });
+
+    expect(resolver('Report', 'demopkg.report.generate_report')).toBe('/api/demopkg/report/#demopkg.report.Report');
+    // `pathlib` is imported in that module, so `pathlib.Path` goes through the inventory.
+    expect(resolver('pathlib.Path', 'demopkg.report.generate_report')).toBe('https://docs.python.org/3/pathlib.html');
+    // Without a scope, a bare name means nothing.
+    expect(resolver('Report')).toBeUndefined();
+  });
+
+  test('falls back to builtins in scope, as annotations do', async () => {
+    const model = await fixtureModel('demopkg');
+    const resolver = createCrossReferenceResolver({
+      models: [model],
+      siteBase: '',
+      trailingSlash: 'always',
+      scopes: model.scopes,
+      lookupExternal: (path) => (path === 'builtins.ValueError' ? 'https://docs.python.org/3/exc.html' : undefined),
+    });
+    expect(resolver('ValueError', 'demopkg.report.generate_report')).toBe('https://docs.python.org/3/exc.html');
+  });
+});
+
+describe('resolveSphinxRoles', () => {
+  const scope = 'demopkg.report.generate_report';
+  /** Resolves `Report` in {@link scope} and `pathlib.Path` anywhere. */
+  const scoped = (target: string, scopePath?: string): string | undefined =>
+    target === 'Report' && scopePath === scope ? '/api/demopkg/report/#demopkg.report.Report' : resolve(target);
+
+  test('links a Python object role in the scope of its docstring', () => {
+    expect(resolveSphinxRoles('Returns a :class:`Report`.', scoped, scope)).toBe(
+      'Returns a [`Report`](/api/demopkg/report/#demopkg.report.Report).',
+    );
+  });
+
+  test('accepts the py domain and resolves through the inventories', () => {
+    expect(resolveSphinxRoles('Writes a :py:class:`pathlib.Path`.', scoped, scope)).toBe(
+      'Writes a [`pathlib.Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path).',
+    );
+  });
+
+  test('follows the tilde, explicit-title, bang and leading-dot forms', () => {
+    expect(resolveSphinxRoles(':class:`~pathlib.Path`', scoped, scope)).toBe(
+      '[`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)',
+    );
+    expect(resolveSphinxRoles(':class:`a path <pathlib.Path>`', scoped, scope)).toBe(
+      '[`a path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)',
+    );
+    expect(resolveSphinxRoles(':class:`!pathlib.Path`', scoped, scope)).toBe('`pathlib.Path`');
+    expect(resolveSphinxRoles(':class:`.Report`', scoped, scope)).toBe(
+      '[`Report`](/api/demopkg/report/#demopkg.report.Report)',
+    );
+  });
+
+  test('keeps an unresolved Python role as a code span', () => {
+    expect(resolveSphinxRoles('Raises :exc:`NoSuchError` or calls :meth:`Context.scope`.', scoped, scope)).toBe(
+      'Raises `NoSuchError` or calls `Context.scope`.',
+    );
+    expect(resolveSphinxRoles('See :func:`echo`.', undefined, scope)).toBe('See `echo`.');
+  });
+
+  test('keeps only the text of a prose role, and shows other roles as code', () => {
+    expect(resolveSphinxRoles('See :ref:`the guide <guide>` and :doc:`intro`.', scoped, scope)).toBe(
+      'See the guide and intro.',
+    );
+    expect(resolveSphinxRoles('See :ref:`__init__ <init>`.', scoped, scope)).toBe('See \\_\\_init\\_\\_.');
+    expect(resolveSphinxRoles('Follows :pep:`8`.', scoped, scope)).toBe('Follows PEP 8.');
+    expect(resolveSphinxRoles('A :c:func:`malloc` call in :file:`__init__.py`.', scoped, scope)).toBe(
+      'A `malloc` call in `__init__.py`.',
+    );
+  });
+
+  test('keeps angle brackets in a literal role', () => {
+    expect(resolveSphinxRoles('Reads :file:`/etc/<name>` and :code:`Vec<T>`.', scoped, scope)).toBe(
+      'Reads `/etc/<name>` and `Vec<T>`.',
+    );
+  });
+
+  test('resolves a :mod: target exactly, not in scope', () => {
+    const scopes: (string | undefined)[] = [];
+    resolveSphinxRoles(':mod:`json` and :meth:`json`', (_target, scopePath) => void scopes.push(scopePath), scope);
+    expect(scopes).toEqual([undefined, scope]);
+  });
+
+  test('keeps a role in link text as code, so links do not nest', () => {
+    expect(resolveSphinxRoles('[:class:`Report`](/x) and [:class:`Report`][]', scoped, scope)).toBe(
+      '[`Report`](/x) and [`Report`][]',
+    );
+  });
+
+  test('drops the call parentheses from the target, and reads a role that wraps', () => {
+    expect(resolveSphinxRoles(':meth:`~Report.generate()`', (target) => resolve(target), scope)).toBe('`generate()`');
+    expect(resolveSphinxRoles(':class:`~pathlib.Path()`', scoped, scope)).toBe(
+      '[`Path()`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)',
+    );
+    expect(resolveSphinxRoles(':class:`the\nreport <Report>`', scoped, scope)).toBe(
+      '[`the report`](/api/demopkg/report/#demopkg.report.Report)',
+    );
+    expect(resolveSphinxRoles(':class:`a\n\nb`', scoped, scope)).toBe(':class:`a\n\nb`');
+  });
+
+  test('leaves an escaped role alone, but not one after an escaped backslash', () => {
+    expect(resolveSphinxRoles('\\:class:`Report`', scoped, scope)).toBe('\\:class:`Report`');
+    expect(resolveSphinxRoles('\\\\:class:`Report`', scoped, scope)).toBe(
+      '\\\\[`Report`](/api/demopkg/report/#demopkg.report.Report)',
+    );
+  });
+
+  test('leaves roles inside code alone', () => {
+    const source = ['Use ``:class:`Report` `` to link.', '', '```rst', ':class:`Report`', '```'].join('\n');
+    expect(resolveSphinxRoles(source, scoped, scope)).toBe(source);
+  });
+
+  test('leaves field lists and other colons alone', () => {
+    const source = ':param silent: if set, returns `None`. Time is 10:30 and `a:b` stays.';
+    expect(resolveSphinxRoles(source, scoped, scope)).toBe(source);
   });
 });

@@ -80,7 +80,7 @@ Class hooks are stable and prefixed `pyd-`. The ones worth knowing:
 | `.pyd-provenance`, `.pyd-source-link` | The line under a heading                                 |
 | `.pyd-section`, `.pyd-section-title`  | One docstring section and its heading                    |
 | `.pyd-params`, `.pyd-summary-table`   | Parameter tables and member summaries                    |
-| `.pyd-aside`                          | An admonition (`--tip`, `--caution`, `--danger`)         |
+| `.pyd-aside`                          | An admonition, without Starlight (`--tip`, `--caution`, `--danger`) |
 | `.pyd-inherited`                      | The `<details>` block of members from a base class       |
 | `.pyd-search…`                        | The symbol search element and its results                |
 | `.pyd-page`, `.pyd-toc`               | The built-in vanilla layout and its table of contents    |
@@ -89,6 +89,10 @@ For anything more selective, use the data attributes instead. They use the model
 `[data-pydocs-kind="class"]`, `[data-pydocs-path="mypkg.Report"]`,
 `[data-pydocs-group="methods"]`, `[data-pydocs-section="parameters"]`,
 `[data-pydocs-badge="deprecated"]` and `[data-pydocs-aside="note"]`.
+
+On a Starlight site, admonitions and deprecation notices use Starlight's own aside markup
+(`.starlight-aside`), so they look exactly like the asides in your pages and follow any theme that
+restyles them. Select them with `[data-pydocs-aside]`, which works on both hosts.
 
 ## Tokens
 

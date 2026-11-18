@@ -4,6 +4,13 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 
 ## Unreleased
 
+- ✨ Sphinx roles in docstring prose, such as ``:class:`Report` `` and ``:meth:`~Report.generate` ``, render as code and link to their target, resolved in the scope of the object the docstring belongs to. Prose roles that name nothing linkable, such as `:ref:`, keep their text, and other roles, such as `:file:`, render as code. Summaries in member tables, search and `objects.inv` show the role's text without the role, and `llms.txt` shows it as code.
+- ✨ A build warning when docstrings hold sections in another style than `docstringStyle`, such as `:param name:` fields under the google parser. These sections render as plain text, so before this the only sign was a page with no parameter table.
+- ✨ reStructuredText directives and hyperlinks in docstring prose render. `.. note::`, `.. warning::` and the other admonition directives become asides, `.. deprecated::` adds the deprecation badge and notice, `.. versionadded::`, `.. versionchanged::` and `.. versionremoved::` become a line in Sphinx's wording, and `.. code-block::` becomes a fenced code block. `` `text <url>`_ `` becomes a link.
+- 🐛 Pressing Enter in symbol search before choosing a result with the arrow keys now opens the first result, instead of doing nothing.
+- 🐛 A class's `__init__` docstring now shows under the class, after the class's own docstring, as mkdocstrings' `merge_init_into_class` does. The default filters hide `__init__`, so before this its `Args:` section never rendered. A deprecation in `__init__` stays on `__init__`, because it usually deprecates an argument, not the class.
+- 🐛 On Starlight sites, docstring admonitions and deprecation notices now use Starlight's own aside markup, so they look exactly like Starlight's asides, icons included, and follow themes that restyle them. Sites without Starlight keep the plain `.pyd-aside`.
+- 🐛 Fixed raw `{:py}` suffixes on inline code in docstrings after you remove starlight-codeblocks from the config of a running `astro dev`. pydocs now uses the starlight-codeblocks registry only when the plugin is in the current config.
 - 🐛 Fixed names that a package re-exports without `__all__`, such as `click.command` after `import rich_click as click`, not linking from code blocks. The member filters leave these re-exports off the pages (`imported: false`), but they now link to the page of the object they name.
 
 ## v0.3.0 (2026-10-05)

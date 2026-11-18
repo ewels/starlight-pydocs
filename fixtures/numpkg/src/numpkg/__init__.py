@@ -10,13 +10,6 @@ __all__ = ["Grid", "resample"]
 class Grid:
     """A rectangular grid of samples.
 
-    Parameters
-    ----------
-    width : int
-        Number of columns.
-    height : int
-        Number of rows.
-
     Attributes
     ----------
     width : int
@@ -26,6 +19,15 @@ class Grid:
     """
 
     def __init__(self, width: int, height: int) -> None:
+        """Make an empty grid.
+
+        Parameters
+        ----------
+        width : int
+            Number of columns.
+        height : int
+            Number of rows.
+        """
         self.width = width
         self.height = height
 

@@ -15,6 +15,8 @@
  * the definition's prose, so components look up `doc.canonicalPath`.
  */
 
+import type { DocstringStyle } from './config.ts';
+import { codeRanges } from './crossrefs.ts';
 import { prepareDoctestMarkdown } from './markdown.ts';
 import type {
   DocstringSection,
@@ -28,7 +30,7 @@ import type {
   GriffeDump,
   GriffeObject,
 } from './types.ts';
-import { memberList } from './types.ts';
+import { initOf, isDeprecationSection, memberList } from './types.ts';
 
 /** Where one rendered string belongs inside a section. */
 export type DocstringSlot = 'body' | 'entry' | 'block' | 'deprecated';
@@ -85,6 +87,32 @@ const ENTRY_SECTION_KINDS = new Set([
 ]);
 
 type EntrySection = DocstringSectionNamedValues | DocstringSectionThrown | DocstringSectionReferences;
+
+/**
+ * Move each class's own `__init__` docstring sections onto the end of the class
+ * docstring, in place, as mkdocstrings' `merge_init_into_class` does. Moved, not
+ * copied, so a site that lists dunder members does not show them twice. It runs as
+ * the dump loads, so the model and the rendered prose agree on section indices. A
+ * deprecation stays on `__init__`: it usually deprecates an argument, not the class.
+ * `value` stays the raw source text of each docstring.
+ */
+export function mergeInitDocstrings(dump: GriffeDump): GriffeDump {
+  const visit = (object: GriffeObject): void => {
+    const init = initOf(object)?.docstring;
+    const sections = init?.parsed?.filter((section) => !isDeprecationSection(section)) ?? [];
+    if (init && sections.length > 0) {
+      init.parsed = init.parsed?.filter(isDeprecationSection) ?? null;
+      object.docstring = {
+        value: object.docstring?.value ?? '',
+        ...object.docstring,
+        parsed: [...(object.docstring?.parsed ?? []), ...sections],
+      };
+    }
+    for (const member of memberList(object)) visit(member);
+  };
+  for (const entry of Object.values(dump)) visit(entry);
+  return dump;
+}
 
 /**
  * Every Markdown string in a dump that needs rendering.
@@ -217,6 +245,91 @@ export function assembleRenderedDocstrings(items: DocstringMarkdownItem[], html:
   });
 
   return { objects };
+}
+
+// -- Style mismatches ------------------------------------------------------
+
+type SectionStyle = Exclude<DocstringStyle, 'auto'>;
+
+/** Section markup of each style. A match in prose means the parser did not read it. */
+const STYLE_MARKERS: Record<SectionStyle, RegExp> = {
+  sphinx:
+    /^[ \t]*:(?:param|parameter|arg|argument|key|keyword|type|raises?|except|exception|returns?|rtype|yields?|ytype|var|ivar|cvar|vartype)\b[^:\n]*:/m,
+  // A numpy header with its underline, or an underline that opens the prose: under
+  // google, griffe reads `Args:` as a header and leaves the `----` below it. Anywhere
+  // else, an underline is a Markdown heading. So are prose headers such as `Notes`.
+  numpy:
+    /(?:^|\n)[ \t]*(?:Parameters|Other Parameters|Returns|Yields|Receives|Raises|Warns|Attributes)[ \t]*\n[ \t]*-{3,}[ \t]*(?:\n|$)|^\s*-{3,}[ \t]*\n[ \t]+\S/,
+  google:
+    /^[ \t]*(?:Args|Arguments|Parameters|Params|Keyword Args|Keyword Arguments|Returns?|Raises|Yields?|Attributes):[ \t]*\n[ \t]+\S/m,
+};
+
+export interface UnparsedSections {
+  style: SectionStyle;
+  /** Number of objects with prose that holds this style's sections. */
+  count: number;
+  /** Up to three of those objects, in dump order. */
+  examples: string[];
+}
+
+/**
+ * Find docstring sections the configured parser left as prose, because they use
+ * another style. Their parameters and return values then render as plain text.
+ *
+ * @param items - What `collectDocstringMarkdown` returned.
+ * @param style - The style griffe parsed with.
+ * @param rendered - Canonical paths of the objects the site documents; others are not checked.
+ */
+export function findUnparsedSections(
+  items: DocstringMarkdownItem[],
+  style: DocstringStyle,
+  rendered?: ReadonlySet<string>,
+): UnparsedSections[] {
+  const found = new Map<SectionStyle, Set<string>>();
+  for (const item of items) {
+    if (item.slot !== 'body' || rendered?.has(item.objectPath) === false) continue;
+    const prose = withoutCode(item.markdown);
+    for (const [marker, pattern] of Object.entries(STYLE_MARKERS) as [SectionStyle, RegExp][]) {
+      if (marker === style || !pattern.test(prose)) continue;
+      const paths = found.get(marker) ?? new Set<string>();
+      paths.add(item.objectPath);
+      found.set(marker, paths);
+    }
+  }
+  return [...found].map(([marker, paths]) => ({ style: marker, count: paths.size, examples: [...paths].slice(0, 3) }));
+}
+
+function withoutCode(markdown: string): string {
+  let prose = '';
+  let cursor = 0;
+  for (const range of codeRanges(markdown)) {
+    prose += markdown.slice(cursor, range.start);
+    cursor = range.end;
+  }
+  return withoutIndentedCode(prose + markdown.slice(cursor));
+}
+
+/**
+ * Blank out indented code: lines indented four spaces or a tab, after a blank line.
+ *
+ * ponytail: a list item's indented continuation is blanked too, so a section
+ * pasted inside a list goes unreported.
+ */
+function withoutIndentedCode(markdown: string): string {
+  let afterBlank = true;
+  let inCode = false;
+  return markdown
+    .split('\n')
+    .map((line) => {
+      if (line.trim() === '') {
+        afterBlank = true;
+        return line;
+      }
+      inCode = /^(?: {4}|\t)/.test(line) && (afterBlank || inCode);
+      afterBlank = false;
+      return inCode ? '' : line;
+    })
+    .join('\n');
 }
 
 // -- Accessors -------------------------------------------------------------

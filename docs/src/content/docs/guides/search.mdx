@@ -106,8 +106,8 @@ dotted path is matched, `report.gen` finds `demopkg.report.generate_report`. The
 at most 25 results, grouped by kind, using the same translated kind labels as the badges.
 
 You can operate the element with the keyboard: <kbd>ArrowDown</kbd> and <kbd>ArrowUp</kbd>
-move through the results, <kbd>Enter</kbd> follows the active result, and <kbd>Escape</kbd>
-closes the list. It is a combobox with `aria-expanded`, `aria-activedescendant`, and one
+move through the results, <kbd>Enter</kbd> follows the active result (or the first result,
+when none is active), and <kbd>Escape</kbd> closes the list. It is a combobox with `aria-expanded`, `aria-activedescendant`, and one
 `role="option"` per result. It defines itself once and queries only its own subtree, so
 several boxes can appear on one page, and Astro's view transitions still work.
 

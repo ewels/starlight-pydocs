@@ -1,8 +1,12 @@
+import fs from 'node:fs/promises';
+
 import { beforeAll, describe, expect, test } from 'vitest';
 
 import { renderPackageMarkdown, renderPageMarkdown } from '../lib/markdown-doc.ts';
+import { buildModel } from '../lib/model.ts';
 import type { PackageModel, PageModel } from '../lib/model.ts';
-import { fixtureModel } from './helpers.ts';
+import type { GriffeDump } from '../lib/types.ts';
+import { fixtureModel, modelOptions, testFixturePath } from './helpers.ts';
 
 let demopkg: PackageModel;
 
@@ -104,6 +108,17 @@ describe('renderPageMarkdown', () => {
     expect(markdown).toContain('**Arguments**');
     expect(markdown).toContain('Extends: `demopkg.report.BaseReport`');
     expect(markdown).not.toContain('**Parameters**');
+  });
+
+  test('Sphinx roles become code, outside code blocks only', async () => {
+    const dump = JSON.parse(await fs.readFile(testFixturePath('synthetic.dump.json'), 'utf8')) as GriffeDump;
+    const value = 'Wraps :class:`~click.testing.CliRunner`.\n\n```rst\n:meth:`kept`\n```';
+    const own = dump['ovpkg']?.members?.['A']?.members?.['own'];
+    if (own === undefined) throw new Error('fixture lost ovpkg.A.own');
+    own.docstring = { value, parsed: [{ kind: 'text', value }] };
+    const markdown = renderPackageMarkdown(buildModel(dump, modelOptions('ovpkg', { base: 'api/ovpkg' })));
+    expect(markdown).toContain('Wraps `CliRunner`.');
+    expect(markdown).toContain('```rst\n:meth:`kept`\n```');
   });
 
   test('never leaves more than one blank line behind', () => {
