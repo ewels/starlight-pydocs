@@ -6,16 +6,16 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 
 ## v0.4.0 (2026-11-18)
 
-- ✨ reStructuredText in docstring prose. `.. note::`, `.. warning::` and the other admonition directives become asides, `.. deprecated::` adds the deprecation badge and notice, `.. versionadded::`, `.. versionchanged::` and `.. versionremoved::` become a line in Sphinx's wording, `.. code-block::` becomes a fenced code block, and `` `text <url>`_ `` becomes a link.
-- ✨ Sphinx roles in docstring prose, such as ``:class:`Report` `` and ``:meth:`~Report.generate` ``, render as code and link to their target, resolved in the scope of the docstring's object. Roles that name nothing linkable, such as `:ref:`, keep their text, and other roles, such as `:file:`, render as code. Member table summaries, search and `objects.inv` show the role's text without the role, and `llms.txt` shows it as code.
-- ✨ A build warning when docstrings hold sections in another style than `docstringStyle`, such as `:param name:` fields under the google parser. These sections render as plain text, so before this the only sign was a page with no parameter table.
-- ✨ Hover cards on type links show the project's logo before the source line, as cards in code blocks do: Python, NumPy or Click, for example. The logos come from Simple Icons, plus 12 traced for Python projects it lacks, such as Click, attrs, xarray and rich-click.
-- 🐛 Fixed a class's `__init__` docstring never rendering: the default filters hide `__init__`, so its `Args:` section was lost. It now shows under the class, after the class's own docstring, as mkdocstrings' `merge_init_into_class` does. A deprecation in `__init__` stays on `__init__`, because it usually deprecates an argument, not the class.
-- 🐛 Fixed parameter tables pushing the description column out of view. When the content column is narrower than 40rem, each parameter shows as one line, `name: type = default`, with its description underneath. Wider tables wrap inline code in descriptions, and a table that must still scroll shows a shadow at its edge (on Starlight sites it scrolls inside its own box).
-- 🐛 Docstring admonitions and deprecation notices on Starlight sites now use Starlight's own aside markup, so they match Starlight's asides, icons included, and follow themes that restyle them. Sites without Starlight keep the plain `.pyd-aside`.
-- 🐛 Fixed names that a package re-exports without `__all__`, such as `click.command` after `import rich_click as click`, not linking from code blocks. The member filters still leave these re-exports off the pages (`imported: false`), but they now link to the page of the object they name.
-- 🐛 Fixed Enter in symbol search doing nothing until a result was chosen with the arrow keys. It now opens the first result.
-- 🐛 Fixed raw `{:py}` suffixes on inline code in docstrings after removing starlight-codeblocks from the config of a running `astro dev`. pydocs now uses the starlight-codeblocks registry only when the plugin is in the current config.
+- ✨ reStructuredText directives (`.. note::`, `.. deprecated::`, `.. versionadded::`, `.. code-block::`…) and hyperlinks render in docstring prose ([#7](https://github.com/ewels/starlight-pydocs/pull/7))
+- ✨ Sphinx roles such as ``:class:`Report` `` render as code and link to their target ([#6](https://github.com/ewels/starlight-pydocs/pull/6))
+- ✨ Build warning when docstring sections don't match `docstringStyle` ([#6](https://github.com/ewels/starlight-pydocs/pull/6))
+- ✨ Project logos on type-link hover cards ([#13](https://github.com/ewels/starlight-pydocs/pull/13))
+- 🐛 A class's `__init__` docstring now renders under the class, as in mkdocstrings ([#8](https://github.com/ewels/starlight-pydocs/pull/8))
+- 🐛 Parameter tables stay readable in narrow content columns ([#11](https://github.com/ewels/starlight-pydocs/pull/11))
+- 🐛 Docstring asides use Starlight's own aside markup on Starlight sites ([#9](https://github.com/ewels/starlight-pydocs/pull/9))
+- 🐛 Names re-exported without `__all__` now link from code blocks ([#12](https://github.com/ewels/starlight-pydocs/pull/12))
+- 🐛 Enter in symbol search opens the first result ([#6](https://github.com/ewels/starlight-pydocs/pull/6))
+- 🐛 No more raw `{:py}` on inline code after removing starlight-codeblocks during `astro dev` ([#10](https://github.com/ewels/starlight-pydocs/pull/10))
 
 ## v0.3.0 (2026-10-05)
 
