@@ -9,6 +9,7 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 - ✨ reStructuredText directives and hyperlinks in docstring prose render. `.. note::`, `.. warning::` and the other admonition directives become asides, `.. deprecated::` adds the deprecation badge and notice, `.. versionadded::`, `.. versionchanged::` and `.. versionremoved::` become a line in Sphinx's wording, and `.. code-block::` becomes a fenced code block. `` `text <url>`_ `` becomes a link.
 - 🐛 Pressing Enter in symbol search before choosing a result with the arrow keys now opens the first result, instead of doing nothing.
 - 🐛 A class's `__init__` docstring now shows under the class, after the class's own docstring, as mkdocstrings' `merge_init_into_class` does. The default filters hide `__init__`, so before this its `Args:` section never rendered. A deprecation in `__init__` stays on `__init__`, because it usually deprecates an argument, not the class.
+- 🐛 On Starlight sites, docstring admonitions and deprecation notices now use Starlight's own aside markup, so they look exactly like Starlight's asides, icons included, and follow themes that restyle them. Sites without Starlight keep the plain `.pyd-aside`.
 
 ## v0.3.0 (2026-10-05)
 
