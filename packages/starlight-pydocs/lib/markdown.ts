@@ -8,6 +8,8 @@
  * live here, where they can be unit tested without an engine at all.
  */
 
+import { shortName } from './paths.ts';
+
 /** Matches HTML that is a single paragraph and nothing else. */
 const SINGLE_PARAGRAPH = /^<p>([\s\S]*)<\/p>$/;
 
@@ -117,4 +119,69 @@ export function addCodeblocksMarkup(markdown: string, { inlineLanguage, pydocsBa
       );
     })
     .join('\n');
+}
+
+/** `:role:`content``, with an optional domain such as `:py:class:`. Content may wrap, but not across a blank line. */
+export const SPHINX_ROLE_PATTERN = /(?<![\w:`]):(?:([a-z]+):)?([a-z][a-z0-9-]*):`((?:[^`\n]|\n(?![ \t]*\n))+)`/g;
+
+/** The Python domain's object roles: the ones that name something to link to. */
+const PYTHON_ROLES = new Set(['mod', 'func', 'data', 'const', 'class', 'meth', 'attr', 'exc', 'obj', 'type']);
+
+/** Standard roles Sphinx renders as prose; every other role renders as code. */
+const TEXT_ROLES = new Set(['ref', 'doc', 'term', 'numref', 'download', 'abbr', 'dfn', 'guilabel', 'menuselection']);
+
+/** Standard roles that show their content as written: `Vec<T>` is code, not a `title <target>`. */
+const UNTITLED_ROLES = new Set([
+  'code',
+  'literal',
+  'file',
+  'samp',
+  'kbd',
+  'command',
+  'program',
+  'math',
+  'mimetype',
+  'makevar',
+  'regexp',
+  'manpage',
+  'abbr',
+  'dfn',
+  'guilabel',
+  'menuselection',
+]);
+
+export interface SphinxRole {
+  /** What Sphinx shows. */
+  text: string;
+  /** `object` names a Python object and `literal` shows as code; `text` is prose. */
+  kind: 'object' | 'literal' | 'text';
+  /** The object to link to; absent for other roles and for `!target`. */
+  target?: string | undefined;
+}
+
+/**
+ * Read a role as Sphinx does: `title <target>` sets the text, `~a.b.C` shows
+ * only `C`, `!target` suppresses the link, and a leading `.` and trailing `()`
+ * are not part of the target.
+ */
+export function parseSphinxRole(domain: string | undefined, role: string, content: string): SphinxRole {
+  const normalised = content.replace(/\s+/g, ' ').trim();
+  const explicit = domain === undefined && UNTITLED_ROLES.has(role) ? null : /^(.+?)\s*<([^<>]+)>$/s.exec(normalised);
+  const title = explicit?.[1];
+  let target = explicit?.[2] ?? normalised;
+
+  if ((domain === undefined || domain === 'py') && PYTHON_ROLES.has(role)) {
+    const noLink = target.startsWith('!');
+    if (noLink) target = target.slice(1);
+    const short = target.startsWith('~');
+    if (short) target = target.slice(1);
+    target = target.replace(/^\./, '');
+    const text = title ?? (short ? shortName(target) : target);
+    return { text, kind: 'object', target: noLink ? undefined : target.replace(/\(\)$/, '') };
+  }
+  if (domain === undefined && (role === 'pep' || role === 'rfc')) {
+    return { text: title ?? `${role.toUpperCase()} ${target}`, kind: 'text' };
+  }
+  const prose = domain === undefined && TEXT_ROLES.has(role);
+  return { text: title ?? target, kind: prose ? 'text' : 'literal' };
 }

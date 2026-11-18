@@ -36,6 +36,15 @@ test('the package page lists its submodules', async ({ page }) => {
   await expect(page.locator('h1.pyd-page-title')).toHaveText('demopkg.utils');
 });
 
+test('asides use the plain pyd-aside markup, with no Starlight classes', async ({ page }) => {
+  await page.goto('api/demopkg/report/');
+
+  const note = member(page, 'demopkg.report.Report.generate').locator('[data-pydocs-aside]');
+  await expect(note).toHaveClass(/\bpyd-aside pyd-aside--note\b/);
+  await expect(note).not.toHaveClass(/starlight-aside/);
+  await expect(note.locator('.pyd-aside-title')).toHaveText('Note');
+});
+
 test('docstring prose is rendered HTML, through the unified pipeline', async ({ page }) => {
   await page.goto('api/demopkg/report/');
 

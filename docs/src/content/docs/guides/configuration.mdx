@@ -173,8 +173,9 @@ unique: the same import name can be documented at several bases, one per release
 `filters` defaults to `{ special: false, private: false, imported: false, inherited: true }`, and
 runs before `members`:
 
-- `special` documents dunder members such as `__init__` as separate entries (their parameters are
-  merged into the class signature either way).
+- `special` documents dunder members such as `__init__` as separate entries. Either way, the
+  parameters of `__init__` are merged into the class signature, and its docstring sections, such as
+  `Args:`, move to the class docstring. A deprecation stays on `__init__`.
 - `private` documents underscore-prefixed members.
 - `imported` documents members that are imports rather than definitions. Submodules are an
   exception: they act as navigation, so they get pages whether or not they are exported.

@@ -276,6 +276,29 @@ describe('loadDump', () => {
     await expect(loadDump(broken)).rejects.toThrow(/is not valid JSON/);
   });
 
+  test("merges a class's __init__ docstring into the class", async () => {
+    const dumpPath = path.join(workspace, 'init.json');
+    const init = {
+      kind: 'function',
+      name: '__init__',
+      path: 'pkg.A.__init__',
+      docstring: { value: 'Make one.', parsed: [{ kind: 'text', value: 'Make one.' }] },
+    };
+    await fs.writeFile(
+      dumpPath,
+      JSON.stringify({
+        pkg: {
+          kind: 'module',
+          name: 'pkg',
+          path: 'pkg',
+          members: { A: { kind: 'class', name: 'A', path: 'pkg.A', members: { __init__: init } } },
+        },
+      }),
+    );
+    const dump = await loadDump(dumpPath);
+    expect(dump['pkg']?.members?.['A']?.docstring?.parsed).toEqual([{ kind: 'text', value: 'Make one.' }]);
+  });
+
   test('reports a dump that is not keyed by package name', async () => {
     const wrong = path.join(workspace, 'wrong.json');
     await fs.writeFile(wrong, '[]');

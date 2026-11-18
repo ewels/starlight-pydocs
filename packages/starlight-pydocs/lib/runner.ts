@@ -123,6 +123,18 @@ async function canRun(
 }
 
 /**
+ * True when the package reads a dump generated elsewhere, so the docs host needs
+ * no Python at all. An explicit `runner.command` still wins over it: the user
+ * knows their environment best.
+ */
+export function usesSourceDump(
+  pkg: PydocsPackageConfig,
+  config: PydocsConfig,
+): pkg is PydocsPackageConfig & { source: NonNullable<PydocsPackageConfig['source']> } {
+  return config.runner.command === undefined && pkg.source !== undefined;
+}
+
+/**
  * Pick an extraction strategy, run it if needed, and return the dump path.
  *
  * Nothing is re-extracted when the cache key still matches, so repeated builds
@@ -135,10 +147,7 @@ export async function resolveExtraction(
 ): Promise<ExtractionResult> {
   const logger = context.logger ?? silentLogger;
 
-  // A dump generated elsewhere, so the docs host needs no Python at all. An
-  // explicit `runner.command` still wins over it: the user knows their
-  // environment best, which is why the launcher is resolved first.
-  if (config.runner.command === undefined && pkg.source !== undefined) {
+  if (usesSourceDump(pkg, config)) {
     if (pkg.source.kind === 'file') {
       if (!(await fileExists(pkg.source.path))) {
         throw new PydocsError(
