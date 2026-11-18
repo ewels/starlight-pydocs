@@ -826,7 +826,7 @@ function deprecationFrom(object: GriffeObject): DocDeprecation | undefined {
   for (const section of sections) {
     if (section.kind === 'deprecated') {
       const value = (section as DocstringSectionDeprecated).value;
-      return { version: value?.version, description: value?.description };
+      return { version: value?.version || undefined, description: value?.description };
     }
     if (section.kind === 'admonition') {
       const value = (section as DocstringSectionAdmonition).value;

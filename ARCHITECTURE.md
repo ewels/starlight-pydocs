@@ -376,6 +376,26 @@ contrast work codeblocks already did, in duplicate. codeblocks reading our cache
 (its first version did): it rebuilt our model and got re-exports, `__all__`, member
 filters and `source.file`/`source.url` dumps wrong.
 
+### 15. reStructuredText: targeted rewrites, not an RST parser
+
+Griffe's sphinx parser structures field lists (`:param x:`, `:returns:`) but leaves
+everything else, directives and hyperlinks included, as raw text in `text` sections.
+`lib/rst.ts` rewrites only the constructs we recognise: admonition and `deprecated`
+directives become griffe `admonition`/`deprecated` sections; version notes and
+`code-block` become Markdown; `` `text <url>`_ `` becomes a Markdown link, all at
+`loadDump`. Everything
+else passes through to the host's processor (decision 7) untouched.
+
+Rejected alternatives. A full RST parser, in Python (docutils) or JavaScript
+(`rst-compiler`, the only maintained npm one; `restructured` and `rst2mdown` are
+abandoned): real docstrings mix Markdown with the odd role or `.. note::`, and parsing
+a whole docstring as RST misreads Markdown fences, `**bold**`, single-backtick code and
+`[title][path]` cross-references. Its output (HTML, or another Markdown dialect) also
+bypasses the host's pipeline, and `rst-compiler` covers none of Sphinx's directives
+(`versionadded`, `deprecated`, `seealso`), so a translation layer would still be needed
+on top. docutils would also need Python at build time, which `source.file`/`source.url`
+dumps and the test suite avoid (decision 3).
+
 ## Implementation decisions
 
 Finer-grained decisions, each answering a "why is it like this" the code alone does not.
@@ -449,6 +469,12 @@ Finer-grained decisions, each answering a "why is it like this" the code alone d
   does, except `:mod:`, which Sphinx matches exactly. A role inside a link's text
   stays code, since Markdown links cannot nest. `lib/markdown.ts` parses role content once for both the rendered prose and
   the plain-text briefs.
+- **Other reStructuredText markup is rewritten once, at `loadDump`** (decision 15),
+  unlike roles, which need the object's scope at render time. Admonition and
+  `deprecated` directives in a `text` section become real `admonition`/`deprecated`
+  sections, so they render and badge like their google equivalents; version notes, code
+  blocks and hyperlinks become Markdown in every prose field. Every consumer of the dump
+  (pages, briefs, llms.txt) then sees the same text and the same section indices.
 
 ## Griffe dump field names, as actually emitted (2.1.0)
 

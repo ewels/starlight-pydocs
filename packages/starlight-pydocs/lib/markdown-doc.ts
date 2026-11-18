@@ -17,7 +17,6 @@ import type {
   DocstringNamedValue,
   DocstringSection,
   DocstringSectionAdmonition,
-  DocstringSectionDeprecated,
   DocstringSectionExamples,
   DocstringSectionNamedValues,
   DocstringSectionReferences,
@@ -277,11 +276,9 @@ function renderSection(section: DocstringSection, lines: string[], options: Mark
       return;
     }
 
-    case 'deprecated': {
-      const value = (section as DocstringSectionDeprecated).value;
-      pushDeprecation(value?.version, value?.description, lines, options);
+    case 'deprecated':
+      // The deprecation line above already carries this content.
       return;
-    }
 
     case 'functions':
     case 'classes':

@@ -192,7 +192,7 @@ export function resolveCrossReferences(markdown: string, resolve: CrossReference
 }
 
 /** Wrap a URL in angle brackets when bare parentheses or spaces would break it. */
-function formatUrl(href: string): string {
+export function formatUrl(href: string): string {
   return /[()\s]/.test(href) ? `<${href}>` : href;
 }
 
@@ -240,7 +240,7 @@ export function codeRanges(markdown: string): Range[] {
   return [...fences, ...inlineCodeRanges(markdown, fences)].sort((a, b) => a.start - b.start);
 }
 
-function fencedRanges(markdown: string): Range[] {
+export function fencedRanges(markdown: string): Range[] {
   const ranges: Range[] = [];
   let offset = 0;
   let open: { marker: string; start: number } | undefined;
