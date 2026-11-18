@@ -166,7 +166,7 @@ export async function renderDocstringsForDump(options: RenderDocstringsOptions):
         `${subject} in '/${base}' ${found.count === 1 ? 'has' : 'have'} ${found.style}-style sections that the ` +
           `'${docstringStyle}' parser left as plain text, such as ${found.examples.join(', ')}. ` +
           (docstringStyle === 'auto'
-            ? `Fix the docstrings, or set docstringStyle to '${found.style}'.`
+            ? 'Write each of these docstrings in one style.'
             : `Set docstringStyle to '${found.style}' or 'auto', or fix the docstrings.`),
       );
     }

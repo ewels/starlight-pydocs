@@ -19,13 +19,13 @@ import type { DocObject } from '../lib/model.ts';
 import type { RenderScope } from '../lib/render.ts';
 import type { StringKey, StringOverrides } from '../lib/strings.ts';
 import type {
-  DocstringSection,
   DocstringSectionAdmonition,
   DocstringSectionExamples,
   DocstringSectionNamedValues,
   DocstringSectionReferences,
   DocstringSectionThrown,
 } from '../lib/types.ts';
+import { isDeprecationSection } from '../lib/types.ts';
 import Markdown from './Markdown.astro';
 import SectionAdmonition from './sections/SectionAdmonition.astro';
 import SectionExamples from './sections/SectionExamples.astro';
@@ -71,15 +71,10 @@ const SECTION_PLANS: Record<string, SectionPlan> = {
   'type aliases': { renderer: 'references', heading: 'typeAliases' },
 };
 
-/** True for the admonition the google parser makes of a `Deprecated:` block. */
-function isDeprecationAdmonition(section: DocstringSection): boolean {
-  return section.kind === 'admonition' && (section as DocstringSectionAdmonition).value?.annotation === 'deprecated';
-}
-
 // Indices are kept because the sidecar is keyed by them.
 const sections = (doc.docstring?.sections ?? [])
   .map((section, index) => ({ section, index }))
-  .filter(({ section }) => section.kind !== 'deprecated' && !isDeprecationAdmonition(section));
+  .filter(({ section }) => !isDeprecationSection(section));
 ---
 
 {

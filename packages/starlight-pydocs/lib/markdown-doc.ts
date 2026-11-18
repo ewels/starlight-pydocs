@@ -8,6 +8,7 @@
  * Docstring prose is passed through verbatim; it is already Markdown.
  */
 
+import { resolveSphinxRoles } from './crossrefs.ts';
 import { annotationText } from './expr.ts';
 import type { DocObject, MemberGroup, PackageModel, PageModel } from './model.ts';
 import { overloadSignatureText, signatureText } from './signature.ts';
@@ -42,8 +43,8 @@ export function renderPageMarkdown(page: PageModel, options: MarkdownDocOptions 
     lines.push('');
   }
 
-  return `${lines
-    .join('\n')
+  // No resolver here: roles become code, as the pages show them when the target is unknown.
+  return `${resolveSphinxRoles(lines.join('\n'), undefined, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim()}\n`;
 }

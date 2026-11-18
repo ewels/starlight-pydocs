@@ -89,21 +89,23 @@ const ENTRY_SECTION_KINDS = new Set([
 type EntrySection = DocstringSectionNamedValues | DocstringSectionThrown | DocstringSectionReferences;
 
 /**
- * Append each class's own `__init__` docstring to the class docstring, in place,
- * as mkdocstrings' `merge_init_into_class` does. It runs as the dump loads, so the
- * model and the rendered prose agree on section indices. A deprecation stays on
- * `__init__`: it usually deprecates an argument, not the class.
+ * Move each class's own `__init__` docstring sections onto the end of the class
+ * docstring, in place, as mkdocstrings' `merge_init_into_class` does. Moved, not
+ * copied, so a site that lists dunder members does not show them twice. It runs as
+ * the dump loads, so the model and the rendered prose agree on section indices. A
+ * deprecation stays on `__init__`: it usually deprecates an argument, not the class.
+ * `value` stays the raw source text of each docstring.
  */
 export function mergeInitDocstrings(dump: GriffeDump): GriffeDump {
   const visit = (object: GriffeObject): void => {
     const init = initOf(object)?.docstring;
     const sections = init?.parsed?.filter((section) => !isDeprecationSection(section)) ?? [];
     if (init && sections.length > 0) {
-      const own = object.docstring;
+      init.parsed = init.parsed?.filter(isDeprecationSection) ?? null;
       object.docstring = {
-        ...own,
-        value: own?.value ? `${own.value}\n\n${init.value}` : init.value,
-        parsed: [...(own?.parsed ?? []), ...sections],
+        value: object.docstring?.value ?? '',
+        ...object.docstring,
+        parsed: [...(object.docstring?.parsed ?? []), ...sections],
       };
     }
     for (const member of memberList(object)) visit(member);
@@ -253,11 +255,11 @@ type SectionStyle = Exclude<DocstringStyle, 'auto'>;
 const STYLE_MARKERS: Record<SectionStyle, RegExp> = {
   sphinx:
     /^[ \t]*:(?:param|parameter|arg|argument|key|keyword|type|raises?|except|exception|returns?|rtype|yields?|ytype|var|ivar|cvar|vartype)\b[^:\n]*:/m,
-  // A numpy header with its underline, or an underline alone: under google, griffe
-  // reads `Args:` as a header and leaves the `----` below it in the prose. Prose
-  // headers such as `Notes` are left out: underlined, they are Markdown headings too.
+  // A numpy header with its underline, or an underline that opens the prose: under
+  // google, griffe reads `Args:` as a header and leaves the `----` below it. Anywhere
+  // else, an underline is a Markdown heading. So are prose headers such as `Notes`.
   numpy:
-    /^[ \t]*(?:(?:Parameters|Other Parameters|Returns|Yields|Receives|Raises|Warns|Attributes)[ \t]*\n[ \t]*-{3,}[ \t]*$|-{3,}[ \t]*\n[ \t]+\S)/m,
+    /(?:^|\n)[ \t]*(?:Parameters|Other Parameters|Returns|Yields|Receives|Raises|Warns|Attributes)[ \t]*\n[ \t]*-{3,}[ \t]*(?:\n|$)|^\s*-{3,}[ \t]*\n[ \t]+\S/,
   google:
     /^[ \t]*(?:Args|Arguments|Parameters|Params|Keyword Args|Keyword Arguments|Returns?|Raises|Yields?|Attributes):[ \t]*\n[ \t]+\S/m,
 };

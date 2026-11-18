@@ -162,17 +162,17 @@ describe('mergeInitDocstrings', () => {
     }) as unknown as GriffeDump;
   const classOf = (dump: GriffeDump) => dump['pkg']?.members?.['A'];
 
-  test("appends the __init__ sections to the class's own, and keeps them on __init__", () => {
+  test("moves the __init__ sections onto the end of the class's own", () => {
     const dump = mergeInitDocstrings(
       dumpWith({ value: 'A thing.', parsed: [text('A thing.')] }, init([text('Make one.'), params])),
     );
     expect(classOf(dump)?.docstring?.parsed).toEqual([text('A thing.'), text('Make one.'), params]);
-    expect(classOf(dump)?.members?.['__init__']?.docstring?.parsed).toEqual([text('Make one.'), params]);
+    expect(classOf(dump)?.members?.['__init__']?.docstring?.parsed).toEqual([]);
   });
 
   test('gives a class with no docstring the __init__ docstring', () => {
     const dump = mergeInitDocstrings(dumpWith(undefined, init([params])));
-    expect(classOf(dump)?.docstring).toEqual({ value: 'Make one.', parsed: [params] });
+    expect(classOf(dump)?.docstring).toEqual({ value: '', parsed: [params] });
   });
 
   test('changes nothing when __init__ has no parsed docstring', () => {
@@ -181,16 +181,17 @@ describe('mergeInitDocstrings', () => {
     expect(classOf(dump)?.docstring).toEqual(own);
   });
 
-  test('joins the raw text, and leaves a deprecation on __init__', () => {
+  test('keeps the raw text, and leaves a deprecation on __init__', () => {
     const deprecated = { kind: 'deprecated', value: { version: '1.5', description: 'The x argument.' } };
     const dump = mergeInitDocstrings(
       dumpWith({ value: 'A thing.', parsed: [text('A thing.')], lineno: 3 }, init([params, deprecated])),
     );
     expect(classOf(dump)?.docstring).toEqual({
-      value: 'A thing.\n\nMake one.',
+      value: 'A thing.',
       parsed: [text('A thing.'), params],
       lineno: 3,
     });
+    expect(classOf(dump)?.members?.['__init__']?.docstring?.parsed).toEqual([deprecated]);
   });
 });
 
@@ -220,10 +221,11 @@ describe('findUnparsedSections', () => {
   test('ignores Markdown headings, indented code and objects the site does not render', () => {
     const items = [
       body('pkg.heading', 'Intro.\n\nNotes\n-----\nSome markdown heading.'),
+      body('pkg.setext', 'Intro.\n\nUsage\n-----\n  Run it.'),
       body('pkg.indented', 'Intro.\n\n    :param x: indented code block example'),
       body('pkg._vendor.x', ':param x: vendored'),
     ];
-    expect(findUnparsedSections(items, 'google', new Set(['pkg.heading', 'pkg.indented']))).toEqual([]);
+    expect(findUnparsedSections(items, 'google', new Set(['pkg.heading', 'pkg.setext', 'pkg.indented']))).toEqual([]);
   });
 
   test('finds google sections under another style, and skips the configured one', () => {
