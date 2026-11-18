@@ -4,6 +4,10 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 
 ## Unreleased
 
+- ✨ Sphinx roles in docstring prose, such as ``:class:`Report` `` and ``:meth:`~Report.generate` ``, render as code and link to their target, resolved in the scope of the object the docstring belongs to. Prose roles that name nothing linkable, such as `:ref:`, keep their text, and other roles, such as `:file:`, render as code. Summaries in member tables, search and `objects.inv` show the role's text without the role.
+- ✨ A build warning when docstrings hold sections in another style than `docstringStyle`, such as `:param name:` fields under the google parser. These sections render as plain text, so before this the only sign was a page with no parameter table.
+- 🐛 Pressing Enter in symbol search before choosing a result with the arrow keys now opens the first result, instead of doing nothing.
+
 ## v0.3.0 (2026-10-05)
 
 - ✨ An agent skill with a setup checklist, shipped in the package at `skills/starlight-pydocs/SKILL.md` and shown on the docs site.

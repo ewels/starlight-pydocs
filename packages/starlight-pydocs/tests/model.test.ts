@@ -356,6 +356,16 @@ describe('symbol index', () => {
     expect(demopkg.symbolsByPath.get('demopkg.report.BaseReport.is_valid')?.brief).toBe('Whether validate passes.');
   });
 
+  test('reduces Sphinx roles in the brief to the text Sphinx shows', () => {
+    const dump = structuredClone(syntheticDump);
+    const value = 'Wraps :class:`~click.testing.CliRunner`, see :ref:`the guide <guide>` and :py:func:`run`.';
+    const own = dump['ovpkg']?.members?.['A']?.members?.['own'];
+    if (own === undefined) throw new Error('fixture lost ovpkg.A.own');
+    own.docstring = { value, parsed: [{ kind: 'text', value }] };
+    const model = buildModel(dump, modelOptions('ovpkg', { base: 'api/ovpkg' }));
+    expect(model.symbolsByPath.get('ovpkg.A.own')?.brief).toBe('Wraps CliRunner, see the guide and run.');
+  });
+
   test('covers re-exports at both paths', () => {
     expect(demopkg.symbolsByPath.has('demopkg.Report')).toBe(true);
     expect(demopkg.symbolsByPath.has('demopkg.report.Report')).toBe(true);

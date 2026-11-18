@@ -443,7 +443,12 @@ Finer-grained decisions, each answering a "why is it like this" the code alone d
   brackets. Resolution order is the rendered package's symbol index, then the other
   configured packages', then the Sphinx inventories. Indented (four-space) code blocks
   are not detected as code: telling them from list continuations needs a block parser,
-  and griffe hands us dedented prose whose examples arrive fenced.
+  and griffe hands us dedented prose whose examples arrive fenced. Sphinx roles
+  (`:class:`Report``) are rewritten the same way, but resolve a bare name in the
+  scope of the docstring's object first (through the annotation resolver), as Sphinx
+  does, except `:mod:`, which Sphinx matches exactly. A role inside a link's text
+  stays code, since Markdown links cannot nest. `lib/markdown.ts` parses role content once for both the rendered prose and
+  the plain-text briefs.
 
 ## Griffe dump field names, as actually emitted (2.1.0)
 

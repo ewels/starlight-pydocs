@@ -21,6 +21,7 @@ import path from 'node:path';
 import type { NormalisedFilters, NormalisedMembers, NormalisedSourceLink } from './config.ts';
 import { formatSourceLink } from './config.ts';
 import { PydocsError } from './errors.ts';
+import { parseSphinxRole, SPHINX_ROLE_PATTERN } from './markdown.ts';
 import type { AnnotationResolver, AnnotationResolverOptions } from './expr.ts';
 import { createAnnotationResolver, expressionToPath } from './expr.ts';
 import { isInside, matchesDottedGlob, moduleSlug, parentPath, safeHref, shortName } from './paths.ts';
@@ -801,6 +802,10 @@ function firstLine(value: string): string {
 
 function stripMarkdown(value: string): string {
   return value
+    .replace(
+      SPHINX_ROLE_PATTERN,
+      (_, domain: string | undefined, role: string, content: string) => parseSphinxRole(domain, role, content).text,
+    )
     .replace(/`{1,3}([^`]*)`{1,3}/g, '$1')
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/\[([^\]]*)\]\[[^\]]*\]/g, '$1')
