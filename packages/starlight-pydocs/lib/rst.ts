@@ -27,14 +27,14 @@ const VERSION_NOTES: Record<string, string> = {
 
 const CODE_DIRECTIVES = new Set(['code-block', 'code', 'sourcecode']);
 
-/** `.. name:: argument`, at the start of a line. */
-const DIRECTIVE_PATTERN = /^\.\. ([a-z][a-z-]*)::[ \t]*(.*)$/;
+/** `.. name:: argument`, at the start of a line. Docutils matches names case-insensitively. */
+const DIRECTIVE_PATTERN = /^\.\. ([a-z][a-z-]*)::[ \t]*(.*)$/i;
 
-/** A directive option such as `:linenos:`, at the top of a directive body. */
-const OPTION_PATTERN = /^\s+:[\w-]+:/;
+/** A directive option such as `:linenos:`, but not a body line opening with a role such as `:func:`x``. */
+const OPTION_PATTERN = /^\s+:[\w-]+:(?:\s|$)/;
 
 /** `` `text <url>`_ `` and the anonymous `` `text <url>`__ ``. */
-export const LINK_PATTERN = /`([^`<]*?)\s*<([^`<>\s]+)>`__?/g;
+const LINK_PATTERN = /`([^`<]*?)\s*<([^`<>\s]+)>`__?/g;
 
 type DirectiveKind = 'admonition' | 'version' | 'deprecated' | 'code';
 
@@ -46,43 +46,79 @@ function directiveKind(name: string): DirectiveKind | undefined {
 }
 
 /**
- * Rewrite the RST directives in every text section of a dump, in place, before
- * anything reads it, so section indices agree between the model and the prose.
+ * Rewrite the RST in every docstring of a dump, in place, before anything reads
+ * it, so section indices agree between the model and the prose.
  */
-export function splitRstDirectives(dump: GriffeDump): GriffeDump {
+export function convertRst(dump: GriffeDump): GriffeDump {
   const visit = (object: GriffeObject): void => {
     const parsed = object.docstring?.parsed;
-    if (object.docstring && Array.isArray(parsed)) object.docstring.parsed = parsed.flatMap(splitSection);
+    if (object.docstring && Array.isArray(parsed)) object.docstring.parsed = parsed.flatMap(convertSection);
     for (const member of memberList(object)) visit(member);
   };
   for (const entry of Object.values(dump)) visit(entry);
   return dump;
 }
 
+/**
+ * A text section splits into text, admonition and deprecated sections. Other
+ * sections keep their shape: the prose in their entries is rewritten, but an
+ * admonition directive there has no section to become and stays as it is.
+ */
+export function convertSection(section: DocstringSection): DocstringSection[] {
+  if (section.kind === 'text') {
+    if (typeof section.value !== 'string') return [section];
+    if (!hasDirective(section.value)) return [{ ...section, value: rstLinksToMarkdown(section.value) }];
+    return convertText(section.value, true);
+  }
+  const value: unknown = section.value;
+  for (const item of Array.isArray(value) ? value : [value]) {
+    if (Array.isArray(item) && item[0] === 'text' && typeof item[1] === 'string') {
+      item[1] = convertProse(item[1]);
+    } else if (typeof item === 'object' && item !== null && 'description' in item) {
+      const entry = item as { description?: unknown };
+      if (typeof entry.description === 'string') entry.description = convertProse(entry.description);
+    }
+  }
+  return [section];
+}
+
+/** Version notes, code blocks and links rewritten as Markdown, in one prose string. */
+export function convertProse(markdown: string): string {
+  if (!hasDirective(markdown)) return rstLinksToMarkdown(markdown);
+  const [converted] = convertText(markdown, false);
+  return rstLinksToMarkdown(typeof converted?.value === 'string' ? converted.value : '');
+}
+
+function hasDirective(value: string): boolean {
+  return /^\.\. [a-z]/im.test(value);
+}
+
 function joinParts(separator: string, ...parts: string[]): string {
   return parts.filter((part) => part !== '').join(separator);
 }
 
-/** One text section in, the text and directive sections it holds out. */
-export function splitSection(section: DocstringSection): DocstringSection[] {
-  if (section.kind !== 'text' || typeof section.value !== 'string' || !/^\.\. [a-z]/m.test(section.value)) {
-    return [section];
-  }
+/** A fence longer than any backtick run in the code it wraps. */
+function fenceFor(code: string): string {
+  const longest = Math.max(0, ...(code.match(/`+/g) ?? []).map((run) => run.length));
+  return '`'.repeat(Math.max(3, longest + 1));
+}
 
-  const fences = fencedRanges(section.value);
-  const lines = section.value.split('\n');
-  const out: DocstringSection[] = [];
-  let text: string[] = [];
+/** With `split`, admonition and deprecated directives become sections of their own; without, they stay as text. */
+function convertText(value: string, split: boolean): DocstringSection[] {
+  const fences = fencedRanges(value);
+  const lines = value.split('\n');
   const lineStarts: number[] = [];
   let lineStart = 0;
   for (const line of lines) {
     lineStarts.push(lineStart);
     lineStart += line.length + 1;
   }
+  const out: DocstringSection[] = [];
+  let text: string[] = [];
 
   const flush = (): void => {
-    const value = text.join('\n').trim();
-    if (value !== '') out.push({ kind: 'text', value });
+    const joined = text.join('\n').trim();
+    if (joined !== '') out.push({ kind: 'text', value: split ? rstLinksToMarkdown(joined) : joined });
     text = [];
   };
 
@@ -91,9 +127,9 @@ export function splitSection(section: DocstringSection): DocstringSection[] {
     const start = lineStarts[index] ?? 0;
     const inFence = fences.some((range) => range.start <= start && start < range.end);
     const match = inFence ? null : DIRECTIVE_PATTERN.exec(line);
-    const name = match?.[1] ?? '';
+    const name = (match?.[1] ?? '').toLowerCase();
     const kind = directiveKind(name);
-    if (match === null || kind === undefined) {
+    if (match === null || kind === undefined || (!split && (kind === 'admonition' || kind === 'deprecated'))) {
       text.push(line);
       continue;
     }
@@ -106,20 +142,23 @@ export function splitSection(section: DocstringSection): DocstringSection[] {
     if (kind === 'version') {
       // Sphinx's own wording: `Added in version 2.0.`, or with a reason, `Changed in version 2.0: why`.
       const label = `${VERSION_NOTES[name] ?? ''} ${version}`;
-      const reason = joinParts(' ', rest.join(' '), body);
+      const reason = joinParts(' ', rest.join(' '), body.trim());
       text.push(reason === '' ? `*${label}.*` : `*${label}:* ${reason}`, '');
     } else if (kind === 'code') {
-      text.push(`\`\`\`${argument}`, body, '```', '');
+      const fence = fenceFor(body);
+      text.push(`${fence}${argument}`, body, fence, '');
     } else if (kind === 'deprecated') {
       flush();
-      out.push({ kind: 'deprecated', value: { version, description: joinParts('\n\n', rest.join(' '), body) } });
+      const description = convertProse(joinParts('\n\n', rest.join(' '), body.trim()));
+      out.push({ kind: 'deprecated', value: { version, description } });
     } else {
       flush();
       const generic = name === 'admonition';
+      const description = convertProse(generic ? body.trim() : joinParts('\n\n', argument, body.trim()));
       out.push({
         kind: 'admonition',
         title: (generic ? argument : ADMONITIONS[name]) ?? null,
-        value: { annotation: generic ? 'note' : name, description: generic ? body : joinParts('\n\n', argument, body) },
+        value: { annotation: generic ? 'note' : name, description },
       });
     }
   }
@@ -128,7 +167,7 @@ export function splitSection(section: DocstringSection): DocstringSection[] {
   return out;
 }
 
-/** The indented lines after a directive, dedented, without its options. */
+/** The indented lines after a directive, dedented, without its options or surrounding blank lines. */
 function directiveBody(lines: string[], start: number): { body: string; end: number } {
   let end = start;
   while (end < lines.length) {
@@ -140,16 +179,19 @@ function directiveBody(lines: string[], start: number): { body: string; end: num
   while (block.length > 0 && OPTION_PATTERN.test(block[0] ?? '')) block.shift();
   const indents = block.filter((line) => line.trim() !== '').map((line) => line.length - line.trimStart().length);
   const indent = indents.length === 0 ? 0 : Math.min(...indents);
+  // Keep the first line's own indentation: in a code block it is meaningful.
   const body = block
     .map((line) => line.slice(indent))
     .join('\n')
-    .trim();
+    .replace(/^\s*\n/, '')
+    .trimEnd();
   return { body, end };
 }
 
 /**
- * Rewrite RST hyperlinks as Markdown links. A link with no text shows its URL.
- * Links inside code are left alone.
+ * Rewrite RST hyperlinks as Markdown links. A link with no text shows its URL,
+ * and a link to a named target (`<target_>`) only its text. Links inside code
+ * are left alone.
  */
 export function rstLinksToMarkdown(markdown: string): string {
   if (!markdown.includes('>`_')) return markdown;
@@ -158,6 +200,8 @@ export function rstLinksToMarkdown(markdown: string): string {
     // The link's own backticks look like a code span that starts at `offset`; only
     // a code range that starts earlier and covers it means the link is quoted code.
     if (code.some((range) => range.start < offset && offset < range.end)) return whole;
-    return `[${text.trim() === '' ? url : text.trim()}](${formatUrl(url)})`;
+    const label = text.trim();
+    if (url.endsWith('_')) return label === '' ? whole : label;
+    return `[${label === '' ? url : label}](${formatUrl(url)})`;
   });
 }

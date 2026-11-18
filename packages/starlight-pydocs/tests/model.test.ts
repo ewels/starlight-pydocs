@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import { beforeAll, describe, expect, test } from 'vitest';
 
 import { buildModel, documentedPathFor } from '../lib/model.ts';
+import { convertRst } from '../lib/rst.ts';
 import type { PackageModel } from '../lib/model.ts';
 import type { GriffeDump } from '../lib/types.ts';
 import { fixtureModel, memberNames, modelOptions, testFixturePath } from './helpers.ts';
@@ -372,7 +373,7 @@ describe('symbol index', () => {
     const own = dump['ovpkg']?.members?.['A']?.members?.['own'];
     if (own === undefined) throw new Error('fixture lost ovpkg.A.own');
     own.docstring = { value, parsed: [{ kind: 'text', value }] };
-    const model = buildModel(dump, modelOptions('ovpkg', { base: 'api/ovpkg' }));
+    const model = buildModel(convertRst(dump), modelOptions('ovpkg', { base: 'api/ovpkg' }));
     expect(model.symbolsByPath.get('ovpkg.A.own')?.brief).toBe('Runs on asyncclick or https://example.com.');
   });
 

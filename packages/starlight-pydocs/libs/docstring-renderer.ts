@@ -26,7 +26,6 @@ import { resolveCrossReferences, resolveSphinxRoles } from '../lib/crossrefs.ts'
 import { loadDump } from '../lib/data.ts';
 import { assembleRenderedDocstrings, collectDocstringMarkdown, findUnparsedSections } from '../lib/docstrings.ts';
 import { errorMessage, PydocsError } from '../lib/errors.ts';
-import { rstLinksToMarkdown } from '../lib/rst.ts';
 import type { PydocsLogger } from '../lib/logger.ts';
 import { silentLogger } from '../lib/logger.ts';
 import type { CodeblocksMarkup } from '../lib/markdown.ts';
@@ -182,9 +181,7 @@ export async function renderDocstringsForDump(options: RenderDocstringsOptions):
           // Cross-references become ordinary Markdown links before the
           // processor sees them; nothing downstream knows they were special.
           const resolved = resolveSphinxRoles(
-            rstLinksToMarkdown(
-              crossReferences === undefined ? item.markdown : resolveCrossReferences(item.markdown, crossReferences),
-            ),
+            crossReferences === undefined ? item.markdown : resolveCrossReferences(item.markdown, crossReferences),
             crossReferences,
             item.objectPath,
           );

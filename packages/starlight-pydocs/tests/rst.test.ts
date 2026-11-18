@@ -1,14 +1,14 @@
 import { describe, expect, test } from 'vitest';
 
-import { rstLinksToMarkdown, splitRstDirectives, splitSection } from '../lib/rst.ts';
+import { rstLinksToMarkdown, convertRst, convertSection } from '../lib/rst.ts';
 import type { GriffeDump } from '../lib/types.ts';
 
 const text = (value: string) => ({ kind: 'text', value });
 
-describe('splitSection', () => {
+describe('convertSection', () => {
   test('turns an admonition directive into an admonition section between the text around it', () => {
     const source = 'Before.\n\n.. warning::\n   Mind the gap.\n\n   Second paragraph.\n\nAfter.';
-    expect(splitSection(text(source))).toEqual([
+    expect(convertSection(text(source))).toEqual([
       text('Before.'),
       {
         kind: 'admonition',
@@ -20,19 +20,19 @@ describe('splitSection', () => {
   });
 
   test('keeps text on the directive line, titles seealso, and reads a generic admonition title', () => {
-    expect(splitSection(text('.. note:: Short note.'))).toEqual([
+    expect(convertSection(text('.. note:: Short note.'))).toEqual([
       { kind: 'admonition', title: null, value: { annotation: 'note', description: 'Short note.' } },
     ]);
-    expect(splitSection(text('.. seealso:: The guide.'))).toEqual([
+    expect(convertSection(text('.. seealso:: The guide.'))).toEqual([
       { kind: 'admonition', title: 'See also', value: { annotation: 'seealso', description: 'The guide.' } },
     ]);
-    expect(splitSection(text('.. admonition:: Before you start\n\n   Install uv.'))).toEqual([
+    expect(convertSection(text('.. admonition:: Before you start\n\n   Install uv.'))).toEqual([
       { kind: 'admonition', title: 'Before you start', value: { annotation: 'note', description: 'Install uv.' } },
     ]);
   });
 
   test('turns deprecated into a deprecation section with its version', () => {
-    expect(splitSection(text('Old.\n\n.. deprecated:: 1.9 Use new() instead.'))).toEqual([
+    expect(convertSection(text('Old.\n\n.. deprecated:: 1.9 Use new() instead.'))).toEqual([
       text('Old.'),
       { kind: 'deprecated', value: { version: '1.9', description: 'Use new() instead.' } },
     ]);
@@ -40,27 +40,27 @@ describe('splitSection', () => {
 
   test('writes version notes in place, in Sphinx wording', () => {
     const source = 'Body.\n\n.. versionadded:: 2.0\n\n.. versionchanged:: 2.1\n   Takes a path.';
-    expect(splitSection(text(source))).toEqual([
+    expect(convertSection(text(source))).toEqual([
       text('Body.\n\n*Added in version 2.0.*\n\n*Changed in version 2.1:* Takes a path.'),
     ]);
   });
 
   test('turns a code-block directive into a fence, without its options', () => {
     const source = 'Run:\n\n.. code-block:: python\n   :linenos:\n\n   import mypkg\n   mypkg.run()\n\nDone.';
-    expect(splitSection(text(source))).toEqual([text('Run:\n\n```python\nimport mypkg\nmypkg.run()\n```\n\nDone.')]);
+    expect(convertSection(text(source))).toEqual([text('Run:\n\n```python\nimport mypkg\nmypkg.run()\n```\n\nDone.')]);
   });
 
   test('leaves unknown directives, directives in fences and other sections alone', () => {
     const unknown = text('.. image:: diagram.png\n   :alt: A diagram');
-    expect(splitSection(unknown)).toEqual([unknown]);
+    expect(convertSection(unknown)).toEqual([unknown]);
     const fenced = text('```rst\n.. note::\n   Not a note.\n```');
-    expect(splitSection(fenced)).toEqual([fenced]);
+    expect(convertSection(fenced)).toEqual([fenced]);
     const params = { kind: 'parameters', value: [] };
-    expect(splitSection(params)).toEqual([params]);
+    expect(convertSection(params)).toEqual([params]);
   });
 });
 
-describe('splitRstDirectives', () => {
+describe('convertRst', () => {
   test('rewrites the parsed sections of nested members in place', () => {
     const dump = {
       pkg: {
@@ -77,7 +77,7 @@ describe('splitRstDirectives', () => {
         },
       },
     } as unknown as GriffeDump;
-    splitRstDirectives(dump);
+    convertRst(dump);
     expect(dump['pkg']?.members?.['f']?.docstring?.parsed).toEqual([
       text('Do it.'),
       { kind: 'admonition', title: null, value: { annotation: 'tip', description: 'Faster with uv.' } },
@@ -103,7 +103,44 @@ describe('rstLinksToMarkdown', () => {
   });
 });
 
-test('splitSection leaves a directive inside a longer fence alone', () => {
+test('convertSection leaves a directive inside a longer fence alone', () => {
   const value = '````text\n```\n.. note:: Not a note.\n````';
-  expect(splitSection({ kind: 'text', value })).toEqual([{ kind: 'text', value }]);
+  expect(convertSection({ kind: 'text', value })).toEqual([{ kind: 'text', value }]);
+});
+
+describe('review regressions', () => {
+  test('keeps a body line that opens with a role', () => {
+    expect(convertSection(text('.. versionchanged:: 2.0\n   :func:`load` now accepts paths.'))).toEqual([
+      text('*Changed in version 2.0:* :func:`load` now accepts paths.'),
+    ]);
+  });
+
+  test('matches directive names case-insensitively', () => {
+    expect(convertSection(text('.. Note:: Case.'))).toEqual([
+      { kind: 'admonition', title: null, value: { annotation: 'note', description: 'Case.' } },
+    ]);
+  });
+
+  test('fences code longer than any backtick run in it, and keeps its first indent', () => {
+    expect(convertSection(text('.. code-block:: markdown\n\n      ```py\n   x\n      ```'))).toEqual([
+      text('````markdown\n   ```py\nx\n   ```\n````'),
+    ]);
+  });
+
+  test('rewrites version notes, code and links in entry descriptions', () => {
+    const params = {
+      kind: 'parameters',
+      value: [{ name: 'x', description: 'The x.\n\n.. versionadded:: 1.2\n\nSee `docs <https://example.com>`_.' }],
+    };
+    expect(convertSection(params)).toEqual([
+      {
+        kind: 'parameters',
+        value: [{ name: 'x', description: 'The x.\n\n*Added in version 1.2.*\n\nSee [docs](https://example.com).' }],
+      },
+    ]);
+  });
+
+  test('shows only the text of a link to a named target', () => {
+    expect(rstLinksToMarkdown('See `Target <target_>`_.')).toBe('See Target.');
+  });
 });
