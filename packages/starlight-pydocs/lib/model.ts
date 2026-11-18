@@ -24,6 +24,7 @@ import { PydocsError } from './errors.ts';
 import { parseSphinxRole, SPHINX_ROLE_PATTERN } from './markdown.ts';
 import type { AnnotationResolver, AnnotationResolverOptions } from './expr.ts';
 import { createAnnotationResolver, expressionToPath } from './expr.ts';
+import { LINK_PATTERN } from './rst.ts';
 import { isInside, matchesDottedGlob, moduleSlug, parentPath, safeHref, shortName } from './paths.ts';
 import type {
   DocstringSection,
@@ -801,21 +802,18 @@ function firstLine(value: string): string {
 }
 
 function stripMarkdown(value: string): string {
-  return (
-    value
-      .replace(
-        SPHINX_ROLE_PATTERN,
-        (_, domain: string | undefined, role: string, content: string) => parseSphinxRole(domain, role, content).text,
-      )
-      // RST hyperlinks: `text <url>`_ keeps its text, a bare `<url>`_ its URL.
-      .replace(/`([^`<]*?)\s*<([^`<>\s]+)>`__?/g, (_, text: string, url: string) => text.trim() || url)
-      .replace(/`{1,3}([^`]*)`{1,3}/g, '$1')
-      .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
-      .replace(/\[([^\]]*)\]\[[^\]]*\]/g, '$1')
-      .replace(/\*\*([^*]+)\*\*/g, '$1')
-      .replace(/(^|\s)[*_]([^*_]+)[*_]/g, '$1$2')
-      .trim()
-  );
+  return value
+    .replace(
+      SPHINX_ROLE_PATTERN,
+      (_, domain: string | undefined, role: string, content: string) => parseSphinxRole(domain, role, content).text,
+    )
+    .replace(LINK_PATTERN, (_, text: string, url: string) => text.trim() || url)
+    .replace(/`{1,3}([^`]*)`{1,3}/g, '$1')
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/\[([^\]]*)\]\[[^\]]*\]/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/(^|\s)[*_]([^*_]+)[*_]/g, '$1$2')
+    .trim();
 }
 
 /**

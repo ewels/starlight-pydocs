@@ -206,7 +206,7 @@ function isEscaped(markdown: string, index: number): boolean {
   return backslashes % 2 === 1;
 }
 
-export function overlapsCode(ranges: Range[], start: number, end: number): boolean {
+function overlapsCode(ranges: Range[], start: number, end: number): boolean {
   return ranges.some((range) => range.start < end && start < range.end);
 }
 
@@ -240,7 +240,7 @@ export function codeRanges(markdown: string): Range[] {
   return [...fences, ...inlineCodeRanges(markdown, fences)].sort((a, b) => a.start - b.start);
 }
 
-function fencedRanges(markdown: string): Range[] {
+export function fencedRanges(markdown: string): Range[] {
   const ranges: Range[] = [];
   let offset = 0;
   let open: { marker: string; start: number } | undefined;

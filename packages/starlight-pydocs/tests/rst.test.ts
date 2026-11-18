@@ -102,3 +102,8 @@ describe('rstLinksToMarkdown', () => {
     expect(rstLinksToMarkdown(span)).toBe(span);
   });
 });
+
+test('splitSection leaves a directive inside a longer fence alone', () => {
+  const value = '````text\n```\n.. note:: Not a note.\n````';
+  expect(splitSection({ kind: 'text', value })).toEqual([{ kind: 'text', value }]);
+});

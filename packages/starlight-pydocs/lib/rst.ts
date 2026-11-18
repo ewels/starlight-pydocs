@@ -1,19 +1,6 @@
-/**
- * reStructuredText markup that docstrings written for Sphinx carry into prose.
- *
- * Griffe parses docstring sections, but leaves RST directives and hyperlinks in
- * the text, where Markdown renders them as literal `.. note::` lines and
- * backticks. Two passes fix that:
- *
- * - `splitRstDirectives` runs once per dump, as it loads. It turns admonition
- *   and `deprecated` directives into the sections griffe produces for google
- *   `Note:` and `Deprecated:` blocks, so they render, badge and index exactly
- *   like those. Version notes and code blocks become Markdown in place.
- * - `rstLinksToMarkdown` runs over each prose string before rendering, like
- *   the cross-reference passes in `crossrefs.ts`.
- */
+/** reStructuredText directives and hyperlinks, which griffe leaves in docstring prose as raw text. */
 
-import { codeRanges, formatUrl } from './crossrefs.ts';
+import { codeRanges, fencedRanges, formatUrl } from './crossrefs.ts';
 import type { DocstringSection, GriffeDump, GriffeObject } from './types.ts';
 import { memberList } from './types.ts';
 
@@ -43,45 +30,55 @@ const CODE_DIRECTIVES = new Set(['code-block', 'code', 'sourcecode']);
 /** `.. name:: argument`, at the start of a line. */
 const DIRECTIVE_PATTERN = /^\.\. ([a-z][a-z-]*)::[ \t]*(.*)$/;
 
-/** Opens or closes a fenced code block. */
-const FENCE_PATTERN = /^ {0,3}(`{3,}|~{3,})/;
-
 /** A directive option such as `:linenos:`, at the top of a directive body. */
 const OPTION_PATTERN = /^\s+:[\w-]+:/;
 
+/** `` `text <url>`_ `` and the anonymous `` `text <url>`__ ``. */
+export const LINK_PATTERN = /`([^`<]*?)\s*<([^`<>\s]+)>`__?/g;
+
+type DirectiveKind = 'admonition' | 'version' | 'deprecated' | 'code';
+
+function directiveKind(name: string): DirectiveKind | undefined {
+  if (name === 'admonition' || Object.hasOwn(ADMONITIONS, name)) return 'admonition';
+  if (Object.hasOwn(VERSION_NOTES, name)) return 'version';
+  if (name === 'deprecated') return 'deprecated';
+  return CODE_DIRECTIVES.has(name) ? 'code' : undefined;
+}
+
 /**
- * Rewrite the RST directives in every text section of a dump, in place.
- *
- * Runs before anything reads the dump, so section indices agree between the
- * model and the pre-rendered prose.
+ * Rewrite the RST directives in every text section of a dump, in place, before
+ * anything reads it, so section indices agree between the model and the prose.
  */
 export function splitRstDirectives(dump: GriffeDump): GriffeDump {
-  const seen = new Set<GriffeObject>();
   const visit = (object: GriffeObject): void => {
-    if (typeof object !== 'object' || object === null || seen.has(object)) return;
-    seen.add(object);
     const parsed = object.docstring?.parsed;
-    if (object.docstring && Array.isArray(parsed) && parsed.some(hasDirective)) {
-      object.docstring.parsed = parsed.flatMap(splitSection);
-    }
+    if (object.docstring && Array.isArray(parsed)) object.docstring.parsed = parsed.flatMap(splitSection);
     for (const member of memberList(object)) visit(member);
   };
   for (const entry of Object.values(dump)) visit(entry);
   return dump;
 }
 
-function hasDirective(section: DocstringSection): boolean {
-  return section.kind === 'text' && typeof section.value === 'string' && /^\.\. [a-z]/m.test(section.value);
+function joinParts(separator: string, ...parts: string[]): string {
+  return parts.filter((part) => part !== '').join(separator);
 }
 
 /** One text section in, the text and directive sections it holds out. */
 export function splitSection(section: DocstringSection): DocstringSection[] {
-  if (!hasDirective(section)) return [section];
+  if (section.kind !== 'text' || typeof section.value !== 'string' || !/^\.\. [a-z]/m.test(section.value)) {
+    return [section];
+  }
 
-  const lines = (section.value as string).split('\n');
+  const fences = fencedRanges(section.value);
+  const lines = section.value.split('\n');
   const out: DocstringSection[] = [];
   let text: string[] = [];
-  let fence: string | undefined;
+  const lineStarts: number[] = [];
+  let lineStart = 0;
+  for (const line of lines) {
+    lineStarts.push(lineStart);
+    lineStart += line.length + 1;
+  }
 
   const flush = (): void => {
     const value = text.join('\n').trim();
@@ -91,53 +88,38 @@ export function splitSection(section: DocstringSection): DocstringSection[] {
 
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index] ?? '';
-    const fenceMarker = FENCE_PATTERN.exec(line)?.[1];
-    if (fence !== undefined) {
-      if (fenceMarker !== undefined && fenceMarker.charAt(0) === fence.charAt(0)) fence = undefined;
-      text.push(line);
-      continue;
-    }
-    if (fenceMarker !== undefined) fence = fenceMarker;
-
-    const match = fence === undefined ? DIRECTIVE_PATTERN.exec(line) : null;
+    const start = lineStarts[index] ?? 0;
+    const inFence = fences.some((range) => range.start <= start && start < range.end);
+    const match = inFence ? null : DIRECTIVE_PATTERN.exec(line);
     const name = match?.[1] ?? '';
-    const argument = (match?.[2] ?? '').trim();
-    const isAdmonition = name === 'admonition' || Object.hasOwn(ADMONITIONS, name);
-    const isVersionNote = Object.hasOwn(VERSION_NOTES, name);
-    if (match === null || !(isAdmonition || isVersionNote || name === 'deprecated' || CODE_DIRECTIVES.has(name))) {
+    const kind = directiveKind(name);
+    if (match === null || kind === undefined) {
       text.push(line);
       continue;
     }
 
+    const argument = (match[2] ?? '').trim();
     const { body, end } = directiveBody(lines, index + 1);
     index = end - 1;
+    const [version = '', ...rest] = argument.split(/\s+/);
 
-    if (isVersionNote) {
+    if (kind === 'version') {
       // Sphinx's own wording: `Added in version 2.0.`, or with a reason, `Changed in version 2.0: why`.
-      const [version = '', ...rest] = argument.split(/\s+/);
-      const reason = [rest.join(' '), body].filter((part) => part !== '').join(' ');
-      text.push(
-        `*${VERSION_NOTES[name] ?? ''} ${version}${reason === '' ? '.' : ':'}*${reason === '' ? '' : ` ${reason}`}`,
-        '',
-      );
-    } else if (CODE_DIRECTIVES.has(name)) {
+      const label = `${VERSION_NOTES[name] ?? ''} ${version}`;
+      const reason = joinParts(' ', rest.join(' '), body);
+      text.push(reason === '' ? `*${label}.*` : `*${label}:* ${reason}`, '');
+    } else if (kind === 'code') {
       text.push(`\`\`\`${argument}`, body, '```', '');
-    } else if (name === 'deprecated') {
-      const [version = '', ...rest] = argument.split(/\s+/);
-      const description = [rest.join(' '), body].filter((part) => part !== '').join('\n\n');
+    } else if (kind === 'deprecated') {
       flush();
-      out.push({ kind: 'deprecated', value: { version, description } });
+      out.push({ kind: 'deprecated', value: { version, description: joinParts('\n\n', rest.join(' '), body) } });
     } else {
       flush();
-      // `.. admonition:: Title` has a title of its own and no flavour.
       const generic = name === 'admonition';
-      const title = generic ? argument : ADMONITIONS[name];
-      const description =
-        generic || argument === '' ? body : [argument, body].filter((part) => part !== '').join('\n\n');
       out.push({
         kind: 'admonition',
-        title: title ?? null,
-        value: { annotation: generic ? 'note' : name, description },
+        title: (generic ? argument : ADMONITIONS[name]) ?? null,
+        value: { annotation: generic ? 'note' : name, description: generic ? body : joinParts('\n\n', argument, body) },
       });
     }
   }
@@ -156,7 +138,7 @@ function directiveBody(lines: string[], start: number): { body: string; end: num
   }
   const block = lines.slice(start, end);
   while (block.length > 0 && OPTION_PATTERN.test(block[0] ?? '')) block.shift();
-  const indents = block.filter((line) => line.trim() !== '').map((line) => /^\s*/.exec(line)?.[0].length ?? 0);
+  const indents = block.filter((line) => line.trim() !== '').map((line) => line.length - line.trimStart().length);
   const indent = indents.length === 0 ? 0 : Math.min(...indents);
   const body = block
     .map((line) => line.slice(indent))
@@ -164,9 +146,6 @@ function directiveBody(lines: string[], start: number): { body: string; end: num
     .trim();
   return { body, end };
 }
-
-/** `` `text <url>`_ `` and the anonymous `` `text <url>`__ ``. */
-const LINK_PATTERN = /`([^`<]*?)\s*<([^`<>\s]+)>`__?/g;
 
 /**
  * Rewrite RST hyperlinks as Markdown links. A link with no text shows its URL.
