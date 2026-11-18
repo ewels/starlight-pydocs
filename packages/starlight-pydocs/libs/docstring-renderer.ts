@@ -103,26 +103,25 @@ export async function resolveDocstringRenderer(markdown: AstroConfig['markdown']
 /**
  * What starlight-codeblocks' public registry says about the site, or undefined
  * when the site does not use it. The registry only exists after every plugin's
- * `config:setup`, so call this at `astro:config:done` or later, with that hook's
- * `config.integrations`.
+ * `config:setup`, so call this at `astro:config:done` or later.
+ *
+ * @param hasCodeblocks Whether that hook's `config.integrations` holds
+ *   `starlight-codeblocks`. The registry is a global, so it outlives an
+ *   in-place `astro dev` restart that removed codeblocks.
  */
-export function detectCodeblocks(
-  integrations: readonly { name: string }[],
-  pydocsBase?: string,
-): CodeblocksMarkup | undefined {
-  const registry = codeblocksRegistry(integrations);
+export function detectCodeblocks(hasCodeblocks: boolean, pydocsBase?: string): CodeblocksMarkup | undefined {
+  const registry = codeblocksRegistry(hasCodeblocks);
   if (registry === undefined) return undefined;
   return { inlineLanguage: registry.options?.inlineHighlighting ? 'py' : undefined, pydocsBase };
 }
 
-/** True when starlight-codeblocks shows its hover card on API links. Same timing rule as {@link detectCodeblocks}. */
-export function detectApiCards(integrations: readonly { name: string }[]): boolean {
-  return Boolean(codeblocksRegistry(integrations)?.options?.apiLinks);
+/** True when starlight-codeblocks shows its hover card on API links. Same rules as {@link detectCodeblocks}. */
+export function detectApiCards(hasCodeblocks: boolean): boolean {
+  return Boolean(codeblocksRegistry(hasCodeblocks)?.options?.apiLinks);
 }
 
-function codeblocksRegistry(integrations: readonly { name: string }[]) {
-  // The registry is a global, so it outlives an in-place `astro dev` restart that removed codeblocks.
-  if (!integrations.some((integration) => integration.name === 'starlight-codeblocks')) return undefined;
+function codeblocksRegistry(hasCodeblocks: boolean) {
+  if (!hasCodeblocks) return undefined;
   return (globalThis as { [key: symbol]: unknown })[Symbol.for('starlight-codeblocks')] as
     { options?: { inlineHighlighting?: unknown; apiLinks?: unknown } } | undefined;
 }
