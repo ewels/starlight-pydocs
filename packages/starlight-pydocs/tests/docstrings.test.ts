@@ -162,6 +162,15 @@ describe('findUnparsedSections', () => {
     ]);
   });
 
+  test('ignores Markdown headings, indented code and objects the site does not render', () => {
+    const items = [
+      body('pkg.heading', 'Intro.\n\nNotes\n-----\nSome markdown heading.'),
+      body('pkg.indented', 'Intro.\n\n    :param x: indented code block example'),
+      body('pkg._vendor.x', ':param x: vendored'),
+    ];
+    expect(findUnparsedSections(items, 'google', new Set(['pkg.heading', 'pkg.indented']))).toEqual([]);
+  });
+
   test('finds google sections under another style, and skips the configured one', () => {
     const items = [body('pkg.google', 'Greet someone.\n\nArgs:\n    name: Who to greet.')];
     expect(findUnparsedSections(items, 'numpy')).toEqual([{ style: 'google', count: 1, examples: ['pkg.google'] }]);

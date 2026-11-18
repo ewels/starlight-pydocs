@@ -230,9 +230,10 @@ const STYLE_MARKERS: Record<SectionStyle, RegExp> = {
   sphinx:
     /^[ \t]*:(?:param|parameter|arg|argument|key|keyword|type|raises?|except|exception|returns?|rtype|yields?|ytype|var|ivar|cvar|vartype)\b[^:\n]*:/m,
   // A numpy header with its underline, or an underline alone: under google, griffe
-  // reads `Args:` as a header and leaves the `----` below it in the prose.
+  // reads `Args:` as a header and leaves the `----` below it in the prose. Prose
+  // headers such as `Notes` are left out: underlined, they are Markdown headings too.
   numpy:
-    /^[ \t]*(?:(?:Parameters|Other Parameters|Returns|Yields|Receives|Raises|Warns|Attributes|Methods|See Also|Notes|References|Examples)[ \t]*\n[ \t]*-{3,}[ \t]*$|-{3,}[ \t]*\n[ \t]+\S)/m,
+    /^[ \t]*(?:(?:Parameters|Other Parameters|Returns|Yields|Receives|Raises|Warns|Attributes)[ \t]*\n[ \t]*-{3,}[ \t]*$|-{3,}[ \t]*\n[ \t]+\S)/m,
   google:
     /^[ \t]*(?:Args|Arguments|Parameters|Params|Keyword Args|Keyword Arguments|Returns?|Raises|Yields?|Attributes):[ \t]*\n[ \t]+\S/m,
 };
@@ -251,11 +252,16 @@ export interface UnparsedSections {
  *
  * @param items - What `collectDocstringMarkdown` returned.
  * @param style - The style griffe parsed with.
+ * @param rendered - Canonical paths of the objects the site documents; others are not checked.
  */
-export function findUnparsedSections(items: DocstringMarkdownItem[], style: DocstringStyle): UnparsedSections[] {
+export function findUnparsedSections(
+  items: DocstringMarkdownItem[],
+  style: DocstringStyle,
+  rendered?: ReadonlySet<string>,
+): UnparsedSections[] {
   const found = new Map<SectionStyle, Set<string>>();
   for (const item of items) {
-    if (item.slot !== 'body') continue;
+    if (item.slot !== 'body' || rendered?.has(item.objectPath) === false) continue;
     const prose = withoutCode(item.markdown);
     for (const [marker, pattern] of Object.entries(STYLE_MARKERS) as [SectionStyle, RegExp][]) {
       if (marker === style || !pattern.test(prose)) continue;
@@ -274,7 +280,30 @@ function withoutCode(markdown: string): string {
     prose += markdown.slice(cursor, range.start);
     cursor = range.end;
   }
-  return prose + markdown.slice(cursor);
+  return withoutIndentedCode(prose + markdown.slice(cursor));
+}
+
+/**
+ * Blank out indented code: lines indented four spaces or a tab, after a blank line.
+ *
+ * ponytail: a list item's indented continuation is blanked too, so a section
+ * pasted inside a list goes unreported.
+ */
+function withoutIndentedCode(markdown: string): string {
+  let afterBlank = true;
+  let inCode = false;
+  return markdown
+    .split('\n')
+    .map((line) => {
+      if (line.trim() === '') {
+        afterBlank = true;
+        return line;
+      }
+      inCode = /^(?: {4}|\t)/.test(line) && (afterBlank || inCode);
+      afterBlank = false;
+      return inCode ? '' : line;
+    })
+    .join('\n');
 }
 
 // -- Accessors -------------------------------------------------------------

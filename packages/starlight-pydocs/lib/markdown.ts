@@ -130,6 +130,26 @@ const PYTHON_ROLES = new Set(['mod', 'func', 'data', 'const', 'class', 'meth', '
 /** Standard roles Sphinx renders as prose; every other role renders as code. */
 const TEXT_ROLES = new Set(['ref', 'doc', 'term', 'numref', 'download', 'abbr', 'dfn', 'guilabel', 'menuselection']);
 
+/** Standard roles that show their content as written: `Vec<T>` is code, not a `title <target>`. */
+const UNTITLED_ROLES = new Set([
+  'code',
+  'literal',
+  'file',
+  'samp',
+  'kbd',
+  'command',
+  'program',
+  'math',
+  'mimetype',
+  'makevar',
+  'regexp',
+  'manpage',
+  'abbr',
+  'dfn',
+  'guilabel',
+  'menuselection',
+]);
+
 export interface SphinxRole {
   /** What Sphinx shows. */
   text: string;
@@ -145,9 +165,10 @@ export interface SphinxRole {
  * are not part of the target.
  */
 export function parseSphinxRole(domain: string | undefined, role: string, content: string): SphinxRole {
-  const explicit = /^(.+?)\s*<([^<>]+)>$/s.exec(content.replace(/\s+/g, ' ').trim());
+  const normalised = content.replace(/\s+/g, ' ').trim();
+  const explicit = domain === undefined && UNTITLED_ROLES.has(role) ? null : /^(.+?)\s*<([^<>]+)>$/s.exec(normalised);
   const title = explicit?.[1];
-  let target = explicit?.[2] ?? content.replace(/\s+/g, ' ').trim();
+  let target = explicit?.[2] ?? normalised;
 
   if ((domain === undefined || domain === 'py') && PYTHON_ROLES.has(role)) {
     const noLink = target.startsWith('!');

@@ -187,6 +187,18 @@ describe('createCrossReferenceResolver', () => {
     // Without a scope, a bare name means nothing.
     expect(resolver('Report')).toBeUndefined();
   });
+
+  test('falls back to builtins in scope, as annotations do', async () => {
+    const model = await fixtureModel('demopkg');
+    const resolver = createCrossReferenceResolver({
+      models: [model],
+      siteBase: '',
+      trailingSlash: 'always',
+      scopes: model.scopes,
+      lookupExternal: (path) => (path === 'builtins.ValueError' ? 'https://docs.python.org/3/exc.html' : undefined),
+    });
+    expect(resolver('ValueError', 'demopkg.report.generate_report')).toBe('https://docs.python.org/3/exc.html');
+  });
 });
 
 describe('resolveSphinxRoles', () => {
@@ -235,6 +247,24 @@ describe('resolveSphinxRoles', () => {
     expect(resolveSphinxRoles('Follows :pep:`8`.', scoped, scope)).toBe('Follows PEP 8.');
     expect(resolveSphinxRoles('A :c:func:`malloc` call in :file:`__init__.py`.', scoped, scope)).toBe(
       'A `malloc` call in `__init__.py`.',
+    );
+  });
+
+  test('keeps angle brackets in a literal role', () => {
+    expect(resolveSphinxRoles('Reads :file:`/etc/<name>` and :code:`Vec<T>`.', scoped, scope)).toBe(
+      'Reads `/etc/<name>` and `Vec<T>`.',
+    );
+  });
+
+  test('resolves a :mod: target exactly, not in scope', () => {
+    const scopes: (string | undefined)[] = [];
+    resolveSphinxRoles(':mod:`json` and :meth:`json`', (_target, scopePath) => void scopes.push(scopePath), scope);
+    expect(scopes).toEqual([undefined, scope]);
+  });
+
+  test('keeps a role in link text as code, so links do not nest', () => {
+    expect(resolveSphinxRoles('[:class:`Report`](/x) and [:class:`Report`][]', scoped, scope)).toBe(
+      '[`Report`](/x) and [`Report`][]',
     );
   });
 

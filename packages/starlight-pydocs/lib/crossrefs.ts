@@ -19,7 +19,7 @@
  * packages', then the Sphinx inventories.
  */
 
-import { scopeChain } from './expr.ts';
+import { createAnnotationResolver } from './expr.ts';
 import type { PackageModel } from './model.ts';
 import { documentedPathFor } from './model.ts';
 import { parseSphinxRole, SPHINX_ROLE_PATTERN } from './markdown.ts';
@@ -53,41 +53,39 @@ export interface CrossReferenceResolverOptions {
  * land on the same anchor.
  */
 export function createCrossReferenceResolver(options: CrossReferenceResolverOptions): CrossReferenceResolver {
-  const cache = new Map<string, string | undefined>();
+  const hrefs = new Map<string, string | undefined>();
 
-  const lookup = (target: string): string | undefined => {
+  const internal = (path: string): string | undefined => {
+    if (hrefs.has(path)) return hrefs.get(path);
+    let href: string | undefined;
     for (const model of options.models) {
-      const documented = documentedPathFor(model, target);
+      const documented = documentedPathFor(model, path);
       const entry = documented === undefined ? undefined : model.symbolsByPath.get(documented);
       if (entry !== undefined) {
-        return objectHref(options.siteBase, entry.pageSlug, entry.anchor, options.trailingSlash);
+        href = objectHref(options.siteBase, entry.pageSlug, entry.anchor, options.trailingSlash);
+        break;
       }
     }
-    return options.lookupExternal?.(target);
+    hrefs.set(path, href);
+    return href;
   };
 
-  const lookupInScope = (name: string, scopePath: string): string | undefined => {
-    const [first = '', ...rest] = name.split('.');
-    for (const scope of scopeChain(scopePath)) {
-      const bound = options.scopes?.get(scope)?.get(first);
-      if (bound !== undefined) return lookup([bound, ...rest].join('.'));
-    }
-    return undefined;
-  };
-
-  const cached = (key: string, find: () => string | undefined): string | undefined => {
-    if (!cache.has(key)) cache.set(key, find());
-    return cache.get(key);
-  };
+  // The annotation resolver, so a name links to the same place in prose as in a signature.
+  const scoped = createAnnotationResolver({
+    isDocumented: (path) => internal(path) !== undefined,
+    lookupScope: (scope, name) => options.scopes?.get(scope)?.get(name),
+    lookupExternal: (path) => {
+      const href = options.lookupExternal?.(path);
+      return href === undefined ? undefined : { href };
+    },
+  });
 
   return (target, scopePath) => {
     const trimmed = target.trim();
     if (trimmed === '') return undefined;
-    const scoped =
-      scopePath === undefined
-        ? undefined
-        : cached(`${scopePath}\u0000${trimmed}`, () => lookupInScope(trimmed, scopePath));
-    return scoped ?? cached(trimmed, () => lookup(trimmed));
+    if (scopePath === undefined) return internal(trimmed) ?? options.lookupExternal?.(trimmed);
+    const found = scoped.resolve(trimmed, scopePath);
+    return found?.kind === 'internal' ? internal(found.path) : found?.href;
   };
 }
 
@@ -107,6 +105,10 @@ export function resolveSphinxRoles(
   if (!markdown.includes(':`')) return markdown;
 
   const code = codeRanges(markdown);
+  const linkTexts = [...markdown.matchAll(LINK_TEXT_PATTERN)].map((match) => ({
+    start: match.index,
+    end: match.index + match[0].length,
+  }));
 
   return markdown.replace(
     SPHINX_ROLE_PATTERN,
@@ -116,7 +118,10 @@ export function resolveSphinxRoles(
 
       const { text, kind, target } = parseSphinxRole(domain, role, content);
       if (kind === 'text') return text.replace(/[\\`*_[\]<>&]/g, '\\$&');
-      const href = target === undefined ? undefined : resolve?.(target, scopePath);
+      // A link inside link text is not allowed in Markdown, so a role in a link's title stays code.
+      const linkable = target !== undefined && !overlapsCode(linkTexts, offset, offset + 1);
+      // Sphinx matches `:mod:` targets exactly, never against names in scope.
+      const href = linkable ? resolve?.(target, role === 'mod' ? undefined : scopePath) : undefined;
       return href === undefined ? `\`${text}\`` : `[\`${text}\`](${formatUrl(href)})`;
     },
   );
@@ -124,6 +129,9 @@ export function resolveSphinxRoles(
 
 /** `[title][target]` and the `[target][]` shorthand. */
 const REFERENCE_PATTERN = /\[([^\][]*)\]\[([^\][]*)\]/g;
+
+/** The text of an inline link or a reference: `[text](` or `[text][`. */
+const LINK_TEXT_PATTERN = /\[[^\][]*\](?=[([])/g;
 
 /** A Markdown reference definition: `[label]: https://example.com`. */
 const DEFINITION_PATTERN = /^ {0,3}\[([^\][]+)\]:\s+\S/;
