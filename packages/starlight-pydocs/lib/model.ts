@@ -787,10 +787,20 @@ function overloadsFrom(object: GriffeObject): GriffeFunction[] | undefined {
  * markdown parser.
  */
 function briefFrom(object: GriffeObject): string {
-  const sections = object.docstring?.parsed ?? [];
-  const text = sections.find((section): section is DocstringSectionText => section.kind === 'text');
-  const raw = typeof text?.value === 'string' ? text.value : (object.docstring?.value ?? '');
-  return stripMarkdown(firstLine(raw));
+  const parsed = object.docstring?.parsed;
+  const text = parsed?.find((section): section is DocstringSectionText => section.kind === 'text');
+  // Raw text only without parsed sections: with them, it holds the RST that `convertRst` rewrote.
+  const raw =
+    typeof text?.value === 'string' ? text.value : Array.isArray(parsed) ? '' : (object.docstring?.value ?? '');
+  // A role may wrap onto the next line, so roles go before the line is cut.
+  return stripMarkdown(firstLine(withoutSphinxRoles(raw)));
+}
+
+function withoutSphinxRoles(value: string): string {
+  return value.replace(
+    SPHINX_ROLE_PATTERN,
+    (_, domain: string | undefined, role: string, content: string) => parseSphinxRole(domain, role, content).text,
+  );
 }
 
 function firstLine(value: string): string {
@@ -802,10 +812,6 @@ function firstLine(value: string): string {
 
 function stripMarkdown(value: string): string {
   return value
-    .replace(
-      SPHINX_ROLE_PATTERN,
-      (_, domain: string | undefined, role: string, content: string) => parseSphinxRole(domain, role, content).text,
-    )
     .replace(/`{1,3}([^`]*)`{1,3}/g, '$1')
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/\[([^\]]*)\]\[[^\]]*\]/g, '$1')

@@ -469,8 +469,8 @@ Finer-grained decisions, each answering a "why is it like this" the code alone d
   (`:class:`Report``) are rewritten the same way, but resolve a bare name in the
   scope of the docstring's object first (through the annotation resolver), as Sphinx
   does, except `:mod:`, which Sphinx matches exactly. A role inside a link's text
-  stays code, since Markdown links cannot nest. `lib/markdown.ts` parses role content once for both the rendered prose and
-  the plain-text briefs.
+  stays code, since Markdown links cannot nest. `lib/markdown.ts` parses role content once for the rendered prose,
+  the plain-text briefs and `llms.txt`, which has no resolver and writes every role as code.
 - **Other reStructuredText markup is rewritten once, at `loadDump`** (decision 15),
   unlike roles, which need the object's scope at render time. Admonition and
   `deprecated` directives in a `text` section become real `admonition`/`deprecated`

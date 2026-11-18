@@ -367,6 +367,26 @@ describe('symbol index', () => {
     expect(model.symbolsByPath.get('ovpkg.A.own')?.brief).toBe('Wraps CliRunner, see the guide and run.');
   });
 
+  test('reduces a Sphinx role that wraps onto the next line', () => {
+    const dump = structuredClone(syntheticDump);
+    const value = 'Build a :class:`~mypkg.Report\nobject` from rows.\n\nMore.';
+    const own = dump['ovpkg']?.members?.['A']?.members?.['own'];
+    if (own === undefined) throw new Error('fixture lost ovpkg.A.own');
+    own.docstring = { value, parsed: [{ kind: 'text', value }] };
+    const model = buildModel(dump, modelOptions('ovpkg', { base: 'api/ovpkg' }));
+    expect(model.symbolsByPath.get('ovpkg.A.own')?.brief).toBe('Build a Report object from rows.');
+  });
+
+  test('does not take the brief from raw text that griffe parsed into other sections', () => {
+    const dump = structuredClone(syntheticDump);
+    const value = '.. deprecated:: 2.0\n   Use other().';
+    const own = dump['ovpkg']?.members?.['A']?.members?.['own'];
+    if (own === undefined) throw new Error('fixture lost ovpkg.A.own');
+    own.docstring = { value, parsed: [{ kind: 'text', value }] };
+    const model = buildModel(convertRst(dump), modelOptions('ovpkg', { base: 'api/ovpkg' }));
+    expect(model.symbolsByPath.get('ovpkg.A.own')?.brief).toBe('');
+  });
+
   test('reduces RST hyperlinks in the brief to their text', () => {
     const dump = structuredClone(syntheticDump);
     const value = 'Runs on `asyncclick <https://example.com/asyncclick>`_ or `<https://example.com>`__.';

@@ -28,7 +28,7 @@ import { loadInventories } from '../lib/inventory.ts';
 import type { PydocsLogger } from '../lib/logger.ts';
 import { computeVersionAnnotations } from '../lib/ref-extract.ts';
 import { publishRegistry } from '../lib/registry.ts';
-import { resolveAllExtractions, watchPaths } from '../lib/runner.ts';
+import { resolveAllExtractions, usesSourceDump, watchPaths } from '../lib/runner.ts';
 import type { DocstringRenderer } from './docstring-renderer.ts';
 import {
   detectApiCards,
@@ -231,12 +231,9 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
 
   const renderDocstrings = async (logger: AstroIntegrationLogger): Promise<void> => {
     if (renderer === undefined) return;
-    // A pre-generated dump was parsed with whatever style its author chose. The
-    // runner ignores `source` when `runner.command` is set, as here.
+    // A pre-generated dump was parsed with whatever style its author chose.
     const preDumped = new Set(
-      setup.config.packages
-        .filter((pkg) => setup.config.runner.command === undefined && pkg.source !== undefined)
-        .map((pkg) => pkg.base),
+      setup.config.packages.filter((pkg) => usesSourceDump(pkg, setup.config)).map((pkg) => pkg.base),
     );
     for (const pkg of setup.context.packages) {
       const rendered = preDumped.has(pkg.base)
