@@ -23,6 +23,7 @@ import type { InventoryLookup } from './inventory.ts';
 import { createInventoryLookup, parseInventory } from './inventory.ts';
 import type { ModelOptions, PackageModel } from './model.ts';
 import { buildAnnotationResolver, buildModel } from './model.ts';
+import { convertRst } from './rst.ts';
 import type { GriffeDump } from './types.ts';
 import type { VersionAnnotations } from './versions.ts';
 import { versionLabelsFrom } from './versions.ts';
@@ -131,7 +132,7 @@ export async function loadDump(dumpPath: string): Promise<GriffeDump> {
             'regenerate it with `griffe dump -f -d <style>`',
         );
       }
-      return mergeInitDocstrings(parsed as GriffeDump);
+      return mergeInitDocstrings(convertRst(parsed as GriffeDump));
     },
   });
 }
@@ -335,6 +336,7 @@ export async function getCrossReferenceResolver(context: PydocsContext, base: st
     siteBase: context.siteBase,
     trailingSlash: context.trailingSlash,
     lookupExternal: (dottedPath) => inventories.lookup(dottedPath)?.href,
+    scopes: ownModel?.scopes,
   });
 }
 

@@ -19,12 +19,19 @@
  * packages', then the Sphinx inventories.
  */
 
+import { createAnnotationResolver } from './expr.ts';
 import type { PackageModel } from './model.ts';
 import { documentedPathFor } from './model.ts';
+import { parseSphinxRole, SPHINX_ROLE_PATTERN } from './markdown.ts';
 import { objectHref } from './paths.ts';
 
-/** Resolves a cross-reference target to a URL, or returns undefined. */
-export type CrossReferenceResolver = (target: string) => string | undefined;
+/**
+ * Resolves a cross-reference target to a URL, or returns undefined.
+ *
+ * @param scopePath - Dotted path of the object whose docstring holds the
+ *   reference. With it, a bare name resolves as it would in that object's source.
+ */
+export type CrossReferenceResolver = (target: string, scopePath?: string) => string | undefined;
 
 export interface CrossReferenceResolverOptions {
   /** Models to search, in order. The rendered package comes first. */
@@ -34,6 +41,8 @@ export interface CrossReferenceResolverOptions {
   trailingSlash: 'always' | 'never' | 'ignore';
   /** Sphinx inventory lookup, for targets in other projects' documentation. */
   lookupExternal?: ((dottedPath: string) => string | undefined) | undefined;
+  /** Names bound in each module and class of the rendered package, to resolve a bare name where it is written. */
+  scopes?: PackageModel['scopes'] | undefined;
 }
 
 /**
@@ -44,31 +53,85 @@ export interface CrossReferenceResolverOptions {
  * land on the same anchor.
  */
 export function createCrossReferenceResolver(options: CrossReferenceResolverOptions): CrossReferenceResolver {
-  const cache = new Map<string, string | undefined>();
+  const hrefs = new Map<string, string | undefined>();
 
-  const lookup = (target: string): string | undefined => {
+  const internal = (path: string): string | undefined => {
+    if (hrefs.has(path)) return hrefs.get(path);
+    let href: string | undefined;
     for (const model of options.models) {
-      const documented = documentedPathFor(model, target);
+      const documented = documentedPathFor(model, path);
       const entry = documented === undefined ? undefined : model.symbolsByPath.get(documented);
       if (entry !== undefined) {
-        return objectHref(options.siteBase, entry.pageSlug, entry.anchor, options.trailingSlash);
+        href = objectHref(options.siteBase, entry.pageSlug, entry.anchor, options.trailingSlash);
+        break;
       }
     }
-    return options.lookupExternal?.(target);
-  };
-
-  return (target) => {
-    const trimmed = target.trim();
-    if (trimmed === '') return undefined;
-    if (cache.has(trimmed)) return cache.get(trimmed);
-    const href = lookup(trimmed);
-    cache.set(trimmed, href);
+    hrefs.set(path, href);
     return href;
   };
+
+  // The annotation resolver, so a name links to the same place in prose as in a signature.
+  const scoped = createAnnotationResolver({
+    isDocumented: (path) => internal(path) !== undefined,
+    lookupScope: (scope, name) => options.scopes?.get(scope)?.get(name),
+    lookupExternal: (path) => {
+      const href = options.lookupExternal?.(path);
+      return href === undefined ? undefined : { href };
+    },
+  });
+
+  return (target, scopePath) => {
+    const trimmed = target.trim();
+    if (trimmed === '') return undefined;
+    if (scopePath === undefined) return internal(trimmed) ?? options.lookupExternal?.(trimmed);
+    const found = scoped.resolve(trimmed, scopePath);
+    return found?.kind === 'internal' ? internal(found.path) : found?.href;
+  };
+}
+
+/**
+ * Rewrite Sphinx roles, such as `:class:`Report``, as Markdown, which would
+ * otherwise show a stray `:class:` before a code span. A Python object role is
+ * linked when its target resolves in the scope of the docstring's object; other
+ * roles keep only their text.
+ *
+ * @param scopePath - Dotted path of the object whose docstring this is.
+ */
+export function resolveSphinxRoles(
+  markdown: string,
+  resolve: CrossReferenceResolver | undefined,
+  scopePath: string,
+): string {
+  if (!markdown.includes(':`')) return markdown;
+
+  const code = codeRanges(markdown);
+  const linkTexts = [...markdown.matchAll(LINK_TEXT_PATTERN)].map((match) => ({
+    start: match.index,
+    end: match.index + match[0].length,
+  }));
+
+  return markdown.replace(
+    SPHINX_ROLE_PATTERN,
+    (whole: string, domain: string | undefined, role: string, content: string, offset: number) => {
+      // The role's own content is a code span; only its leading colon has to sit outside code.
+      if (overlapsCode(code, offset, offset + 1) || isEscaped(markdown, offset)) return whole;
+
+      const { text, kind, target } = parseSphinxRole(domain, role, content);
+      if (kind === 'text') return text.replace(/[\\`*_[\]<>&]/g, '\\$&');
+      // A link inside link text is not allowed in Markdown, so a role in a link's title stays code.
+      const linkable = target !== undefined && !overlapsCode(linkTexts, offset, offset + 1);
+      // Sphinx matches `:mod:` targets exactly, never against names in scope.
+      const href = linkable ? resolve?.(target, role === 'mod' ? undefined : scopePath) : undefined;
+      return href === undefined ? `\`${text}\`` : `[\`${text}\`](${formatUrl(href)})`;
+    },
+  );
 }
 
 /** `[title][target]` and the `[target][]` shorthand. */
 const REFERENCE_PATTERN = /\[([^\][]*)\]\[([^\][]*)\]/g;
+
+/** The text of an inline link or a reference: `[text](` or `[text][`. */
+const LINK_TEXT_PATTERN = /\[[^\][]*\](?=[([])/g;
 
 /** A Markdown reference definition: `[label]: https://example.com`. */
 const DEFINITION_PATTERN = /^ {0,3}\[([^\][]+)\]:\s+\S/;
@@ -76,7 +139,7 @@ const DEFINITION_PATTERN = /^ {0,3}\[([^\][]+)\]:\s+\S/;
 /** Opens or closes a fenced code block. */
 const FENCE_PATTERN = /^ {0,3}(`{3,}|~{3,})(.*)$/;
 
-interface Range {
+export interface Range {
   start: number;
   end: number;
 }
@@ -129,7 +192,7 @@ export function resolveCrossReferences(markdown: string, resolve: CrossReference
 }
 
 /** Wrap a URL in angle brackets when bare parentheses or spaces would break it. */
-function formatUrl(href: string): string {
+export function formatUrl(href: string): string {
   return /[()\s]/.test(href) ? `<${href}>` : href;
 }
 
@@ -172,12 +235,12 @@ function referenceDefinitions(markdown: string, code: Range[]): Set<string> {
  * from a list continuation needs a block parser, and griffe hands us dedented
  * prose where examples arrive fenced.
  */
-function codeRanges(markdown: string): Range[] {
+export function codeRanges(markdown: string): Range[] {
   const fences = fencedRanges(markdown);
   return [...fences, ...inlineCodeRanges(markdown, fences)].sort((a, b) => a.start - b.start);
 }
 
-function fencedRanges(markdown: string): Range[] {
+export function fencedRanges(markdown: string): Range[] {
   const ranges: Range[] = [];
   let offset = 0;
   let open: { marker: string; start: number } | undefined;

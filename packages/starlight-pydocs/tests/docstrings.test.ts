@@ -4,6 +4,7 @@ import type { DocstringMarkdownItem } from '../lib/docstrings.ts';
 import {
   assembleRenderedDocstrings,
   collectDocstringMarkdown,
+  findUnparsedSections,
   mergeInitDocstrings,
   renderedDeprecation,
   renderedSectionBlock,
@@ -178,5 +179,64 @@ describe('mergeInitDocstrings', () => {
     const own = { value: 'A thing.', parsed: [text('A thing.')] };
     const dump = mergeInitDocstrings(dumpWith(own, { kind: 'function', name: '__init__', path: 'pkg.A.__init__' }));
     expect(classOf(dump)?.docstring).toEqual(own);
+  });
+});
+
+describe('findUnparsedSections', () => {
+  const body = (objectPath: string, markdown: string): DocstringMarkdownItem => ({
+    objectPath,
+    sectionIndex: 0,
+    slot: 'body',
+    index: 0,
+    markdown,
+  });
+
+  test('finds sections of each other style left in the prose', () => {
+    const items = [
+      body('pkg.sphinx', 'Greet someone.\n\n:param name: who to greet.\n:returns: the greeting.'),
+      body('pkg.numpy', 'Greet someone.\n\nParameters\n----------\nname : str\n    Who to greet.'),
+      // Griffe's google parser reads `Args:` as a header and leaves the underline.
+      body('pkg.underline', '----\n    name: Who to greet.'),
+      body('pkg.plain', 'Greet someone.\n\nIt is 10:30, and `a:b` is not a field list.'),
+    ];
+    expect(findUnparsedSections(items, 'google')).toEqual([
+      { style: 'sphinx', count: 1, examples: ['pkg.sphinx'] },
+      { style: 'numpy', count: 2, examples: ['pkg.numpy', 'pkg.underline'] },
+    ]);
+  });
+
+  test('ignores Markdown headings, indented code and objects the site does not render', () => {
+    const items = [
+      body('pkg.heading', 'Intro.\n\nNotes\n-----\nSome markdown heading.'),
+      body('pkg.indented', 'Intro.\n\n    :param x: indented code block example'),
+      body('pkg._vendor.x', ':param x: vendored'),
+    ];
+    expect(findUnparsedSections(items, 'google', new Set(['pkg.heading', 'pkg.indented']))).toEqual([]);
+  });
+
+  test('finds google sections under another style, and skips the configured one', () => {
+    const items = [body('pkg.google', 'Greet someone.\n\nArgs:\n    name: Who to greet.')];
+    expect(findUnparsedSections(items, 'numpy')).toEqual([{ style: 'google', count: 1, examples: ['pkg.google'] }]);
+    expect(findUnparsedSections(items, 'google')).toEqual([]);
+  });
+
+  test('counts an object once and lists at most three examples', () => {
+    const items = ['a', 'b', 'c', 'd'].flatMap((name) => [
+      body(`pkg.${name}`, ':param x: one.'),
+      body(`pkg.${name}`, ':param y: two.'),
+    ]);
+    expect(findUnparsedSections(items, 'google')).toEqual([
+      { style: 'sphinx', count: 4, examples: ['pkg.a', 'pkg.b', 'pkg.c'] },
+    ]);
+  });
+
+  test('ignores markup inside code', () => {
+    const items = [body('pkg.f', 'Example:\n\n```rst\n:param x: one.\n```\n\nInline `:param y: two.`')];
+    expect(findUnparsedSections(items, 'google')).toEqual([]);
+  });
+
+  test('ignores parameter descriptions and other slots', () => {
+    const items: DocstringMarkdownItem[] = [{ ...body('pkg.f', ':param x: one.'), slot: 'entry' }];
+    expect(findUnparsedSections(items, 'google')).toEqual([]);
   });
 });
