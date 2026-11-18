@@ -11,6 +11,7 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 - 🐛 A class's `__init__` docstring now shows under the class, after the class's own docstring, as mkdocstrings' `merge_init_into_class` does. The default filters hide `__init__`, so before this its `Args:` section never rendered. A deprecation in `__init__` stays on `__init__`, because it usually deprecates an argument, not the class.
 - 🐛 On Starlight sites, docstring admonitions and deprecation notices now use Starlight's own aside markup, so they look exactly like Starlight's asides, icons included, and follow themes that restyle them. Sites without Starlight keep the plain `.pyd-aside`.
 - 🐛 Fixed raw `{:py}` suffixes on inline code in docstrings after you remove starlight-codeblocks from the config of a running `astro dev`. pydocs now uses the starlight-codeblocks registry only when the plugin is in the current config.
+- 🐛 Fixed names that a package re-exports without `__all__`, such as `click.command` after `import rich_click as click`, not linking from code blocks. The member filters leave these re-exports off the pages (`imported: false`), but they now link to the page of the object they name.
 
 ## v0.3.0 (2026-10-05)
 

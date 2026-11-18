@@ -117,7 +117,7 @@ block.
 Both plugins find each other through objects on `globalThis`, so neither one depends on the other:
 
 - starlight-pydocs publishes every documented object, with its link, kind, signature and summary,
-  at `globalThis[Symbol.for('starlight-pydocs')]`, from `astro:config:setup`. The shape is
+  under every module path that imports it, at `globalThis[Symbol.for('starlight-pydocs')]`, from `astro:config:setup`. The shape is
   `{ version: 1, packages: [{ name, base, symbols }] }`, where `symbols` is a `Map` keyed by
   dotted path.
 - It reads `globalThis[Symbol.for('starlight-codeblocks')]` at `astro:config:done` or later, to

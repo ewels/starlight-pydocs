@@ -31,7 +31,8 @@ const KEY = Symbol.for('starlight-pydocs');
 
 /**
  * Every documented path of a model, re-exports included, as registry entries,
- * plus the definition path of each object documented only at a re-export.
+ * plus the definition path of each object documented only at a re-export, and
+ * each undocumented re-export of a documented object.
  */
 export function registrySymbols(
   model: PackageModel,
@@ -51,6 +52,22 @@ export function registrySymbols(
   for (const [canonical, documented] of model.documentedByCanonicalPath) {
     const symbol = symbols.get(documented);
     if (symbol !== undefined && !symbols.has(canonical)) symbols.set(canonical, symbol);
+  }
+  // A re-export the member filters leave out, such as `from .decorators import command as command`
+  // with `imported: false`, still names a documented object, so code that imports it should link.
+  // Repeat for re-exports of re-exports.
+  for (let added = true; added;) {
+    added = false;
+    for (const [module, names] of model.scopes) {
+      if (model.objectsByPath.get(module)?.kind !== 'module') continue;
+      for (const [name, target] of names) {
+        const symbol = symbols.get(target);
+        const path = `${module}.${name}`;
+        if (symbol === undefined || symbols.has(path)) continue;
+        symbols.set(path, symbol);
+        added = true;
+      }
+    }
   }
   return symbols;
 }
