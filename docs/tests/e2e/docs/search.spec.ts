@@ -20,6 +20,16 @@ test('the symbol search element finds an object and the keyboard navigates to it
   await expect(page.locator('[id="demopkg.Report.generate"]')).toBeVisible();
 });
 
+test('Enter with no result picked follows the best match', async ({ page }) => {
+  await page.goto('guides/autodoc/');
+
+  const { input, options } = await searchSymbols(page, 'generate');
+  await expect(options.first()).toContainText('demopkg.Report.generate');
+  await input.press('Enter');
+
+  await expect(page).toHaveURL(/\/api\/demopkg\/#demopkg\.Report\.generate$/);
+});
+
 test('the generated package page carries a search box, and module pages do not', async ({ page }) => {
   await page.goto('api/demopkg/');
   await expect(symbolSearch(page).root).toHaveCount(1);

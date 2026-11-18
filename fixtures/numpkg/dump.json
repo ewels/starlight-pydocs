@@ -32,35 +32,12 @@
         "bases": [],
         "decorators": [],
         "docstring": {
-          "endlineno": 26,
+          "endlineno": 19,
           "lineno": 11,
           "parsed": [
             {
               "kind": "text",
               "value": "A rectangular grid of samples."
-            },
-            {
-              "kind": "parameters",
-              "value": [
-                {
-                  "annotation": {
-                    "cls": "ExprName",
-                    "member": null,
-                    "name": "int"
-                  },
-                  "description": "Number of columns.",
-                  "name": "width"
-                },
-                {
-                  "annotation": {
-                    "cls": "ExprName",
-                    "member": null,
-                    "name": "int"
-                  },
-                  "description": "Number of rows.",
-                  "name": "height"
-                }
-              ]
             },
             {
               "kind": "attributes",
@@ -86,9 +63,9 @@
               ]
             }
           ],
-          "value": "A rectangular grid of samples.\n\nParameters\n----------\nwidth : int\n    Number of columns.\nheight : int\n    Number of rows.\n\nAttributes\n----------\nwidth : int\n    Number of columns.\nheight : int\n    Number of rows."
+          "value": "A rectangular grid of samples.\n\nAttributes\n----------\nwidth : int\n    Number of columns.\nheight : int\n    Number of rows."
         },
-        "endlineno": 40,
+        "endlineno": 42,
         "filepath": "fixtures/numpkg/src/numpkg/__init__.py",
         "is_class_private": false,
         "is_deprecated": false,
@@ -104,7 +81,41 @@
           "__init__": {
             "analysis": "static",
             "decorators": [],
-            "endlineno": 30,
+            "docstring": {
+              "endlineno": 30,
+              "lineno": 22,
+              "parsed": [
+                {
+                  "kind": "text",
+                  "value": "Make an empty grid."
+                },
+                {
+                  "kind": "parameters",
+                  "value": [
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": null,
+                        "name": "int"
+                      },
+                      "description": "Number of columns.",
+                      "name": "width"
+                    },
+                    {
+                      "annotation": {
+                        "cls": "ExprName",
+                        "member": null,
+                        "name": "int"
+                      },
+                      "description": "Number of rows.",
+                      "name": "height"
+                    }
+                  ]
+                }
+              ],
+              "value": "Make an empty grid.\n\nParameters\n----------\nwidth : int\n    Number of columns.\nheight : int\n    Number of rows."
+            },
+            "endlineno": 32,
             "filepath": "fixtures/numpkg/src/numpkg/__init__.py",
             "is_class_private": false,
             "is_deprecated": false,
@@ -115,7 +126,7 @@
             "is_special": true,
             "is_wildcard_exposed": false,
             "kind": "function",
-            "lineno": 28,
+            "lineno": 21,
             "name": "__init__",
             "parameters": [
               {
@@ -155,8 +166,8 @@
             "analysis": "static",
             "decorators": [],
             "docstring": {
-              "endlineno": 39,
-              "lineno": 33,
+              "endlineno": 41,
+              "lineno": 35,
               "parsed": [
                 {
                   "kind": "text",
@@ -179,7 +190,7 @@
               ],
               "value": "Compute the number of cells.\n\nReturns\n-------\nint\n    Width multiplied by height."
             },
-            "endlineno": 40,
+            "endlineno": 42,
             "filepath": "fixtures/numpkg/src/numpkg/__init__.py",
             "is_class_private": false,
             "is_deprecated": false,
@@ -190,7 +201,7 @@
             "is_special": false,
             "is_wildcard_exposed": false,
             "kind": "function",
-            "lineno": 32,
+            "lineno": 34,
             "name": "area",
             "parameters": [
               {
@@ -212,7 +223,7 @@
           },
           "height": {
             "analysis": "static",
-            "endlineno": 30,
+            "endlineno": 32,
             "filepath": "fixtures/numpkg/src/numpkg/__init__.py",
             "is_class_private": false,
             "is_deprecated": false,
@@ -226,7 +237,7 @@
             "labels": [
               "instance-attribute"
             ],
-            "lineno": 30,
+            "lineno": 32,
             "name": "height",
             "path": "numpkg.Grid.height",
             "relative_filepath": "fixtures/numpkg/src/numpkg/__init__.py",
@@ -240,7 +251,7 @@
           },
           "width": {
             "analysis": "static",
-            "endlineno": 29,
+            "endlineno": 31,
             "filepath": "fixtures/numpkg/src/numpkg/__init__.py",
             "is_class_private": false,
             "is_deprecated": false,
@@ -254,7 +265,7 @@
             "labels": [
               "instance-attribute"
             ],
-            "lineno": 29,
+            "lineno": 31,
             "name": "width",
             "path": "numpkg.Grid.width",
             "relative_filepath": "fixtures/numpkg/src/numpkg/__init__.py",
@@ -307,8 +318,8 @@
         "analysis": "static",
         "decorators": [],
         "docstring": {
-          "endlineno": 67,
-          "lineno": 44,
+          "endlineno": 69,
+          "lineno": 46,
           "parsed": [
             {
               "kind": "text",
@@ -377,7 +388,7 @@
           ],
           "value": "Scale a grid by a factor.\n\nParameters\n----------\ngrid : Grid\n    The grid to scale.\nfactor : float, optional\n    Multiplier applied to both dimensions, by default 2.0.\n\nReturns\n-------\nGrid\n    A new, scaled grid.\n\nRaises\n------\nValueError\n    If `factor` is not positive.\n\nExamples\n--------\n>>> resample(Grid(2, 3), 2.0).area()\n24"
         },
-        "endlineno": 70,
+        "endlineno": 72,
         "filepath": "fixtures/numpkg/src/numpkg/__init__.py",
         "is_class_private": false,
         "is_deprecated": false,
@@ -388,7 +399,7 @@
         "is_special": false,
         "is_wildcard_exposed": true,
         "kind": "function",
-        "lineno": 43,
+        "lineno": 45,
         "name": "resample",
         "parameters": [
           {

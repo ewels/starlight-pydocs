@@ -99,7 +99,7 @@ test.describe('demopkg.report', () => {
   test('deprecations are badged and explained', async ({ page }) => {
     const deprecated = member(page, 'demopkg.report.old_generate');
     await expect(deprecated.locator('.pyd-badge[data-pydocs-badge="deprecated"]')).toHaveText('Deprecated');
-    const note = deprecated.locator('.pyd-aside[data-pydocs-aside="deprecated"]');
+    const note = deprecated.locator('[data-pydocs-aside="deprecated"]');
     await expect(note).toContainText('Since 0.3');
     // The prose went through the site's markdown processor, so the backticks in
     // the docstring are real code elements.
@@ -107,9 +107,13 @@ test.describe('demopkg.report', () => {
   });
 
   test('docstring admonitions become asides', async ({ page }) => {
-    const note = member(page, 'demopkg.report.Report.generate').locator('.pyd-aside');
+    const note = member(page, 'demopkg.report.Report.generate').locator('[data-pydocs-aside]');
     await expect(note).toHaveAttribute('data-pydocs-aside', 'note');
     await expect(note).toContainText('deliberately synchronous');
+    // Starlight's own aside markup, so Starlight's styles and icon apply.
+    await expect(note).toHaveClass(/\bstarlight-aside starlight-aside--note\b/);
+    await expect(note.locator('.starlight-aside__title svg.starlight-aside__icon')).toHaveCount(1);
+    await expect(note.locator('.starlight-aside__content')).toContainText('deliberately synchronous');
   });
 
   test('mkdocstrings cross-references in prose become links', async ({ page }) => {
@@ -211,4 +215,5 @@ test('with starlight-codeblocks, type links get its hover card instead of a titl
   const card = page.locator('.scb-api-card');
   await expect(card).toBeVisible();
   await expect(card.locator('span')).toHaveText(['class str', 'Python 3', 'Open docs at docs.python.org']);
+  await expect(card.locator('.scb-api-card-source svg')).toBeVisible();
 });

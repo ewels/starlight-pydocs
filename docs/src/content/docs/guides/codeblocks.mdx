@@ -62,6 +62,10 @@ same card when a reader hovers over them or moves keyboard focus to them. The ca
 type is, where its documentation comes from, and where the link goes. Screen readers get the same
 text. Without starlight-codeblocks, these links have a plain browser tooltip instead.
 
+The line that says where the documentation comes from starts with the project's logo, when there is
+one. The logos come from [Simple Icons](https://simpleicons.org/), plus some Python projects that
+Simple Icons does not have, such as Click, attrs and xarray.
+
 ### Doctests copy as code
 
 A docstring example written as a `>>>` session gets a **Copy commands** button. It copies the
@@ -117,11 +121,13 @@ block.
 Both plugins find each other through objects on `globalThis`, so neither one depends on the other:
 
 - starlight-pydocs publishes every documented object, with its link, kind, signature and summary,
-  at `globalThis[Symbol.for('starlight-pydocs')]`, from `astro:config:setup`. The shape is
+  under every module path that imports it, at `globalThis[Symbol.for('starlight-pydocs')]`, from `astro:config:setup`. The shape is
   `{ version: 1, packages: [{ name, base, symbols }] }`, where `symbols` is a `Map` keyed by
   dotted path.
 - It reads `globalThis[Symbol.for('starlight-codeblocks')]` at `astro:config:done` or later, to
-  learn which starlight-codeblocks features are on.
+  learn which starlight-codeblocks features are on. It uses that object only when
+  `starlight-codeblocks` is in the site's integrations, because the object outlives a dev
+  restart that removes the plugin.
 
 <CardGrid>
   <LinkCard
