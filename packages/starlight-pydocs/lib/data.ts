@@ -335,10 +335,7 @@ export async function getCrossReferenceResolver(context: PydocsContext, base: st
     siteBase: context.siteBase,
     trailingSlash: context.trailingSlash,
     lookupExternal: (dottedPath) => inventories.lookup(dottedPath)?.href,
-    scoped:
-      ownModel === undefined
-        ? undefined
-        : buildAnnotationResolver(ownModel, (dottedPath) => inventories.lookup(dottedPath)),
+    scopes: ownModel?.scopes,
   });
 }
 

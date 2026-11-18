@@ -21,6 +21,7 @@ import path from 'node:path';
 import type { NormalisedFilters, NormalisedMembers, NormalisedSourceLink } from './config.ts';
 import { formatSourceLink } from './config.ts';
 import { PydocsError } from './errors.ts';
+import { parseSphinxRole, SPHINX_ROLE_PATTERN } from './markdown.ts';
 import type { AnnotationResolver, AnnotationResolverOptions } from './expr.ts';
 import { createAnnotationResolver, expressionToPath } from './expr.ts';
 import { isInside, matchesDottedGlob, moduleSlug, parentPath, safeHref, shortName } from './paths.ts';
@@ -802,7 +803,10 @@ function firstLine(value: string): string {
 function stripMarkdown(value: string): string {
   return (
     value
-      .replace(/:(?:[a-z]+:)?[a-z][a-z0-9-]*:`([^`]+)`/g, (_, content: string) => sphinxRoleText(content))
+      .replace(
+        SPHINX_ROLE_PATTERN,
+        (_, domain: string | undefined, role: string, content: string) => parseSphinxRole(domain, role, content).text,
+      )
       // RST hyperlinks: `text <url>`_ keeps its text, a bare `<url>`_ its URL.
       .replace(/`([^`<]*?)\s*<([^`<>\s]+)>`__?/g, (_, text: string, url: string) => text.trim() || url)
       .replace(/`{1,3}([^`]*)`{1,3}/g, '$1')
@@ -812,14 +816,6 @@ function stripMarkdown(value: string): string {
       .replace(/(^|\s)[*_]([^*_]+)[*_]/g, '$1$2')
       .trim()
   );
-}
-
-/** What Sphinx shows for a role's content: `title <target>` → title, `~a.b.C` → C. */
-function sphinxRoleText(content: string): string {
-  const explicit = /^(.+?)\s*<[^<>]+>$/s.exec(content);
-  if (explicit?.[1] !== undefined) return explicit[1];
-  const target = content.replace(/^[!.]+/, '');
-  return target.startsWith('~') ? (target.split('.').pop() ?? target) : target;
 }
 
 /**

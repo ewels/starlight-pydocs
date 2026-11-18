@@ -443,12 +443,17 @@ Finer-grained decisions, each answering a "why is it like this" the code alone d
   brackets. Resolution order is the rendered package's symbol index, then the other
   configured packages', then the Sphinx inventories. Indented (four-space) code blocks
   are not detected as code: telling them from list continuations needs a block parser,
-  and griffe hands us dedented prose whose examples arrive fenced.
-- **Sphinx markup is handled in two places.** Roles (`:class:`…`) and RST hyperlinks are
-string rewrites in the same prose pass as cross-references. Roles resolve in the scope
-of the docstring's object, through the annotation resolver. Admonition and
-`deprecated`directives become real`admonition`/`deprecated`sections instead, in`lib/rst.ts`at`loadDump`, so they render and badge like their google equivalents
-  and every consumer of the dump sees the same section indices.
+  and griffe hands us dedented prose whose examples arrive fenced. Sphinx roles
+  (`:class:`Report``) are rewritten the same way, but resolve a bare name in the
+  scope of the docstring's object first (through the annotation resolver), as Sphinx
+  does, except `:mod:`, which Sphinx matches exactly. A role inside a link's text
+  stays code, since Markdown links cannot nest. `lib/markdown.ts` parses role content once for both the rendered prose and
+  the plain-text briefs.
+- **Other reStructuredText markup is handled in two places.** RST hyperlinks
+  (`` `text <url>`_ ``) are string rewrites in the same prose pass as roles. Admonition
+  and `deprecated` directives become real `admonition`/`deprecated` sections instead,
+  in `lib/rst.ts` at `loadDump`, so they render and badge like their google
+  equivalents and every consumer of the dump sees the same section indices.
 
 ## Griffe dump field names, as actually emitted (2.1.0)
 

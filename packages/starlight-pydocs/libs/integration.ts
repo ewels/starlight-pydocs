@@ -22,7 +22,7 @@ import type { PydocsConfig, PydocsUserConfig } from '../lib/config.ts';
 import { normalizeConfig } from '../lib/config.ts';
 import type { PydocsContext, PydocsInventoryContext } from '../lib/context.ts';
 import { createContext } from '../lib/context.ts';
-import { clearCaches, getCrossReferenceResolver } from '../lib/data.ts';
+import { clearCaches, getCrossReferenceResolver, getModel } from '../lib/data.ts';
 import { errorMessage } from '../lib/errors.ts';
 import { loadInventories } from '../lib/inventory.ts';
 import type { PydocsLogger } from '../lib/logger.ts';
@@ -231,14 +231,27 @@ function pydocsIntegration(setup: PydocsSetup, options: PydocsSetupOptions): Ast
 
   const renderDocstrings = async (logger: AstroIntegrationLogger): Promise<void> => {
     if (renderer === undefined) return;
+    // A pre-generated dump was parsed with whatever style its author chose. The
+    // runner ignores `source` when `runner.command` is set, as here.
+    const preDumped = new Set(
+      setup.config.packages
+        .filter((pkg) => setup.config.runner.command === undefined && pkg.source !== undefined)
+        .map((pkg) => pkg.base),
+    );
     for (const pkg of setup.context.packages) {
+      const rendered = preDumped.has(pkg.base)
+        ? undefined
+        : new Set(
+            [...(await getModel(setup.context, pkg.base)).objectsByPath.values()].map((doc) => doc.canonicalPath),
+          );
       const { count } = await renderDocstringsForDump({
         dumpPath: pkg.dumpPath,
         renderedPath: pkg.renderedPath,
         renderer,
         crossReferences: await getCrossReferenceResolver(setup.context, pkg.base),
         codeblocks: detectCodeblocks(pkg.base),
-        styleCheck: { name: pkg.name, docstringStyle: pkg.docstringStyle },
+        styleCheck:
+          rendered === undefined ? undefined : { base: pkg.base, docstringStyle: pkg.docstringStyle, rendered },
         logger,
       });
       logger.debug(`rendered ${String(count)} docstring strings of '/${pkg.base}' with ${renderer.name}`);

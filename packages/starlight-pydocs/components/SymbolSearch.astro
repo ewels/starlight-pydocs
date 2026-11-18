@@ -213,7 +213,7 @@ const listId = `pyd-search-list-${idSuffix}`;
         return;
       }
       if (event.key === 'Enter') {
-        // With no row picked, Enter takes the best match, as a search box should.
+        if (event.isComposing) return;
         const target = this.#options[this.#active] ?? this.#options[0];
         if (target) {
           event.preventDefault();
