@@ -498,6 +498,14 @@ export function memberList(object: GriffeObject): GriffeObject[] {
   return Object.values(members);
 }
 
+/** A `deprecated` section, or the `Deprecated:` admonition griffe's google parser makes instead. */
+export function isDeprecationSection(section: DocstringSection): boolean {
+  return (
+    section.kind === 'deprecated' ||
+    (section.kind === 'admonition' && (section as DocstringSectionAdmonition).value?.annotation === 'deprecated')
+  );
+}
+
 /** A class's own `__init__`, read off the dump because the default filters hide it. */
 export function initOf(object: GriffeObject): GriffeFunction | undefined {
   const init = object.kind === 'class' ? object.members?.['__init__'] : undefined;

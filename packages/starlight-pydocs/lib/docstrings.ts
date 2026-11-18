@@ -30,7 +30,7 @@ import type {
   GriffeDump,
   GriffeObject,
 } from './types.ts';
-import { initOf, memberList } from './types.ts';
+import { initOf, isDeprecationSection, memberList } from './types.ts';
 
 /** Where one rendered string belongs inside a section. */
 export type DocstringSlot = 'body' | 'entry' | 'block' | 'deprecated';
@@ -91,15 +91,19 @@ type EntrySection = DocstringSectionNamedValues | DocstringSectionThrown | Docst
 /**
  * Append each class's own `__init__` docstring to the class docstring, in place,
  * as mkdocstrings' `merge_init_into_class` does. It runs as the dump loads, so the
- * model and the rendered prose agree on section indices.
+ * model and the rendered prose agree on section indices. A deprecation stays on
+ * `__init__`: it usually deprecates an argument, not the class.
  */
 export function mergeInitDocstrings(dump: GriffeDump): GriffeDump {
   const visit = (object: GriffeObject): void => {
     const init = initOf(object)?.docstring;
-    if (init?.parsed?.length) {
+    const sections = init?.parsed?.filter((section) => !isDeprecationSection(section)) ?? [];
+    if (init && sections.length > 0) {
+      const own = object.docstring;
       object.docstring = {
-        ...(object.docstring ?? init),
-        parsed: [...(object.docstring?.parsed ?? []), ...init.parsed],
+        ...own,
+        value: own?.value ? `${own.value}\n\n${init.value}` : init.value,
+        parsed: [...(own?.parsed ?? []), ...sections],
       };
     }
     for (const member of memberList(object)) visit(member);

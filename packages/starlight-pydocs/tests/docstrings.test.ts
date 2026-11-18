@@ -180,6 +180,18 @@ describe('mergeInitDocstrings', () => {
     const dump = mergeInitDocstrings(dumpWith(own, { kind: 'function', name: '__init__', path: 'pkg.A.__init__' }));
     expect(classOf(dump)?.docstring).toEqual(own);
   });
+
+  test('joins the raw text, and leaves a deprecation on __init__', () => {
+    const deprecated = { kind: 'deprecated', value: { version: '1.5', description: 'The x argument.' } };
+    const dump = mergeInitDocstrings(
+      dumpWith({ value: 'A thing.', parsed: [text('A thing.')], lineno: 3 }, init([params, deprecated])),
+    );
+    expect(classOf(dump)?.docstring).toEqual({
+      value: 'A thing.\n\nMake one.',
+      parsed: [text('A thing.'), params],
+      lineno: 3,
+    });
+  });
 });
 
 describe('findUnparsedSections', () => {
