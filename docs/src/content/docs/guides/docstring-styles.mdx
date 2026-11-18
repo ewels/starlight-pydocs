@@ -29,9 +29,17 @@ at a google docstring, and it reads `Args:` as ordinary prose. You get no parame
 and no `Returns` block, but the build still succeeds. Griffe's own warnings reach your build
 log with a `griffe:` prefix, but not every mis-parse produces a warning.
 
-:::caution[A wrong style degrades silently]
-A `docstringStyle` that does not match your docstrings never fails the build. It produces
-thin pages instead. Open a rendered page after you change the style.
+starlight-pydocs looks for these leftovers itself. When the prose of a docstring still holds
+the section markup of another style, such as `:param name:` or a `Parameters` header with a
+`----------` underline, the build logs one warning per style:
+
+```text
+[starlight-pydocs] 7 docstrings in '/api/mypkg' have sphinx-style sections that the 'google' parser left as plain text, such as mypkg.cli.main, mypkg.cli.run. Set docstringStyle to 'sphinx' or 'auto', or fix the docstrings.
+```
+
+:::caution[A wrong style does not fail the build]
+A `docstringStyle` that does not match your docstrings produces thin pages, not an error.
+Read the build log, and open a rendered page after you change the style.
 :::
 
 ## The same docstring, three ways
@@ -226,6 +234,26 @@ def summarise(rows):
 
 The `llms.txt` rendition of the same content fences transcripts as `pycon` instead. That
 output is read by machines, not highlighted by Shiki.
+
+## reStructuredText in prose
+
+Docstrings written for Sphinx often hold reStructuredText markup that no docstring parser
+reads. The plugin converts the common forms to their Markdown or section equivalent, in
+every docstring style:
+
+| Markup                                                            | Renders as                                                                |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `.. note::`, `.. warning::`, `.. tip::` and the other admonitions | An aside, the same as a google `Note:` block                              |
+| `.. admonition:: Title`                                           | A note aside with that title                                              |
+| `.. deprecated:: 1.9 Why`                                         | The deprecation badge and notice, the same as a `Deprecated:` section     |
+| `.. versionadded:: 2.0`, `versionchanged`, `versionremoved`       | An italic line in Sphinx's wording: _Added in version 2.0._               |
+| `.. code-block:: python`, `.. code::`, `.. sourcecode::`          | A fenced code block in that language                                      |
+| `` `text <https://…>`_ `` and `` `text <https://…>`__ ``          | A Markdown link                                                           |
+| `:class:` and the other Python roles                              | Code, linked to its target (see [Sphinx roles](/starlight-pydocs/guides/cross-references/#sphinx-roles)) |
+
+A directive must start at the beginning of a line, and its body is the indented block under
+it. Other directives, such as `.. image::`, stay as written. Markup inside code is never
+changed.
 
 ## Prose rendering
 
