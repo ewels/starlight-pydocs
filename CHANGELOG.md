@@ -10,6 +10,7 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 - 🐛 Pressing Enter in symbol search before choosing a result with the arrow keys now opens the first result, instead of doing nothing.
 - 🐛 A class's `__init__` docstring now shows under the class, after the class's own docstring, as mkdocstrings' `merge_init_into_class` does. The default filters hide `__init__`, so before this its `Args:` section never rendered. A deprecation in `__init__` stays on `__init__`, because it usually deprecates an argument, not the class.
 - 🐛 On Starlight sites, docstring admonitions and deprecation notices now use Starlight's own aside markup, so they look exactly like Starlight's asides, icons included, and follow themes that restyle them. Sites without Starlight keep the plain `.pyd-aside`.
+- 🐛 Fixed raw `{:py}` suffixes on inline code in docstrings after you remove starlight-codeblocks from the config of a running `astro dev`. pydocs now uses the starlight-codeblocks registry only when the plugin is in the current config.
 
 ## v0.3.0 (2026-10-05)
 

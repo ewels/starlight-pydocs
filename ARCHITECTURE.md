@@ -346,7 +346,9 @@ a contract its owner keeps stable:
 - **Theirs, `Symbol.for('starlight-codeblocks')`.** It exists after codeblocks' own
   `config:setup`, and Starlight plugins run their setup in either order, so it is read at
   `astro:config:done` or later. `options.inlineHighlighting` and `options.apiLinks` are
-  truthy when those features are on. Nothing else on it is public.
+  truthy when those features are on. Nothing else on it is public. It outlives an
+  in-place `astro dev` restart, so pydocs uses it only when `config.integrations` has
+  `starlight-codeblocks`.
 
 What pydocs does with it:
 
