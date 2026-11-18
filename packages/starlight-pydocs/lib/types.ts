@@ -497,3 +497,9 @@ export function memberList(object: GriffeObject): GriffeObject[] {
   if (!members) return [];
   return Object.values(members);
 }
+
+/** A class's own `__init__`, read off the dump because the default filters hide it. */
+export function initOf(object: GriffeObject): GriffeFunction | undefined {
+  const init = object.kind === 'class' ? object.members?.['__init__'] : undefined;
+  return init?.kind === 'function' ? init : undefined;
+}

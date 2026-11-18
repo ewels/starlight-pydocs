@@ -10,6 +10,7 @@ import type { AnnotationResolver, AnnotationToken } from './expr.ts';
 import { annotationTokens, mergeAnnotationTokens, tokensText, wrapAnnotationTokens } from './expr.ts';
 import type { DocObject } from './model.ts';
 import type { GriffeFunction } from './types.ts';
+import { initOf } from './types.ts';
 
 /** Parameter names Python hides from signatures when rendering methods. */
 const IMPLICIT_FIRST_PARAMETERS = new Set(['self', 'cls']);
@@ -150,17 +151,8 @@ function isVariadic(kind: string): boolean {
   return kind === 'variadic positional' || kind === 'variadic keyword';
 }
 
-/**
- * The `__init__` of a class, straight from the griffe object.
- *
- * Read off `object.members` rather than the model's members because `__init__`
- * is a special member and the default filters hide it.
- */
 export function constructorOf(doc: DocObject): GriffeFunction | undefined {
-  if (doc.kind !== 'class') return undefined;
-  const members = doc.object.kind === 'class' ? doc.object.members : undefined;
-  const init = members?.['__init__'];
-  return init?.kind === 'function' ? init : undefined;
+  return doc.kind === 'class' ? initOf(doc.object) : undefined;
 }
 
 /**
