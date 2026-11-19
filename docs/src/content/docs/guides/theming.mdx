@@ -74,7 +74,7 @@ Class hooks are stable and prefixed `pyd-`. The ones worth knowing:
 | `.pyd-module`                         | A whole module page's body                               |
 | `.pyd-member`                         | One documented object, including its members             |
 | `.pyd-heading`, `.pyd-anchor`         | An object's heading and its permalink                    |
-| `.pyd-badges`, `.pyd-badge`           | Kind, label and deprecation badges                       |
+| `.pyd-badges`, `.pyd-badge`           | Kind, label, deprecation and "Added in" badges           |
 | `.pyd-signature`                      | A signature block (`--overload`, `--attribute` variants) |
 | `.pyd-type`                           | A name inside a signature or annotation (linked or not)  |
 | `.pyd-provenance`, `.pyd-source-link` | The line under a heading                                 |
@@ -120,6 +120,8 @@ Starlight.
 | `--pyd-caution-low` | `var(--sl-color-orange-low, #ffedd5)`     | Caution aside background                         |
 | `--pyd-danger`      | `var(--sl-color-red, #dc2626)`            | Danger asides                                    |
 | `--pyd-danger-low`  | `var(--sl-color-red-low, #fee2e2)`        | Danger aside background                          |
+| `--pyd-added`       | `var(--sl-color-green-high, #166534)`     | "Added in" badge text and border                 |
+| `--pyd-added-low`   | `var(--sl-color-green-low, #dcfce7)`      | "Added in" badge background                      |
 | `--pyd-radius`      | `0.375rem`                                | Corner radius on signatures and inputs           |
 | `--pyd-mono`        | `var(--sl-font-mono, …)`                  | Every monospaced string                          |
 
