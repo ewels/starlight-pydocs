@@ -114,7 +114,8 @@ work together with no pydocs option.
 
 Run `astro build` and read the `[starlight-pydocs]` lines in the log, and any
 starlight-codeblocks warnings. Warnings passed through from Griffe
-(`griffe: WARNING …`) point at docstrings worth fixing. Any other warning
-usually means something is missing from the output, such as uncoloured
+(`griffe: WARNING …`) point at docstrings worth fixing. Warnings from older
+version refs are not worth fixing, so they show only with `--verbose`. Any other
+warning usually means something is missing from the output, such as uncoloured
 signatures. Then open a generated page from `astro preview` and check that
 signatures are coloured and annotation links resolve.

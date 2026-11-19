@@ -40,6 +40,8 @@ export interface VersionRefDump {
   dumpPath: string;
   /** True when the dump was already cached, which it always is after the first build. */
   fromCache: boolean;
+  /** Griffe warnings logged at debug only; 0 for a cached dump. */
+  warnings: number;
 }
 
 /** Run `git` in a directory and return its trimmed stdout. */
@@ -295,7 +297,7 @@ async function extractRef(version: PydocsVersionRefInput, scope: RefExtractionSc
   // no worktree is needed at all on later builds.
   if (await fileExists(location.dumpPath)) {
     logger.debug(`reusing the dump of '${pkg.name}' at ${version.ref} (${sha.slice(0, 12)})`);
-    return { ref: version.ref, label: version.label, sha, dumpPath: location.dumpPath, fromCache: true };
+    return { ref: version.ref, label: version.label, sha, dumpPath: location.dumpPath, fromCache: true, warnings: 0 };
   }
 
   const worktree = await materialiseWorktree(repositoryRoot, sha, context.cacheDir, execFileImpl, logger);
@@ -308,9 +310,10 @@ async function extractRef(version: PydocsVersionRefInput, scope: RefExtractionSc
     describe: `'${pkg.name}' at ${version.ref} (${sha.slice(0, 12)})`,
     // Griffe runs in the worktree, so its relative paths are that tree's.
     context: { ...context, cwd: worktree },
+    quiet: true,
   });
 
-  return { ref: version.ref, label: version.label, sha, dumpPath: result.dumpPath, fromCache: result.fromCache };
+  return { ref: version.ref, label: version.label, sha, ...result };
 }
 
 /**
@@ -325,6 +328,14 @@ export async function computeVersionAnnotations(
   context: ExtractionContext,
 ): Promise<{ annotations: VersionAnnotations; refs: VersionRefDump[] }> {
   const refs = await resolveVersionExtractions(pkg, config, context);
+  const noisy = refs.filter((ref) => ref.warnings > 0);
+  if (noisy.length > 0) {
+    const warnings = noisy.reduce((sum, ref) => sum + ref.warnings, 0);
+    (context.logger ?? silentLogger).debug(
+      `${String(warnings)} griffe ${warnings === 1 ? 'warning' : 'warnings'} from ` +
+        `${String(noisy.length)} version ${noisy.length === 1 ? 'ref' : 'refs'} of '${pkg.name}' (logged above)`,
+    );
+  }
   const snapshots: VersionSnapshot[] = [];
   for (const ref of refs) {
     snapshots.push({ label: ref.label, paths: collectDumpPaths(await loadDump(ref.dumpPath)) });
