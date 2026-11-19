@@ -160,6 +160,45 @@ test.describe('demopkg.report', () => {
   });
 });
 
+test.describe('the member a URL fragment points at', () => {
+  const TRANSPARENT = 'rgba(0, 0, 0, 0)';
+
+  test('gets a tinted block and a thick bar in its own colour, apart from hover', async ({ page }) => {
+    await page.goto('api/demopkg/report/#demopkg.report.BaseReport');
+    const target = member(page, 'demopkg.report.BaseReport');
+    const sibling = member(page, 'demopkg.report.Report');
+
+    await sibling.locator('> .pyd-heading').hover();
+    await expect(target).toHaveCSS('border-left-width', '5px');
+    await expect(target).not.toHaveCSS('background-color', TRANSPARENT);
+    await expect(sibling).toHaveCSS('border-left-width', '2px');
+    await expect(sibling).toHaveCSS('background-color', TRANSPARENT);
+
+    const accent = await page.evaluate(() => {
+      const probe = document.createElement('span');
+      probe.style.color = 'var(--pyd-accent)';
+      document.body.append(probe);
+      const colour = getComputedStyle(probe).color;
+      probe.remove();
+      return colour;
+    });
+    await expect(sibling).toHaveCSS('border-left-color', accent);
+    await expect(target).not.toHaveCSS('border-left-color', accent);
+  });
+
+  test('a method highlights its own block, not the enclosing class', async ({ page }) => {
+    await page.goto('api/demopkg/report/#demopkg.report.Report.generate');
+    const method = member(page, 'demopkg.report.Report.generate');
+    const owner = member(page, 'demopkg.report.Report');
+
+    await expect(method).toHaveCSS('border-left-width', '5px');
+    await expect(method).not.toHaveCSS('background-color', TRANSPARENT);
+    await expect(owner).toHaveCSS('border-left-width', '2px');
+    await expect(owner).toHaveCSS('background-color', TRANSPARENT);
+    await expect(member(page, 'demopkg.report.Report.render')).toHaveCSS('border-left-width', '2px');
+  });
+});
+
 test('re-exported objects say where they were defined', async ({ page }) => {
   await page.goto('api/demopkg/');
 

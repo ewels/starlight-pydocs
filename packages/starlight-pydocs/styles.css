@@ -32,6 +32,9 @@
     --pyd-border: var(--sl-color-hairline-light, #d8dee4);
     --pyd-accent: var(--sl-color-text-accent, #2563eb);
     --pyd-accent-low: var(--sl-color-accent-low, #dbeafe);
+    --pyd-target: var(--sl-color-orange, #d97706);
+    /* The strongest tints that keep muted text and links at AA contrast. */
+    --pyd-target-low: color-mix(in srgb, var(--pyd-target) 12%, var(--pyd-bg));
 
     --pyd-note: var(--sl-color-blue, #3b82f6);
     --pyd-note-low: var(--sl-color-blue-low, #dbeafe);
@@ -57,6 +60,8 @@
       --pyd-border: var(--sl-color-hairline-light, #30363d);
       --pyd-accent: var(--sl-color-text-accent, #60a5fa);
       --pyd-accent-low: var(--sl-color-accent-low, #172554);
+      --pyd-target: var(--sl-color-orange, #f59e0b);
+      --pyd-target-low: color-mix(in srgb, var(--pyd-target) 8%, var(--pyd-bg));
       --pyd-note-low: var(--sl-color-blue-low, #172554);
       --pyd-tip-low: var(--sl-color-purple-low, #2e1065);
       --pyd-caution-low: var(--sl-color-orange-low, #431407);
@@ -73,6 +78,8 @@
     --pyd-border: var(--sl-color-hairline-light, #30363d);
     --pyd-accent: var(--sl-color-text-accent, #60a5fa);
     --pyd-accent-low: var(--sl-color-accent-low, #172554);
+    --pyd-target: var(--sl-color-orange, #f59e0b);
+    --pyd-target-low: color-mix(in srgb, var(--pyd-target) 8%, var(--pyd-bg));
     --pyd-note-low: var(--sl-color-blue-low, #172554);
     --pyd-tip-low: var(--sl-color-purple-low, #2e1065);
     --pyd-caution-low: var(--sl-color-orange-low, #431407);
@@ -89,6 +96,17 @@
 
   .pyd-member:hover {
     border-inline-start-color: var(--pyd-accent);
+  }
+
+  .pyd-member:has(> .pyd-heading:target) {
+    padding-block: 0.5rem;
+    padding-inline: calc(0.875rem - 3px) 0.75rem;
+    border-inline-start: 5px solid var(--pyd-target);
+    border-start-end-radius: 0.5rem;
+    border-end-end-radius: 0.5rem;
+    background: var(--pyd-target-low);
+    /* Table scroll shadows paint their covers in --pyd-bg; they must match the tint. */
+    --pyd-bg: var(--pyd-target-low);
   }
 
   .pyd-member .pyd-member {
