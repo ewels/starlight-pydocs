@@ -25,6 +25,8 @@ export default defineConfig({
         },
       ],
       symbolSearch: true,
+      // No network in the build: builtins link through the bundled table instead.
+      pythonInventory: false,
     }),
   ],
 });

@@ -274,6 +274,8 @@ export interface FetchToCacheOptions {
   cache: CacheMode;
   fetchImpl?: typeof fetch | undefined;
   logger?: PydocsLogger | undefined;
+  /** Give up after this long and treat the server as unreachable. */
+  timeoutMs?: number | undefined;
 }
 
 export interface FetchToCacheResult {
@@ -310,8 +312,14 @@ export async function fetchToCache(options: FetchToCacheOptions): Promise<FetchT
   }
 
   let response: Response;
+  let body: ArrayBuffer;
   try {
-    response = await fetchImpl(options.url, { headers });
+    response = await fetchImpl(options.url, {
+      headers,
+      ...(options.timeoutMs === undefined ? {} : { signal: AbortSignal.timeout(options.timeoutMs) }),
+    });
+    // Inside the try, so a timeout while the body streams falls back like a failed connection.
+    body = await response.arrayBuffer();
   } catch (cause) {
     if (cached) {
       logger.warn(`could not reach ${options.url} (${errorMessage(cause)}); using the cached copy`);
@@ -334,8 +342,7 @@ export async function fetchToCache(options: FetchToCacheOptions): Promise<FetchT
     throw new PydocsError(`starlight-pydocs: failed to download ${options.url}: HTTP ${response.status}`);
   }
 
-  const body = new Uint8Array(await response.arrayBuffer());
-  await writeAtomic(target, body);
+  await writeAtomic(target, new Uint8Array(body));
   const etag = response.headers.get('etag');
   const lastModified = response.headers.get('last-modified');
   await writeAtomic(
