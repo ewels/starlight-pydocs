@@ -86,6 +86,7 @@ export function pydocsLoader(options: PydocsLoaderOptions): Loader {
           { packages: [packageInput], runner, cacheDir, symbolSearch: false, publishInventory: false, llmsTxt: false },
           projectRoot,
         ),
+        logger,
       );
       const pkg = normalised.packages[0];
       if (pkg === undefined) throw new PydocsError('starlight-pydocs: the loader needs a package to document');

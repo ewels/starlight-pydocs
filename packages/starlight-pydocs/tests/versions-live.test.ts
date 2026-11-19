@@ -148,8 +148,8 @@ describe.skipIf(!available)('version annotations from a git repository', () => {
       cwd: repository,
     });
     expect(refs.map((ref) => [ref.ref, ref.label])).toEqual([
-      ['v1.0.0', 'v1.0.0'],
-      ['v1.1.0', 'v1.1.0'],
+      ['refs/tags/v1.0.0', 'v1.0.0'],
+      ['refs/tags/v1.1.0', 'v1.1.0'],
     ]);
     expect(annotations.addedIn).toEqual({ 'tinypkg.publish': 'v1.1.0' });
   }, 60_000);

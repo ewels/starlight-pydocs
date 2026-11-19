@@ -126,19 +126,25 @@ export interface PydocsVersionRefInput {
 }
 
 /** Where the "added in" badges come from: set either `refs` or `tags`. */
-export interface PydocsVersionsInput {
-  /**
-   * Refs to extract and compare against, **oldest first**. The package's current
-   * source is the newest version implicitly, so it is not listed. An object
-   * present in the oldest ref gets no badge: pre-history is noise.
-   */
-  refs?: PydocsVersionRefInput[] | undefined;
-  /**
-   * Use every git tag whose name matches this regular expression as a ref,
-   * oldest tag first by creation date, labelled with the tag name as it is.
-   */
-  tags?: string | RegExp | undefined;
-}
+export type PydocsVersionsInput =
+  | {
+      /**
+       * Refs to extract and compare against, **oldest first**. The package's current
+       * source is the newest version implicitly, so it is not listed. An object
+       * present in the oldest ref gets no badge: pre-history is noise.
+       */
+      refs: PydocsVersionRefInput[];
+      tags?: undefined;
+    }
+  | {
+      /**
+       * Use every git tag reachable from the checkout whose name matches this
+       * regular expression as a ref, oldest tag first by creation date, labelled
+       * with the tag name as it is.
+       */
+      tags: string | RegExp;
+      refs?: undefined;
+    };
 
 /** One documented Python package. */
 export interface PydocsPackageInput {
@@ -340,11 +346,11 @@ export interface PydocsPackageConfig {
 
 export interface PydocsVersionsConfig {
   /**
-   * Refs to compare against, oldest first. Empty when the option is unset, and
-   * until `resolveVersionTags` fills it in when `tags` is set.
+   * Refs to compare against, oldest first. Empty when the option is unset, or
+   * when `tags` is set, until `resolveVersionTags` replaces it.
    */
   refs: PydocsVersionRefInput[];
-  /** Tag pattern the refs are listed from, when the option uses `tags`. */
+  /** The `tags` pattern, until `resolveVersionTags` turns it into `refs`. */
   tags?: RegExp;
 }
 
@@ -582,6 +588,7 @@ function normaliseVersions(
   }
 
   const refsInput = input.refs;
+  if (refsInput === undefined) throw configError(optionPath, "must set either 'refs' or 'tags'");
   if (!Array.isArray(refsInput) || refsInput.length === 0) {
     throw configError(`${optionPath}.refs`, 'must be a non-empty array of { ref, label }, oldest first');
   }

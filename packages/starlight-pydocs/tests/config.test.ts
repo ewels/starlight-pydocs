@@ -330,7 +330,7 @@ describe('normalizeConfig errors', () => {
     expect(tagsOf(/^release-/i)).toEqual(/^release-/i);
   });
 
-  test('rejects an invalid tag pattern, and tags together with refs', () => {
+  test('rejects an invalid tag pattern, tags together with refs, and neither', () => {
     expect(() => normalizeConfig({ packages: [{ name: 'demopkg', versions: { tags: '^v(' } }] }, root)).toThrow(
       /packages\[0]\.versions\.tags: Invalid regular expression/,
     );
@@ -339,10 +339,13 @@ describe('normalizeConfig errors', () => {
     );
     expect(() =>
       normalizeConfig(
-        { packages: [{ name: 'demopkg', versions: { tags: '^v', refs: [{ ref: 'v1', label: '1' }] } }] },
+        { packages: [{ name: 'demopkg', versions: { tags: '^v', refs: [{ ref: 'v1', label: '1' }] } as never }] },
         root,
       ),
     ).toThrow(/packages\[0]\.versions: set either 'refs' or 'tags', not both/);
+    expect(() => normalizeConfig({ packages: [{ name: 'demopkg', versions: {} as never }] }, root)).toThrow(
+      /packages\[0]\.versions: must set either 'refs' or 'tags'/,
+    );
   });
 
   test('rejects an empty label', () => {

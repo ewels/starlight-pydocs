@@ -306,12 +306,16 @@ tested over hand-written dumps: `collectDumpPaths`, `firstSeenLabels` oldest-fir
 and inherited members inherit their definition's history.
 
 `versions: { tags: <regex> }` is sugar for the same list. `resolveVersionTags` runs right
-after `normalizeConfig` (plugin and loader alike) and replaces `versions.refs` with the matching
-tags, each labelled with its tag name (a custom label is what `refs` is for), so everything
-downstream, release links included, sees only refs. Tags are ordered by `creatordate`, the
+after `normalizeConfig` (plugin and loader alike) and replaces `versions` with the refs of the
+matching tags reachable from `HEAD` (`--merged HEAD`: another branch's tag was never a release of
+this checkout), each labelled with its tag name (a custom label is what `refs` is for). Each ref is
+the full `refs/tags/<name>`, so `rev-parse` cannot pick a same-named branch; release links strip
+the prefix. Everything downstream, release links included, sees only refs, and extraction refuses
+a `tags` left unresolved. Tags are ordered by `creatordate`, the
 tagger date of an annotated tag or the commit date of a lightweight one, not by parsing version
 numbers: the regex stays the only rule, at the cost of a late backport tag sorting after a newer
-release. A pattern that matches nothing stops the build, as an unknown ref does.
+release. A pattern that matches nothing warns and labels nothing, unlike an unknown listed ref,
+which stops the build: shallow preview checkouts have no tags and must still build.
 
 The labels travel as a sidecar (`versions-<key>.json`), like docstring HTML, written
 during `preparePydocs` rather than at `astro:config:done` because it needs no markdown

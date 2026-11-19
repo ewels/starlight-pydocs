@@ -151,7 +151,7 @@ async function versionPathsFor(
 /** Validate the options, extract every dump, load every inventory. */
 async function preparePydocs(options: PydocsSetupOptions): Promise<PydocsSetup> {
   const { logger } = options;
-  const config = await resolveVersionTags(normalizeConfig(options.options, fileURLToPath(options.root)));
+  const config = await resolveVersionTags(normalizeConfig(options.options, fileURLToPath(options.root)), logger);
 
   // Inventory downloads need nothing from extraction, so they overlap it.
   const inventoriesLoading = inventories(config, logger);

@@ -59,7 +59,7 @@ Griffe's own `griffe check` command prints prose, not data. So starlight-pydocs 
 instead:
 
 1. Each `ref` is resolved to a commit with `git rev-parse --verify <ref>^{commit}`. With `tags`,
-   the refs are first listed with `git for-each-ref --sort=creatordate refs/tags`.
+   the refs are first listed with `git for-each-ref --merged HEAD --sort=creatordate refs/tags`.
 2. That commit is checked out into the cache directory with
    `git worktree add --detach <cacheDir>/starlight-pydocs/worktrees/<sha>`. This shares the object
    database with your repository instead of cloning it.
@@ -75,7 +75,7 @@ read back when pages render. Only the label text reaches the browser.
 ## Picking refs from your tags
 
 Instead of listing every release by hand, give `tags` a regular expression. Every git tag whose
-name matches it becomes a ref:
+name matches it, and whose commit is in the history of your checkout, becomes a ref:
 
 ```js title="astro.config.mjs" {7}
 starlightPydocs({
@@ -103,16 +103,17 @@ tag `1.8.0` gives `Added in 1.8.0`. For a different label, such as `1.8`, list t
 ### Order
 
 Tags are ordered oldest first by the date git records for them
-(`git for-each-ref --sort=creatordate`), not by the version number in the name. So `v1.10.0` comes
+(`git for-each-ref --merged HEAD --sort=creatordate`), not by the version number in the name. So `v1.10.0` comes
 after `v1.9.0`. An annotated tag sorts by the date it was tagged. A lightweight tag has no date of
 its own, so it sorts by the date of its commit. Tags with the same date sort by name.
 
-For most projects this is the release order. A release tagged later on a maintenance branch is the
-exception: `v1.9.1`, tagged after `v2.0.0`, sorts after `v2.0.0`. Leave such tags out with the
-pattern, or list the refs by hand.
+For most projects this is the release order. A tag on a maintenance branch is only listed when that
+branch is merged into your checkout, and then it is the exception: `v1.9.1`, tagged after `v2.0.0`,
+sorts after `v2.0.0`. Leave such tags out with the pattern, or list the refs by hand.
 
-If the pattern matches no tag, the build stops and says so:
-`'mypkg' has versions.tags /^v[\d.]+$/, which matches no tag in /repo`.
+If the pattern matches no tag, the build carries on without labels and warns:
+`'mypkg' has versions.tags /^v[\d.]+$/, which matches no tag reachable in /repo`. A shallow clone,
+such as a preview deploy, then still builds.
 
 :::caution[Slow with many releases]
 Every matching tag costs one worktree checkout and one griffe run on the first build. After that
@@ -141,8 +142,8 @@ cannot resolve `v1.0.0`. In GitHub Actions, set `fetch-depth: 0`:
     fetch-depth: 0
 ```
 
-Without this, the build stops and names the missing ref: `'mypkg' lists the version ref 'v1.0.0',
-which /repo does not have`.
+Without this, a ref listed by hand stops the build, which names the missing ref: `'mypkg' lists the
+version ref 'v1.0.0', which /repo does not have`. With `tags`, the build warns and shows no labels.
 
 ### Search paths inside that repository
 

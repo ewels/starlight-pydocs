@@ -10,7 +10,8 @@ import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 
 import { normalizeConfig } from '../lib/config.ts';
-import { resolveVersionTags } from '../lib/ref-extract.ts';
+import { createMemoryLogger } from '../lib/logger.ts';
+import { computeVersionAnnotations, resolveVersionTags } from '../lib/ref-extract.ts';
 
 const available = await canRun('git', ['--version']);
 
@@ -43,33 +44,39 @@ describe.skipIf(!available)('version refs from git tags', () => {
     await git('2021-01-03T00:00:00Z', 'tag', 'v1.10.0rc1');
     await commit('2022-01-01T00:00:00Z', 'three');
     await git('2022-01-01T00:00:00Z', 'tag', 'v2.0.0');
+
+    // A release on another branch, never merged into the checkout.
+    await git('2023-01-01T00:00:00Z', 'checkout', '--quiet', '-b', 'maint', 'v1.9.0');
+    await commit('2023-01-01T00:00:00Z', 'backport');
+    await git('2023-01-01T00:00:00Z', 'tag', 'v1.9.1');
+    await git('2023-01-01T00:00:00Z', 'checkout', '--quiet', '-');
   }, 60_000);
 
   afterAll(async () => {
     await fs.rm(repository, { recursive: true, force: true });
   });
 
-  async function refsFor(tags: string | RegExp) {
-    const config = normalizeConfig(
-      { packages: [{ name: 'tinypkg', search: ['src'], versions: { tags } }] },
-      repository,
-    );
-    return onlyPackage(await resolveVersionTags(config)).versions.refs;
+  function configFor(tags: string | RegExp) {
+    return normalizeConfig({ packages: [{ name: 'tinypkg', search: ['src'], versions: { tags } }] }, repository);
   }
 
-  test('lists matching tags oldest first, labelled with the tag name', async () => {
+  async function refsFor(tags: string | RegExp) {
+    return onlyPackage(await resolveVersionTags(configFor(tags))).versions.refs;
+  }
+
+  test('lists matching tags reachable from HEAD oldest first, labelled with the tag name', async () => {
     expect(await refsFor('^v[\\d.]+$')).toEqual([
-      { ref: 'v1.9.0', label: 'v1.9.0' },
-      { ref: 'v1.10.0', label: 'v1.10.0' },
-      { ref: 'v2.0.0', label: 'v2.0.0' },
+      { ref: 'refs/tags/v1.9.0', label: 'v1.9.0' },
+      { ref: 'refs/tags/v1.10.0', label: 'v1.10.0' },
+      { ref: 'refs/tags/v2.0.0', label: 'v2.0.0' },
     ]);
   });
 
   test('takes a RegExp, global or not, and a capture group does not change the label', async () => {
     expect(await refsFor(/^v1\.(\d+)/g)).toEqual([
-      { ref: 'v1.9.0', label: 'v1.9.0' },
-      { ref: 'v1.10.0rc1', label: 'v1.10.0rc1' },
-      { ref: 'v1.10.0', label: 'v1.10.0' },
+      { ref: 'refs/tags/v1.9.0', label: 'v1.9.0' },
+      { ref: 'refs/tags/v1.10.0rc1', label: 'v1.10.0rc1' },
+      { ref: 'refs/tags/v1.10.0', label: 'v1.10.0' },
     ]);
   });
 
@@ -81,9 +88,19 @@ describe.skipIf(!available)('version refs from git tags', () => {
     expect(await resolveVersionTags(config)).toEqual(config);
   });
 
-  test('a pattern that matches no tag names itself', async () => {
-    await expect(refsFor('^release-')).rejects.toThrow(
-      /'tinypkg' has versions\.tags \/\^release-\/, which matches no tag/,
-    );
+  test('a pattern that matches no tag warns and labels nothing', async () => {
+    const logger = createMemoryLogger();
+    const config = await resolveVersionTags(configFor('^release-'), logger);
+    expect(onlyPackage(config).versions).toEqual({ refs: [] });
+    expect(logger.messages).toEqual([
+      expect.stringMatching(/'tinypkg' has versions\.tags \/\^release-\/, which matches no tag/),
+    ]);
+  });
+
+  test('extraction refuses tags that were never resolved', async () => {
+    const config = configFor('^v');
+    await expect(
+      computeVersionAnnotations(onlyPackage(config), config, { cacheDir: repository, cwd: repository }),
+    ).rejects.toThrow(/'tinypkg' has versions\.tags that resolveVersionTags has not resolved/);
   });
 });
