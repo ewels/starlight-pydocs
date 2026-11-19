@@ -277,6 +277,34 @@ describe('normalizeConfig errors', () => {
     ).toThrow(/packages\[0]\.versions\.refs\[0]\.ref: must be a non-empty string/);
   });
 
+  test('compiles a version tag pattern from a string or a RegExp', () => {
+    const tagsOf = (tags: string | RegExp): RegExp | undefined =>
+      normalizeConfig({ packages: [{ name: 'demopkg', versions: { tags } }] }, root).packages[0]?.versions.tags;
+
+    expect(tagsOf('^v[\\d.]+$')).toEqual(/^v[\d.]+$/);
+    expect(tagsOf(/^release-/i)).toEqual(/^release-/i);
+    // A global or sticky RegExp would carry lastIndex from one tag to the next.
+    expect(tagsOf(/^v/gy)?.flags).toBe('');
+    expect(
+      normalizeConfig({ packages: [{ name: 'demopkg', versions: { tags: '^v' } }] }, root).packages[0]?.versions,
+    ).toEqual({ refs: [], tags: /^v/ });
+  });
+
+  test('rejects an invalid tag pattern, and tags together with refs', () => {
+    expect(() => normalizeConfig({ packages: [{ name: 'demopkg', versions: { tags: '^v(' } }] }, root)).toThrow(
+      /packages\[0]\.versions\.tags: Invalid regular expression/,
+    );
+    expect(() => normalizeConfig({ packages: [{ name: 'demopkg', versions: { tags: '' } }] }, root)).toThrow(
+      /packages\[0]\.versions\.tags: must be a regular expression, as a string or a RegExp/,
+    );
+    expect(() =>
+      normalizeConfig(
+        { packages: [{ name: 'demopkg', versions: { tags: '^v', refs: [{ ref: 'v1', label: '1' }] } }] },
+        root,
+      ),
+    ).toThrow(/packages\[0]\.versions: set either 'refs' or 'tags', not both/);
+  });
+
   test('rejects an empty label', () => {
     expect(() => normalizeConfig({ packages: [{ name: 'demopkg', label: '  ' }] }, root)).toThrow(
       /packages\[0]\.label: must be a non-empty string/,

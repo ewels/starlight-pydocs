@@ -81,6 +81,47 @@ export async function resolveRepositoryRoot(
   }
 }
 
+/**
+ * Fill in `versions.refs` for every package that picks its refs with `versions.tags`.
+ *
+ * Tags are ordered by git's `creatordate`: the tagger date of an annotated tag
+ * and the commit date of a lightweight one, so both kinds sort by when they were
+ * made. Ties fall back to the tag name.
+ *
+ * @throws {PydocsError} When the sources are not in a git repository or the
+ *   pattern matches no tag.
+ */
+export async function resolveVersionTags(
+  config: PydocsConfig,
+  execFileImpl: ExecFileImpl = defaultExecFile,
+): Promise<PydocsConfig> {
+  const packages = await Promise.all(
+    config.packages.map(async (pkg) => {
+      const { tags } = pkg.versions;
+      if (tags === undefined) return pkg;
+      const { root } = await resolveRepositoryRoot(pkg, execFileImpl);
+      const names = await git(execFileImpl, root, [
+        'for-each-ref',
+        '--sort=creatordate',
+        '--format=%(refname:lstrip=2)',
+        'refs/tags',
+      ]);
+      const refs = names
+        .split('\n')
+        .filter((name) => name !== '' && tags.test(name))
+        .map((ref) => ({ ref, label: ref }));
+      if (refs.length === 0) {
+        throw new PydocsError(
+          `starlight-pydocs: '${pkg.name}' has versions.tags ${String(tags)}, which matches no tag in ${root} ` +
+            '(a shallow clone has no tags: check out with full history, for example fetch-depth: 0 in GitHub Actions)',
+        );
+      }
+      return { ...pkg, versions: { ...pkg.versions, refs } };
+    }),
+  );
+  return { ...config, packages };
+}
+
 /** Resolve a ref to a commit sha. */
 async function resolveSha(
   repositoryRoot: string,

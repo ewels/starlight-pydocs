@@ -4,6 +4,8 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 
 ## Unreleased
 
+- ✨ `versions.tags` picks the version refs from your git tags with a regular expression, so you no longer list every release by hand ([#18](https://github.com/ewels/starlight-pydocs/pull/18))
+
 ## v0.4.0 (2026-11-18)
 
 No configuration changes are needed. On Starlight sites, docstring asides now use Starlight's `.starlight-aside` classes instead of `.pyd-aside`, so update any custom CSS that targets `.pyd-aside`. Builds may also log a new warning when docstrings don't match `docstringStyle`.

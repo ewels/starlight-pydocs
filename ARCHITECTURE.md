@@ -302,6 +302,17 @@ tested over hand-written dumps: `collectDumpPaths`, `firstSeenLabels` oldest-fir
 `addedInLabel` falling back from the documented path to the canonical one so re-exports
 and inherited members inherit their definition's history.
 
+`versions: { tags: <regex> }` is sugar for the same list. `resolveVersionTags` runs right
+after `normalizeConfig` (plugin and loader alike), lists `refs/tags` of the package's
+repository with `git for-each-ref --sort=creatordate`, and replaces `versions.refs` with the
+matches, each labelled with its tag name unchanged (a custom label is what `refs` is for).
+Everything downstream, release
+links included, sees only refs. `creatordate` is the tagger date of an annotated tag and the
+commit date of a lightweight one; `taggerdate` alone has no date for lightweight tags and
+`committerdate` none for annotated ones. Ordering by date rather than by parsing version numbers
+keeps the regex the only rule, at the cost of a late backport tag sorting after a newer release.
+A pattern that matches nothing stops the build, as an unknown ref does.
+
 The labels travel as a sidecar (`versions-<key>.json`), like docstring HTML, written
 during `preparePydocs` rather than at `astro:config:done` because it needs no markdown
 processor. `buildModel` sets `DocObject.addedIn`; it is kept out of the model cache key,

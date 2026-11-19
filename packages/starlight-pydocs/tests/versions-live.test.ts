@@ -20,7 +20,12 @@ import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { normalizeConfig } from '../lib/config.ts';
 import { clearCaches, loadDump } from '../lib/data.ts';
 import { buildModel } from '../lib/model.ts';
-import { computeVersionAnnotations, rebaseSearchPaths, resolveRepositoryRoot } from '../lib/ref-extract.ts';
+import {
+  computeVersionAnnotations,
+  rebaseSearchPaths,
+  resolveRepositoryRoot,
+  resolveVersionTags,
+} from '../lib/ref-extract.ts';
 import { resolveExtraction } from '../lib/runner.ts';
 import { versionLabelsFrom } from '../lib/versions.ts';
 
@@ -149,6 +154,24 @@ describe.skipIf(!available)('version annotations from a git repository', () => {
     const { config, pkg } = configFor();
     const { refs } = await computeVersionAnnotations(pkg, config, { cacheDir, cwd: repository });
     expect(refs.map((ref) => ref.fromCache)).toEqual([true, true]);
+  }, 60_000);
+
+  test('versions.tags feeds the same pipeline', async () => {
+    const config = await resolveVersionTags(
+      normalizeConfig(
+        { packages: [{ name: 'tinypkg', search: ['src'], versions: { tags: '^v\\d+\\.\\d+\\.0$' } }], cacheDir },
+        repository,
+      ),
+    );
+    const { annotations, refs } = await computeVersionAnnotations(onlyPackage(config), config, {
+      cacheDir,
+      cwd: repository,
+    });
+    expect(refs.map((ref) => [ref.ref, ref.label])).toEqual([
+      ['v1.0.0', 'v1.0.0'],
+      ['v1.1.0', 'v1.1.0'],
+    ]);
+    expect(annotations.addedIn).toEqual({ 'tinypkg.publish': 'v1.1.0' });
   }, 60_000);
 
   test('search paths are rebased onto the worktree', async () => {

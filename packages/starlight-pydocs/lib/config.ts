@@ -7,7 +7,7 @@
 
 import path from 'node:path';
 
-import { configError, PydocsError } from './errors.ts';
+import { configError, errorMessage, PydocsError } from './errors.ts';
 import { isUnderBase, stripLeadingAndTrailingSlashes } from './paths.ts';
 
 /** Docstring flavour passed to `griffe dump -d`. */
@@ -125,14 +125,19 @@ export interface PydocsVersionRefInput {
   label: string;
 }
 
-/** Where the "added in" badges come from. */
+/** Where the "added in" badges come from: set either `refs` or `tags`. */
 export interface PydocsVersionsInput {
   /**
    * Refs to extract and compare against, **oldest first**. The package's current
    * source is the newest version implicitly, so it is not listed. An object
    * present in the oldest ref gets no badge: pre-history is noise.
    */
-  refs: PydocsVersionRefInput[];
+  refs?: PydocsVersionRefInput[] | undefined;
+  /**
+   * Use every git tag whose name matches this regular expression as a ref,
+   * oldest tag first by creation date, labelled with the tag name as it is.
+   */
+  tags?: string | RegExp | undefined;
 }
 
 /** One documented Python package. */
@@ -329,8 +334,13 @@ export interface PydocsPackageConfig {
 }
 
 export interface PydocsVersionsConfig {
-  /** Refs to compare against, oldest first. Empty when the option is unset. */
+  /**
+   * Refs to compare against, oldest first. Empty when the option is unset, and
+   * until `resolveVersionTags` fills it in when `tags` is set.
+   */
   refs: PydocsVersionRefInput[];
+  /** Tag pattern the refs are listed from, when the option uses `tags`. */
+  tags: RegExp | undefined;
 }
 
 export interface PydocsSidebarConfig {
@@ -547,8 +557,10 @@ function normaliseVersions(
   optionPath: string,
   source: NormalisedSource | undefined,
 ): PydocsVersionsConfig {
-  if (input === undefined) return { refs: [] };
-  if (!isPlainObject(input)) throw configError(optionPath, "must be an object with a 'refs' array");
+  if (input === undefined) return { refs: [], tags: undefined };
+  if (!isPlainObject(input)) {
+    throw configError(optionPath, "must be an object with a 'refs' array or a 'tags' regular expression");
+  }
   if (source !== undefined) {
     // A pinned dump describes one release and carries no history to compare
     // against; the refs have to be extracted from a checkout.
@@ -557,6 +569,11 @@ function normaliseVersions(
       'needs source extraction, so it cannot be combined with a pre-generated ' +
         "'source' dump; document that release as its own packages entry instead",
     );
+  }
+
+  if (input.tags !== undefined) {
+    if (input.refs !== undefined) throw configError(optionPath, "set either 'refs' or 'tags', not both");
+    return { refs: [], tags: normaliseTagPattern(input.tags, `${optionPath}.tags`) };
   }
 
   const refsInput = input.refs;
@@ -573,7 +590,19 @@ function normaliseVersions(
         label: requireString(entry.label, `${entryPath}.label`),
       };
     }),
+    tags: undefined,
   };
+}
+
+function normaliseTagPattern(input: unknown, optionPath: string): RegExp {
+  // `g` and `y` make `test` stateful across tags, so a match would depend on the one before.
+  if (input instanceof RegExp) return new RegExp(input.source, input.flags.replace(/[gy]/g, ''));
+  const pattern = requireString(input, optionPath, 'must be a regular expression, as a string or a RegExp');
+  try {
+    return new RegExp(pattern);
+  } catch (cause) {
+    throw configError(optionPath, errorMessage(cause));
+  }
 }
 
 function normaliseInventory(
