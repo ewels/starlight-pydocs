@@ -4,6 +4,7 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 
 ## Unreleased
 
+- ✨ `versions.tags` picks the version refs from your git tags with a regular expression, so you no longer list every release by hand ([#18](https://github.com/ewels/starlight-pydocs/pull/18))
 - ✨ The Python standard library links by default, with no `inventories` entry; set `pythonInventory: false` to opt out, and builtins such as `str` and `None` still link ([#17](https://github.com/ewels/starlight-pydocs/pull/17))
 - ✨ The member a URL fragment points at is highlighted with an amber bar and tinted background, distinct from hover ([#16](https://github.com/ewels/starlight-pydocs/pull/16))
 - ✨ "Added in" labels are green badges, so they stand out under the heading ([#19](https://github.com/ewels/starlight-pydocs/pull/19))

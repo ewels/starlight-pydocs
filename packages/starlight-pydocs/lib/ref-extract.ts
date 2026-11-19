@@ -81,6 +81,58 @@ export async function resolveRepositoryRoot(
   }
 }
 
+/**
+ * Fill in `versions.refs`, oldest tag first, for every package that picks its refs with `versions.tags`.
+ *
+ * @throws {PydocsError} When the sources are not in a git repository or git cannot list its tags.
+ */
+export async function resolveVersionTags(
+  config: PydocsConfig,
+  logger: PydocsLogger = silentLogger,
+  execFileImpl: ExecFileImpl = defaultExecFile,
+): Promise<PydocsConfig> {
+  const packages = await Promise.all(
+    config.packages.map(async (pkg) => {
+      const { tags } = pkg.versions;
+      if (tags === undefined) return pkg;
+      const { root } = await resolveRepositoryRoot(pkg, execFileImpl);
+      let names: string;
+      try {
+        // `--merged HEAD`: a tag on another branch was never a release of this checkout.
+        names = await git(execFileImpl, root, [
+          'for-each-ref',
+          '--merged',
+          'HEAD',
+          '--sort=creatordate',
+          '--format=%(refname:lstrip=2)',
+          'refs/tags',
+        ]);
+      } catch (cause) {
+        throw new PydocsError(
+          `starlight-pydocs: '${pkg.name}' has versions.tags, but git could not list the tags of ${root}: ` +
+            gitMessage(cause),
+          { cause },
+        );
+      }
+      const refs = names
+        .split('\n')
+        // `search` ignores `lastIndex`, so a `g` pattern matches every tag, not every other one.
+        .filter((name) => name !== '' && name.search(tags) !== -1)
+        // The full refname, so git cannot resolve a branch or other ref of the same name.
+        .map((name) => ({ ref: `refs/tags/${name}`, label: name }));
+      if (refs.length === 0) {
+        logger.warn(
+          `'${pkg.name}' has versions.tags ${String(tags)}, which matches no tag reachable in ${root}, so no ` +
+            '"added in" labels are shown (a shallow clone has no tags: check out with full history, for example ' +
+            'fetch-depth: 0 in GitHub Actions)',
+        );
+      }
+      return { ...pkg, versions: { refs } };
+    }),
+  );
+  return { ...config, packages };
+}
+
 /** Resolve a ref to a commit sha. */
 async function resolveSha(
   repositoryRoot: string,
@@ -204,6 +256,9 @@ async function resolveVersionExtractions(
   config: PydocsConfig,
   context: ExtractionContext,
 ): Promise<VersionRefDump[]> {
+  if (pkg.versions.tags !== undefined) {
+    throw new PydocsError(`starlight-pydocs: '${pkg.name}' has versions.tags that resolveVersionTags has not resolved`);
+  }
   if (pkg.versions.refs.length === 0) return [];
 
   const execFileImpl = context.execFileImpl ?? defaultExecFile;

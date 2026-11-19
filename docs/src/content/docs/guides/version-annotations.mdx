@@ -5,7 +5,8 @@ description: Mark each object on a package's pages with the release it first app
 
 `Added in 2.0` appears beside an object's source link, in the row under its heading. It answers
 the question every reader arrives with: is this in the release I have installed? You only need to
-supply a list of past git refs from your own repository. Where the `sourceLink` preset says which
+supply a list of past git refs from your own repository, or a pattern that
+[picks them from your tags](#picking-refs-from-your-tags). Where the `sourceLink` preset says which
 forge you are on, the version links to that release's page.
 
 This page describes how to label the pages of one release. If you want each release to have its
@@ -34,7 +35,8 @@ starlightPydocs({
 ## Which objects get a label
 
 With this configuration, a class introduced in 2.0 reads `Added in 2.0`. A method that has existed
-since 1.1 reads `Added in 1.1`. The text is your `label`, exactly as you wrote it. Two kinds of
+since 1.1 reads `Added in 1.1`. The text is your `label`, exactly as you wrote it, or the tag name
+with `tags`. Two kinds of
 objects get no label:
 
 - **Objects in the oldest listed ref.** "Added in 1.0" on two-thirds of a package would
@@ -56,7 +58,8 @@ Inherited and re-exported members are labelled by where they are defined. For ex
 Griffe's own `griffe check` command prints prose, not data. So starlight-pydocs compares dumps
 instead:
 
-1. Each `ref` is resolved to a commit with `git rev-parse --verify <ref>^{commit}`.
+1. Each `ref` is resolved to a commit with `git rev-parse --verify <ref>^{commit}`. With `tags`,
+   the refs are first listed with `git for-each-ref --merged HEAD --sort=creatordate refs/tags`.
 2. That commit is checked out into the cache directory with
    `git worktree add --detach <cacheDir>/starlight-pydocs/worktrees/<sha>`. This shares the object
    database with your repository instead of cloning it.
@@ -69,51 +72,61 @@ instead:
 The result, a map from object path to version label, is written beside the package's dump. It is
 read back when pages render. Only the label text reaches the browser.
 
-## Listing the releases automatically
+## Picking refs from your tags
 
-`refs` is a plain array, so build it from your tags instead of editing the config on every
-release:
+Instead of listing every release by hand, give `tags` a regular expression. Every git tag whose
+name matches it, and whose commit is in the history of your checkout, becomes a ref:
 
-```js title="astro.config.mjs" {7-11, 18}
-import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
-
-const repo = fileURLToPath(new URL('..', import.meta.url)); // [!annotate] The repository root, one level above this Astro project.
-const opts = { cwd: repo, encoding: 'utf8' };
-
-const args = ['tag', '--list', 'v*', '--sort=v:refname']; // [!annotate] Every release tag, oldest first. `v:refname` sorts 1.10 after 1.9.
-const refs = execFileSync('git', args, opts)
-  .split('\n')
-  .filter((tag) => /^v\d+\.\d+(\.\d+)?$/.test(tag)) // [!annotate] Releases only: drops `v2.0.0.dev0` and other prereleases.
-  .map((tag) => ({ ref: tag, label: tag.slice(1) }));
-
+```js title="astro.config.mjs" {7}
 starlightPydocs({
   packages: [
     {
       name: 'mypkg',
       search: ['../src'],
-      ...(refs.length > 0 && { versions: { refs } }), // [!annotate] No tags gives no labels, rather than a build that stops on a ref it cannot resolve.
+      versions: {
+        tags: '^v[\\d.]+$', // [!annotate] A string or a RegExp. As a literal this is /^v[\d.]+$/.
+      },
     },
   ],
 });
 ```
 
-The oldest tag stays the baseline and gets no label, so the list grows one at the new end each
-time you release.
+The pattern is the whole filter. There are no semver or PEP 440 rules and no special case for
+prereleases. This pattern matches `v1.8.0` but not `v2.0.0rc1` or `v2.0.0.dev0`, because it allows
+only digits and dots after the `v`. To start at a later release, write that into the pattern too:
+`^v2\.\d+\.\d+$` picks the 2.x releases only.
+
+The label is the tag name, exactly as it is written. The tag `v1.8.0` gives `Added in v1.8.0`, and a
+tag `1.8.0` gives `Added in 1.8.0`. For a different label, such as `1.8`, list the refs by hand with
+`refs` and set each `label`. You can set `refs` or `tags`, not both.
+
+### Order
+
+Tags are ordered oldest first by the date git records for them
+(`git for-each-ref --merged HEAD --sort=creatordate`), not by the version number in the name. So `v1.10.0` comes
+after `v1.9.0`. An annotated tag sorts by the date it was tagged. A lightweight tag has no date of
+its own, so it sorts by the date of its commit. Tags with the same date sort by name.
+
+For most projects this is the release order. A tag on a maintenance branch is only listed when that
+branch is merged into your checkout, and then it is the exception: `v1.9.1`, tagged after `v2.0.0`,
+sorts after `v2.0.0`. Leave such tags out with the pattern, or list the refs by hand.
+
+If the pattern matches no tag, the build carries on without labels and warns:
+`'mypkg' has versions.tags /^v[\d.]+$/, which matches no tag reachable in /repo`. A shallow clone,
+such as a preview deploy, then still builds.
 
 :::caution[Slow with many releases]
-Every ref costs one worktree checkout and one griffe run on the first build. A package with a few
-dozen tags takes seconds; a package with hundreds takes minutes, and a CI job that starts with an
-empty cache pays that on every build.
+Every matching tag costs one worktree checkout and one griffe run on the first build. After that
+the dumps are cached (see [Caching](#caching)). A package with a few dozen tags takes seconds. A
+package with hundreds takes minutes, and a CI job that starts with an empty cache pays that on
+every build.
 
 Two ways to keep it short:
 
-- **Minor releases only.** `--list 'v*.*.0'` labels `2.1` rather than `2.1.3`, which is what a
+- **Minor releases only.** `^v\d+\.\d+\.0$` labels `v2.1.0` rather than `v2.1.3`, which is what a
   reader needs to pick a version to install.
-- **Recent releases only.** Add `.slice(-8)` after the filter. The oldest listed ref is the
-  baseline, so anything older than it is simply unlabelled.
-
-See [Caching](#caching): the dumps are keyed by commit, so a warm cache does no git work at all.
+- **Recent releases only.** `^v2\.\d+\.\d+$` skips everything before 2.0. The oldest matching
+  tag is the baseline, so anything older than it is simply unlabelled.
 :::
 
 ## What your build needs
@@ -129,8 +142,8 @@ cannot resolve `v1.0.0`. In GitHub Actions, set `fetch-depth: 0`:
     fetch-depth: 0
 ```
 
-Without this, the build stops and names the missing ref: `'mypkg' lists the version ref 'v1.0.0',
-which /repo does not have`.
+Without this, a ref listed by hand stops the build, which names the missing ref: `'mypkg' lists the
+version ref 'v1.0.0', which /repo does not have`. With `tags`, the build warns and shows no labels.
 
 ### Search paths inside that repository
 
@@ -176,7 +189,7 @@ Put the cache directory outside `node_modules`, so installing dependencies canno
 ```js title="astro.config.mjs" {5}
 starlightPydocs({
   packages: [
-    { name: 'mypkg', search: ['../src'], versions: { refs } },
+    { name: 'mypkg', search: ['../src'], versions: { tags: '^v[\\d.]+$' } },
   ],
   cacheDir: '.cache',
 });

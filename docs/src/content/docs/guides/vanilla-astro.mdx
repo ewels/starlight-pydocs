@@ -294,7 +294,7 @@ const deprecated = entries.filter((entry) => entry.data.deprecated);
 | `signature`              | Plain-text signature; empty for modules                                    |
 | `page`, `anchor`         | Page slug the object is documented on, and its heading anchor              |
 | `deprecated`             | `true` when anything marks it deprecated                                   |
-| `addedIn`                | Release the object first appeared in; absent unless `versions.refs` is set |
+| `addedIn`                | Release the object first appeared in; absent unless `versions` is set      |
 
 `page` is the full page slug (`api/mypkg/report`), so a link is that slug plus the anchor, adjusted
 for your site's `base` if it has one.

@@ -210,7 +210,10 @@ function versionReleasesFor(pkg: PydocsPackageConfig): Record<string, string> {
   const template = pkg.sourceLink?.releaseTemplate;
   if (template === undefined) return {};
   return Object.fromEntries(
-    pkg.versions.refs.map(({ label, ref }) => [label, template.replace('{ref}', encodeURIComponent(ref))]),
+    pkg.versions.refs.map(({ label, ref }) => [
+      label,
+      template.replace('{ref}', encodeURIComponent(ref.replace(/^refs\/tags\//, ''))),
+    ]),
   );
 }
 

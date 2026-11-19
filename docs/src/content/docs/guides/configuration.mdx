@@ -146,7 +146,7 @@ Each entry of `packages` describes one Python package.
 | `filters`           | `{ special?, private?, imported?, inherited? }` | see [Member selection](#member-selection) | Coarse member switches.              |
 | `sourceLink`        | `{ template, ref?, root? }` or `{ host, repo, ref?, root? }` | none | Link objects to their source lines. See [Source links](/starlight-pydocs/guides/source-links/). |
 | `sidebar`           | `{ label?, collapsed?, group? }`       | `{}`           | Sidebar presentation, Starlight only. See [Multiple packages](/starlight-pydocs/guides/multiple-packages/). |
-| `versions`          | `{ refs: { ref, label }[] }`           | none           | Badge objects with the release they appeared in. See [Version annotations](/starlight-pydocs/guides/version-annotations/). |
+| `versions`          | `{ refs: { ref, label }[] }` or `{ tags: string \| RegExp }` | none | Badge objects with the release they appeared in, from listed refs or from the git tags that match a pattern. See [Version annotations](/starlight-pydocs/guides/version-annotations/). |
 
 `versions` extracts the package at past git refs, so it needs a checkout with history. You cannot
 use it together with `source`, because a pinned dump describes one release and has no history to

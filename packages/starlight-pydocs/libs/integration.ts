@@ -26,7 +26,7 @@ import { clearCaches, getCrossReferenceResolver, getModel } from '../lib/data.ts
 import { errorMessage } from '../lib/errors.ts';
 import { loadInventories } from '../lib/inventory.ts';
 import type { PydocsLogger } from '../lib/logger.ts';
-import { computeVersionAnnotations } from '../lib/ref-extract.ts';
+import { computeVersionAnnotations, resolveVersionTags } from '../lib/ref-extract.ts';
 import { publishRegistry } from '../lib/registry.ts';
 import { resolveAllExtractions, usesSourceDump, watchPaths } from '../lib/runner.ts';
 import type { DocstringRenderer } from './docstring-renderer.ts';
@@ -151,7 +151,7 @@ async function versionPathsFor(
 /** Validate the options, extract every dump, load every inventory. */
 async function preparePydocs(options: PydocsSetupOptions): Promise<PydocsSetup> {
   const { logger } = options;
-  const config = normalizeConfig(options.options, fileURLToPath(options.root));
+  const config = await resolveVersionTags(normalizeConfig(options.options, fileURLToPath(options.root)), logger);
 
   // Inventory downloads need nothing from extraction, so they overlap it.
   const inventoriesLoading = inventories(config, logger);

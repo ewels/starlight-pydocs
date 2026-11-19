@@ -408,7 +408,7 @@ describe('inventories at render time', () => {
 });
 
 describe('version release links', () => {
-  test('pairs each label with its tag on the configured forge', () => {
+  test('pairs each label with its tag on the configured forge, from a full tag refname too', () => {
     const config = normalizeConfig(
       {
         packages: [
@@ -417,7 +417,7 @@ describe('version release links', () => {
             sourceLink: { host: 'github', repo: 'ewels/demopkg' },
             versions: {
               refs: [
-                { ref: 'v1.6.0', label: '1.6' },
+                { ref: 'refs/tags/v1.6.0', label: '1.6' },
                 { ref: 'v1.9.0', label: '1.9' },
               ],
             },

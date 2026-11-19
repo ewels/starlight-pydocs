@@ -138,7 +138,9 @@ deprecated top-level `markdown.remarkPlugins`/`rehypePlugins`/`remarkRehype`/`gf
 ### Version annotations
 
 `versions: { refs: [{ ref, label }] }` per package, oldest first, badges each object
-with the release it appeared in (ARCHITECTURE.md decision 12). The split matters:
+with the release it appeared in (ARCHITECTURE.md decision 12). `versions: { tags }` is a
+regex over tag names that `resolveVersionTags` turns into that same `refs` list (label = tag
+name) before anything else runs. The split matters:
 `lib/versions.ts` is pure (collect object paths from a dump, first-seen diff over the
 snapshots, documented-then-canonical lookup) and `lib/ref-extract.ts` owns the git
 work (`git rev-parse --verify <ref>^{commit}`, `git worktree add --detach` into the

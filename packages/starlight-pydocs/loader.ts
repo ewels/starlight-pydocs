@@ -27,7 +27,7 @@ import { normalizeConfig } from './lib/config.ts';
 import { PydocsError } from './lib/errors.ts';
 import { loadDump } from './lib/data.ts';
 import { buildModel } from './lib/model.ts';
-import { computeVersionAnnotations } from './lib/ref-extract.ts';
+import { computeVersionAnnotations, resolveVersionTags } from './lib/ref-extract.ts';
 import { resolveExtraction } from './lib/runner.ts';
 import { signatureText } from './lib/signature.ts';
 import { versionLabelsFrom } from './lib/versions.ts';
@@ -65,7 +65,7 @@ export const pydocsEntrySchema = z.object({
   /** Heading anchor on that page; empty for a module. */
   anchor: z.string(),
   deprecated: z.boolean(),
-  /** Version the object appeared in, when the package configures `versions.refs`. */
+  /** Version the object appeared in, when the package configures `versions`. */
   addedIn: z.string().optional(),
 });
 
@@ -81,9 +81,12 @@ export function pydocsLoader(options: PydocsLoaderOptions): Loader {
       const projectRoot = options.projectRoot ?? fileURLToPath(config.root);
 
       const { runner, cacheDir, projectRoot: _root, ...packageInput } = options;
-      const normalised = normalizeConfig(
-        { packages: [packageInput], runner, cacheDir, symbolSearch: false, publishInventory: false, llmsTxt: false },
-        projectRoot,
+      const normalised = await resolveVersionTags(
+        normalizeConfig(
+          { packages: [packageInput], runner, cacheDir, symbolSearch: false, publishInventory: false, llmsTxt: false },
+          projectRoot,
+        ),
+        logger,
       );
       const pkg = normalised.packages[0];
       if (pkg === undefined) throw new PydocsError('starlight-pydocs: the loader needs a package to document');
