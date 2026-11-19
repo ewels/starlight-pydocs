@@ -258,7 +258,11 @@ describe('loadInventories', () => {
     const file = path.join(workspace, 'objects.inv');
     await fs.writeFile(file, buildInventory('demopkg', '1.0', entries));
     const config = normalizeConfig(
-      { packages: [{ name: 'demopkg' }], inventories: [{ file: 'objects.inv', base: 'https://x.dev/docs' }] },
+      {
+        packages: [{ name: 'demopkg' }],
+        pythonInventory: false,
+        inventories: [{ file: 'objects.inv', base: 'https://x.dev/docs' }],
+      },
       workspace,
     );
 
@@ -286,6 +290,7 @@ describe('loadInventories', () => {
     const config = normalizeConfig(
       {
         packages: [{ name: 'demopkg' }],
+        pythonInventory: false,
         inventories: [{ url: `http://127.0.0.1:${port}/objects.inv`, base: `http://127.0.0.1:${port}/` }],
       },
       workspace,
@@ -306,6 +311,7 @@ describe('loadInventories', () => {
     const config = normalizeConfig(
       {
         packages: [{ name: 'demopkg' }],
+        pythonInventory: false,
         inventories: [{ file: 'missing.inv', base: 'https://x.dev/' }],
       },
       workspace,
@@ -325,7 +331,11 @@ describe('loadInventories', () => {
     const file = path.join(workspace, 'objects.inv');
     await fs.writeFile(file, 'nonsense\n');
     const config = normalizeConfig(
-      { packages: [{ name: 'demopkg' }], inventories: [{ file: 'objects.inv', base: 'https://x.dev/' }] },
+      {
+        packages: [{ name: 'demopkg' }],
+        pythonInventory: false,
+        inventories: [{ file: 'objects.inv', base: 'https://x.dev/' }],
+      },
       workspace,
     );
 

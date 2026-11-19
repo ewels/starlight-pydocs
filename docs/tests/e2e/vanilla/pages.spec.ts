@@ -26,6 +26,14 @@ test('a generated module page renders through the built-in layout', async ({ pag
   await expect(signature(page, 'demopkg.report.Report')).toContainText('class Report(');
 });
 
+test('builtins link to docs.python.org with no inventory configured', async ({ page }) => {
+  await page.goto('api/demopkg/utils/');
+
+  const str = signature(page, 'demopkg.utils.describe').getByRole('link', { name: 'str', exact: true });
+  await expect(str).toHaveAttribute('href', 'https://docs.python.org/3/builtins/stdtypes.html#str');
+  await expect(str).toHaveAttribute('title', 'Open docs at docs.python.org');
+});
+
 test('the package page lists its submodules', async ({ page }) => {
   await page.goto('api/demopkg/');
 

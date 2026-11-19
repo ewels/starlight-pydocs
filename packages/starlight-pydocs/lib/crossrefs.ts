@@ -19,7 +19,7 @@
  * packages', then the Sphinx inventories.
  */
 
-import { createAnnotationResolver } from './expr.ts';
+import { createAnnotationResolver, PYTHON_BUILTINS } from './expr.ts';
 import type { PackageModel } from './model.ts';
 import { documentedPathFor } from './model.ts';
 import { parseSphinxRole, SPHINX_ROLE_PATTERN } from './markdown.ts';
@@ -83,7 +83,9 @@ export function createCrossReferenceResolver(options: CrossReferenceResolverOpti
   return (target, scopePath) => {
     const trimmed = target.trim();
     if (trimmed === '') return undefined;
-    if (scopePath === undefined) return internal(trimmed) ?? options.lookupExternal?.(trimmed);
+    if (scopePath === undefined) {
+      return internal(trimmed) ?? options.lookupExternal?.(trimmed) ?? PYTHON_BUILTINS.get(trimmed)?.href;
+    }
     const found = scoped.resolve(trimmed, scopePath);
     return found?.kind === 'internal' ? internal(found.path) : found?.href;
   };

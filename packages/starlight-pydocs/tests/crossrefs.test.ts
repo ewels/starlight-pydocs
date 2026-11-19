@@ -199,6 +199,20 @@ describe('createCrossReferenceResolver', () => {
     });
     expect(resolver('ValueError', 'demopkg.report.generate_report')).toBe('https://docs.python.org/3/exc.html');
   });
+
+  test('links a builtin without an inventory, in scope or not', async () => {
+    const model = await fixtureModel('demopkg');
+    const resolver = createCrossReferenceResolver({
+      models: [model],
+      siteBase: '',
+      trailingSlash: 'always',
+      scopes: model.scopes,
+    });
+    expect(resolver('bool')).toBe('https://docs.python.org/3/builtins/functions.html#bool');
+    expect(resolver('None', 'demopkg.report.generate_report')).toBe(
+      'https://docs.python.org/3/builtins/constants.html#None',
+    );
+  });
 });
 
 describe('resolveSphinxRoles', () => {

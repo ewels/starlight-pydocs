@@ -55,7 +55,7 @@ export default defineConfig({
               sourceLink: { host: 'github', repo: 'you/mypkg', ref: 'main', root: '..' },
             },
           ],
-          // [!ref] From `inventories`. `'python'` is the standard library preset.
+          // [!ref] From `inventories`. `'python'`, the standard library, is on by default.
           inventories: ['python'],
         }),
       ],
@@ -82,7 +82,7 @@ Each remaining handler option and its equivalent:
 | `filters: ["!^_"]`                                    | `packages[].filters` plus `packages[].members.exclude`          |
 | `inherited_members: true`                             | `packages[].filters.inherited` (already `true`)                 |
 | `show_source: true`                                   | `packages[].sourceLink` (a forge preset or a template)          |
-| `inventories: [{url: …}]`                             | top-level `inventories: [{ url, base? }]` or `'python'`         |
+| `inventories: [{url: …}]`                             | top-level `inventories: [{ url, base? }]`; `'python'` is a default |
 | `extensions: [griffe_pydantic]`                       | `packages[].extensions`, plus `extraRequirements`               |
 | `::: mypkg.Report` in a page                          | `<Autodoc name="mypkg.Report" />` in an `.mdx` page             |
 | `heading_level: 3`                                    | `<Autodoc … headingLevel={3} />`                                |

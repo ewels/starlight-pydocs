@@ -46,7 +46,7 @@ Documentation and examples: [ewels.github.io/starlight-pydocs](https://ewels.git
 - 🐍 **Autogenerate at build time, or supply JSON**
   - Point the plugin at a dump your CI published and the site builds without a Python interpreter
 - 🔗 **Linked signatures**
-  - Names in an annotation link to their definition on your own pages or, through a Sphinx inventory, to another project's documentation
+  - Names in an annotation link to their definition on your own pages, to the Python standard library, or, through a Sphinx inventory, to another project's documentation
 - 🧬 **Inherited members**
   - Merged from resolvable base classes and labelled with the class they came from
 - 📚 **Inventory and Markdown**
@@ -78,7 +78,6 @@ export default defineConfig({
       plugins: [
         starlightPydocs({
           packages: [{ name: 'mypkg', search: ['../src'] }],
-          inventories: ['python'],
         }),
       ],
       sidebar: [{ label: 'API reference', items: [pydocsSidebarGroup] }],

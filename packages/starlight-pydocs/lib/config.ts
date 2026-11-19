@@ -244,6 +244,11 @@ export interface PydocsUserConfig {
   runner?: PydocsRunnerInput | undefined;
   /** Inventories used to link type annotations to other documentation sites. */
   inventories?: PydocsInventoryConfigInput[] | undefined;
+  /**
+   * Add the `'python'` inventory after `inventories`, so the standard library
+   * links with no configuration. Default `true`.
+   */
+  pythonInventory?: boolean | undefined;
   /** Serve `objects.inv` for this site so other projects can link into it. Default `true`. */
   publishInventory?: boolean | undefined;
   /** Serve `symbols.json` and enable the symbol search component. Default `true`. */
@@ -750,6 +755,12 @@ export function normalizeConfig(user: PydocsUserConfig, projectRoot: string): Py
   const inventories = inventoriesInput.map((entry, index) =>
     normaliseInventory(entry, `inventories[${index}]`, projectRoot),
   );
+  if (optionalBoolean(user.pythonInventory, 'pythonInventory', true)) {
+    // Last, because earlier inventories win: a site's own list, such as a pinned
+    // Python version, keeps the names it defines.
+    const python = normaliseInventory('python', 'pythonInventory', projectRoot);
+    if (!inventories.some((inventory) => inventory.url === python.url)) inventories.push(python);
+  }
 
   const components = user.components ?? {};
   if (!isPlainObject(components)) throw configError('components', 'must be an object');
