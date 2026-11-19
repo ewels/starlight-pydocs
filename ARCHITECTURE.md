@@ -239,7 +239,7 @@ dispname` lines) with `node:zlib`. Parsed entries feed annotation resolution
   annotation to a page about something else. Fetched inventories cache to the cache
   dir; a `python` preset ships the stdlib base URL. That preset is appended to every
   site's list unless `pythonInventory: false`: last, because earlier inventories win,
-  and skipped when already listed. Builtins also carry a bundled docs.python.org URL
+  and skipped when an inventory with its base is already listed. Builtins also carry a bundled docs.python.org URL
   in `lib/expr.ts`, so they link when no inventory loads (offline first build, opt-out).
 - **Publish:** an injected endpoint route serves `<base>/objects.inv`, generated from
   the symbol index with mkdocstrings-compatible roles (`py:module`, `py:class`,

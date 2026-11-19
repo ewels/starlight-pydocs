@@ -117,7 +117,8 @@ inventories: [
 
 The plugin adds the `'python'` preset after this list, so the standard library links with no
 configuration. Earlier inventories win, so your own entries keep the names they define. If you list
-`'python'` yourself, it stays where you list it and is not added twice. Set `pythonInventory: false`
+`'python'` yourself, or any inventory with the base `https://docs.python.org/3/`, such as a local
+copy, it stays where you list it and is not added twice. Set `pythonInventory: false`
 to leave it out, for example when the build has no network. Builtins such as `str` and `None` still
 link to docs.python.org without it.
 

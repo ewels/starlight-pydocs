@@ -7,7 +7,7 @@ import { deflateSync } from 'node:zlib';
 
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 
-import { normalizeConfig } from '../lib/config.ts';
+import { normalizeConfig, type PydocsUserConfig } from '../lib/config.ts';
 import { createMemoryLogger } from '../lib/logger.ts';
 import type { InventoryEntry } from '../lib/inventory.ts';
 import {
@@ -245,6 +245,9 @@ describe('loadInventories', () => {
     workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'pydocs-inventory-'));
   });
 
+  const configure = (inventories: PydocsUserConfig['inventories']) =>
+    normalizeConfig({ packages: [{ name: 'demopkg' }], pythonInventory: false, inventories }, workspace).inventories;
+
   afterEach(async () => {
     await new Promise<void>((resolve) => {
       if (server === undefined) return resolve();
@@ -257,16 +260,9 @@ describe('loadInventories', () => {
   test('reads a local inventory file', async () => {
     const file = path.join(workspace, 'objects.inv');
     await fs.writeFile(file, buildInventory('demopkg', '1.0', entries));
-    const config = normalizeConfig(
-      {
-        packages: [{ name: 'demopkg' }],
-        pythonInventory: false,
-        inventories: [{ file: 'objects.inv', base: 'https://x.dev/docs' }],
-      },
-      workspace,
-    );
+    const inventories = configure([{ file: 'objects.inv', base: 'https://x.dev/docs' }]);
 
-    const loaded = await loadInventories(config.inventories, { cacheDir: path.join(workspace, 'cache') });
+    const loaded = await loadInventories(inventories, { cacheDir: path.join(workspace, 'cache') });
     expect(loaded).toHaveLength(1);
     expect(loaded[0]?.base).toBe('https://x.dev/docs/');
     expect(loaded[0]?.entries).toHaveLength(entries.length);
@@ -287,20 +283,13 @@ describe('loadInventories', () => {
     await new Promise<void>((resolve) => server?.listen(0, '127.0.0.1', resolve));
     const { port } = server.address() as AddressInfo;
 
-    const config = normalizeConfig(
-      {
-        packages: [{ name: 'demopkg' }],
-        pythonInventory: false,
-        inventories: [{ url: `http://127.0.0.1:${port}/objects.inv`, base: `http://127.0.0.1:${port}/` }],
-      },
-      workspace,
-    );
+    const inventories = configure([{ url: `http://127.0.0.1:${port}/objects.inv`, base: `http://127.0.0.1:${port}/` }]);
     const options = { cacheDir: path.join(workspace, 'cache') };
 
-    const first = await loadInventories(config.inventories, options);
+    const first = await loadInventories(inventories, options);
     expect(first[0]?.entries.map((entry) => entry.name)).toContain('pathlib.Path');
 
-    const second = await loadInventories(config.inventories, options);
+    const second = await loadInventories(inventories, options);
     expect(second[0]?.entries).toHaveLength(entries.length);
     // The second load revalidated and got a 304 rather than the payload.
     expect(requests).toBe(2);
@@ -308,16 +297,9 @@ describe('loadInventories', () => {
 
   test('warns and carries on when an inventory cannot be loaded', async () => {
     const logger = createMemoryLogger();
-    const config = normalizeConfig(
-      {
-        packages: [{ name: 'demopkg' }],
-        pythonInventory: false,
-        inventories: [{ file: 'missing.inv', base: 'https://x.dev/' }],
-      },
-      workspace,
-    );
+    const inventories = configure([{ file: 'missing.inv', base: 'https://x.dev/' }]);
 
-    const loaded = await loadInventories(config.inventories, {
+    const loaded = await loadInventories(inventories, {
       cacheDir: path.join(workspace, 'cache'),
       logger,
     });
@@ -330,16 +312,9 @@ describe('loadInventories', () => {
     const logger = createMemoryLogger();
     const file = path.join(workspace, 'objects.inv');
     await fs.writeFile(file, 'nonsense\n');
-    const config = normalizeConfig(
-      {
-        packages: [{ name: 'demopkg' }],
-        pythonInventory: false,
-        inventories: [{ file: 'objects.inv', base: 'https://x.dev/' }],
-      },
-      workspace,
-    );
+    const inventories = configure([{ file: 'objects.inv', base: 'https://x.dev/' }]);
 
-    expect(await loadInventories(config.inventories, { cacheDir: workspace, logger })).toEqual([]);
+    expect(await loadInventories(inventories, { cacheDir: workspace, logger })).toEqual([]);
     expect(logger.messages[0]).toMatch(/could not load the inventory/);
   });
 });

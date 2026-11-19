@@ -186,6 +186,13 @@ describe('normalizeConfig inventories', () => {
     ]);
   });
 
+  test('a local copy with the docs.python.org base counts as the python preset', () => {
+    const local = { file: 'python.inv', base: 'https://docs.python.org/3/' };
+    expect(normalizeConfig({ packages: [{ name: 'demopkg' }], inventories: [local] }, root).inventories).toHaveLength(
+      1,
+    );
+  });
+
   test('pythonInventory: false leaves only the configured inventories', () => {
     expect(normalizeConfig({ packages: [{ name: 'demopkg' }], pythonInventory: false }, root).inventories).toEqual([]);
     const config = normalizeConfig(

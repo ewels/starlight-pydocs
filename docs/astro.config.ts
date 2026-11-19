@@ -97,7 +97,6 @@ export default defineConfig({
           // `pnpm gen:inventory`), so `pathlib.Path` links to the real Python
           // documentation without the build reaching the network.
           inventories: [{ file: '../fixtures/inventories/python-stdlib.inv', base: 'https://docs.python.org/3/' }],
-          pythonInventory: false,
         }),
         // Site-wide llms.txt for the prose guides. The generated API pages are
         // injected routes rather than content collection entries, so this plugin

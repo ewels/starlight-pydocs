@@ -236,40 +236,41 @@ export async function loadInventories(
 ): Promise<LoadedInventory[]> {
   const logger = options.logger ?? silentLogger;
   const readFile = options.readFile ?? defaultReadFile;
-  const loaded: LoadedInventory[] = [];
+  const loaded = await Promise.all(
+    configs.map(async (config): Promise<LoadedInventory | undefined> => {
+      try {
+        let filePath: string;
+        if (config.url !== undefined) {
+          const result = await fetchToCache({
+            url: config.url,
+            directory: remoteCacheDirectory(options.cacheDir, config.url),
+            filename: 'objects.inv',
+            cache: config.cache,
+            fetchImpl: options.fetchImpl,
+            logger,
+          });
+          filePath = result.path;
+        } else if (config.file !== undefined) {
+          filePath = config.file;
+        } else {
+          return undefined;
+        }
 
-  for (const config of configs) {
-    try {
-      let filePath: string;
-      if (config.url !== undefined) {
-        const result = await fetchToCache({
-          url: config.url,
-          directory: remoteCacheDirectory(options.cacheDir, config.url),
-          filename: 'objects.inv',
-          cache: config.cache,
-          fetchImpl: options.fetchImpl,
-          logger,
-        });
-        filePath = result.path;
-      } else if (config.file !== undefined) {
-        filePath = config.file;
-      } else {
-        continue;
+        const { entries } = parseInventory(await readFile(filePath));
+        logger.debug(`loaded ${entries.length} inventory entries from ${config.url ?? config.file ?? filePath}`);
+        return { base: config.base, entries, path: filePath, cache: config.cache };
+      } catch (cause) {
+        logger.warn(
+          `could not load the inventory ${config.url ?? config.file ?? '(unknown)'}: ${
+            cause instanceof Error ? cause.message : String(cause)
+          }`,
+        );
+        return undefined;
       }
+    }),
+  );
 
-      const { entries } = parseInventory(await readFile(filePath));
-      loaded.push({ base: config.base, entries, path: filePath, cache: config.cache });
-      logger.debug(`loaded ${entries.length} inventory entries from ${config.url ?? config.file ?? filePath}`);
-    } catch (cause) {
-      logger.warn(
-        `could not load the inventory ${config.url ?? config.file ?? '(unknown)'}: ${
-          cause instanceof Error ? cause.message : String(cause)
-        }`,
-      );
-    }
-  }
-
-  return loaded;
+  return loaded.filter((inventory) => inventory !== undefined);
 }
 
 /**

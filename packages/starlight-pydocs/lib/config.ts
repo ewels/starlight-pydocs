@@ -388,8 +388,10 @@ const RELEASE_LINK_PRESETS: Record<PydocsSourceLinkPreset['host'], (repo: string
   bitbucket: (repo) => `https://bitbucket.org/${repo}/src/{ref}`,
 };
 
+export const PYTHON_DOCS_BASE = 'https://docs.python.org/3/';
+
 const INVENTORY_PRESETS: Record<PydocsInventoryPreset, { url: string; base: string }> = {
-  python: { url: 'https://docs.python.org/3/objects.inv', base: 'https://docs.python.org/3/' },
+  python: { url: `${PYTHON_DOCS_BASE}objects.inv`, base: PYTHON_DOCS_BASE },
 };
 
 const PACKAGE_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/;
@@ -756,10 +758,9 @@ export function normalizeConfig(user: PydocsUserConfig, projectRoot: string): Py
     normaliseInventory(entry, `inventories[${index}]`, projectRoot),
   );
   if (optionalBoolean(user.pythonInventory, 'pythonInventory', true)) {
-    // Last, because earlier inventories win: a site's own list, such as a pinned
-    // Python version, keeps the names it defines.
+    // Last: earlier inventories win. Matched by base, so a vendored copy counts as listed.
     const python = normaliseInventory('python', 'pythonInventory', projectRoot);
-    if (!inventories.some((inventory) => inventory.url === python.url)) inventories.push(python);
+    if (!inventories.some((inventory) => inventory.base === python.base)) inventories.push(python);
   }
 
   const components = user.components ?? {};

@@ -13,6 +13,7 @@
 
 import type { Annotation, Expr, ExprOrString } from './types.ts';
 import { isExpr } from './types.ts';
+import { PYTHON_DOCS_BASE } from './config.ts';
 
 export interface InternalAnnotationTarget {
   kind: 'internal';
@@ -51,12 +52,6 @@ export interface AnnotationResolver {
   resolve(name: string, scopePath: string): AnnotationTarget | undefined;
 }
 
-/**
- * Builtin names worth linking, with a docs.python.org page and inventory role
- * for each. Only types and constants that appear in annotations, and the
- * exceptions and warnings that show up in `Raises:` sections; the full builtins
- * namespace would add noise without value.
- */
 const BUILTIN_GROUPS: [page: string, role: string, names: string[]][] = [
   ['functions', 'class', ['bool', 'complex', 'float', 'int', 'object', 'slice', 'type']],
   ['functions', 'function', ['enumerate', 'filter', 'map', 'reversed', 'zip']],
@@ -119,14 +114,16 @@ const BUILTIN_GROUPS: [page: string, role: string, names: string[]][] = [
 ];
 
 /**
- * Where each builtin is documented, for sites with no Python inventory. CPython
- * moved these pages from `library/` to `builtins/`; the old paths only redirect.
+ * Builtins worth linking, with where each is documented for sites with no Python
+ * inventory: the types and constants that appear in annotations, and the
+ * exceptions and warnings in `Raises:` sections. CPython moved these pages from
+ * `library/` to `builtins/`; the old paths only redirect.
  */
-export const PYTHON_BUILTINS = new Map<string, Omit<ExternalAnnotationTarget, 'kind'>>(
+const PYTHON_BUILTINS = new Map<string, Omit<ExternalAnnotationTarget, 'kind'>>(
   BUILTIN_GROUPS.flatMap(([page, role, names]) =>
     names.map((name) => [
       name,
-      { href: `https://docs.python.org/3/builtins/${page}.html#${name}`, name, role, source: 'Python 3' },
+      { href: `${PYTHON_DOCS_BASE}builtins/${page}.html#${name}`, name, role, source: 'Python 3' },
     ]),
   ),
 );
