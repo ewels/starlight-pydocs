@@ -4,6 +4,7 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 
 ## Unreleased
 
+- ✨ The member a URL fragment points at is highlighted with an amber bar and tinted background, distinct from hover ([#16](https://github.com/ewels/starlight-pydocs/pull/16))
 - ✨ "Added in" labels are green badges, so they stand out under the heading ([#19](https://github.com/ewels/starlight-pydocs/pull/19))
 
 ## v0.4.0 (2026-11-18)
