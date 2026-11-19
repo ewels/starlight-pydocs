@@ -8,7 +8,7 @@
 import path from 'node:path';
 
 import { configError, PydocsError } from './errors.ts';
-import { isUnderBase, stripLeadingAndTrailingSlashes } from './paths.ts';
+import { isUnderBase, PYTHON_DOCS_BASE, stripLeadingAndTrailingSlashes } from './paths.ts';
 
 /** Docstring flavour passed to `griffe dump -d`. */
 export type DocstringStyle = 'google' | 'numpy' | 'sphinx' | 'auto';
@@ -387,8 +387,6 @@ const RELEASE_LINK_PRESETS: Record<PydocsSourceLinkPreset['host'], (repo: string
   gitlab: (repo) => `https://gitlab.com/${repo}/-/releases/{ref}`,
   bitbucket: (repo) => `https://bitbucket.org/${repo}/src/{ref}`,
 };
-
-export const PYTHON_DOCS_BASE = 'https://docs.python.org/3/';
 
 const INVENTORY_PRESETS: Record<PydocsInventoryPreset, { url: string; base: string }> = {
   python: { url: `${PYTHON_DOCS_BASE}objects.inv`, base: PYTHON_DOCS_BASE },

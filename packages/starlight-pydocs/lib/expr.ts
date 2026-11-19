@@ -13,7 +13,7 @@
 
 import type { Annotation, Expr, ExprOrString } from './types.ts';
 import { isExpr } from './types.ts';
-import { PYTHON_DOCS_BASE } from './config.ts';
+import { PYTHON_DOCS_BASE } from './paths.ts';
 
 export interface InternalAnnotationTarget {
   kind: 'internal';
@@ -128,7 +128,7 @@ const PYTHON_BUILTINS = new Map<string, Omit<ExternalAnnotationTarget, 'kind'>>(
   ),
 );
 
-const NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/;
+const NAME_PATTERN = /^[\p{ID_Start}_]\p{ID_Continue}*(\.[\p{ID_Start}_]\p{ID_Continue}*)*$/u;
 
 export interface AnnotationResolverOptions {
   /** True when a dotted path is documented on this site. */
@@ -172,15 +172,13 @@ export function createAnnotationResolver(options: AnnotationResolverOptions): An
         }
       }
 
-      // A fully qualified path written out in the annotation.
+      // A fully qualified path written out in the annotation. This also tries the
+      // inventory before the bundled builtins: it names the Python version the site targets.
       const direct = asTarget(name);
       if (direct !== undefined) return direct;
 
       const builtin = PYTHON_BUILTINS.get(name);
-      if (builtin !== undefined) {
-        // The inventory first: it names the Python version the site targets.
-        return external(lookupExternal?.(name) ?? lookupExternal?.(`builtins.${name}`) ?? builtin);
-      }
+      if (builtin !== undefined) return external(lookupExternal?.(`builtins.${name}`) ?? builtin);
 
       return undefined;
     },

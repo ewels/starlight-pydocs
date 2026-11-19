@@ -317,6 +317,11 @@ describe('createAnnotationResolver', () => {
     expect(resolver.resolve('NoSuchType', 'pkg')).toBeUndefined();
   });
 
+  test('accepts Unicode identifiers', () => {
+    const resolver = createAnnotationResolver({ isDocumented: (path) => path === 'pkg.café' });
+    expect(resolver.resolve('pkg.café', 'pkg')).toEqual({ kind: 'internal', path: 'pkg.café' });
+  });
+
   test('prefers the inventory over the bundled builtin links', () => {
     const found = { href: 'https://docs.python.org/3.14/builtins/functions.html#bool', source: 'Python 3.14' };
     const resolver = createAnnotationResolver({

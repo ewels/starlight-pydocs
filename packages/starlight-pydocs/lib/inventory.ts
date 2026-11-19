@@ -248,6 +248,8 @@ export async function loadInventories(
             cache: config.cache,
             fetchImpl: options.fetchImpl,
             logger,
+            // Short: cross-links are optional, and a dropped connection should not stall setup.
+            timeoutMs: 10_000,
           });
           filePath = result.path;
         } else if (config.file !== undefined) {

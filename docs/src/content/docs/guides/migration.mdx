@@ -28,7 +28,7 @@ plugins:
             filters: ["!^_"]
           # [!ref] `inventories` stays `inventories`.
           inventories:
-            - url: https://docs.python.org/3/objects.inv
+            - url: https://pandas.pydata.org/docs/objects.inv
 ```
 
 becomes this, with the same four options at the matching numbers:
@@ -55,8 +55,8 @@ export default defineConfig({
               sourceLink: { host: 'github', repo: 'you/mypkg', ref: 'main', root: '..' },
             },
           ],
-          // [!ref] From `inventories`. `'python'`, the standard library, is on by default.
-          inventories: ['python'],
+          // [!ref] From `inventories`. The standard library links without one.
+          inventories: [{ url: 'https://pandas.pydata.org/docs/objects.inv' }],
         }),
       ],
       sidebar: [{ label: 'API reference', items: [pydocsSidebarGroup] }],
