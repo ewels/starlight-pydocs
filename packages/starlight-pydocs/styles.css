@@ -32,6 +32,9 @@
     --pyd-border: var(--sl-color-hairline-light, #d8dee4);
     --pyd-accent: var(--sl-color-text-accent, #2563eb);
     --pyd-accent-low: var(--sl-color-accent-low, #dbeafe);
+    --pyd-target: var(--sl-color-orange, #d97706);
+    /* The strongest tints that keep muted text and links at AA contrast. */
+    --pyd-target-low: color-mix(in srgb, var(--pyd-target) 12%, var(--pyd-bg));
 
     --pyd-note: var(--sl-color-blue, #3b82f6);
     --pyd-note-low: var(--sl-color-blue-low, #dbeafe);
@@ -41,6 +44,8 @@
     --pyd-caution-low: var(--sl-color-orange-low, #ffedd5);
     --pyd-danger: var(--sl-color-red, #dc2626);
     --pyd-danger-low: var(--sl-color-red-low, #fee2e2);
+    --pyd-added: var(--sl-color-green-high, #166534);
+    --pyd-added-low: var(--sl-color-green-low, #dcfce7);
 
     --pyd-radius: 0.375rem;
     --pyd-mono: var(--sl-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
@@ -57,10 +62,14 @@
       --pyd-border: var(--sl-color-hairline-light, #30363d);
       --pyd-accent: var(--sl-color-text-accent, #60a5fa);
       --pyd-accent-low: var(--sl-color-accent-low, #172554);
+      --pyd-target: var(--sl-color-orange, #f59e0b);
+      --pyd-target-low: color-mix(in srgb, var(--pyd-target) 8%, var(--pyd-bg));
       --pyd-note-low: var(--sl-color-blue-low, #172554);
       --pyd-tip-low: var(--sl-color-purple-low, #2e1065);
       --pyd-caution-low: var(--sl-color-orange-low, #431407);
       --pyd-danger-low: var(--sl-color-red-low, #450a0a);
+      --pyd-added: var(--sl-color-green-high, #86efac);
+      --pyd-added-low: var(--sl-color-green-low, #052e16);
     }
   }
 
@@ -73,10 +82,14 @@
     --pyd-border: var(--sl-color-hairline-light, #30363d);
     --pyd-accent: var(--sl-color-text-accent, #60a5fa);
     --pyd-accent-low: var(--sl-color-accent-low, #172554);
+    --pyd-target: var(--sl-color-orange, #f59e0b);
+    --pyd-target-low: color-mix(in srgb, var(--pyd-target) 8%, var(--pyd-bg));
     --pyd-note-low: var(--sl-color-blue-low, #172554);
     --pyd-tip-low: var(--sl-color-purple-low, #2e1065);
     --pyd-caution-low: var(--sl-color-orange-low, #431407);
     --pyd-danger-low: var(--sl-color-red-low, #450a0a);
+    --pyd-added: var(--sl-color-green-high, #86efac);
+    --pyd-added-low: var(--sl-color-green-low, #052e16);
   }
 
   /* -- Members and headings ------------------------------------------------ */
@@ -89,6 +102,17 @@
 
   .pyd-member:hover {
     border-inline-start-color: var(--pyd-accent);
+  }
+
+  .pyd-member:has(> .pyd-heading:target) {
+    padding-block: 0.5rem;
+    padding-inline: calc(0.875rem - 3px) 0.75rem;
+    border-inline-start: 5px solid var(--pyd-target);
+    border-start-end-radius: 0.5rem;
+    border-end-end-radius: 0.5rem;
+    background: var(--pyd-target-low);
+    /* Table scroll shadows paint their covers in --pyd-bg; they must match the tint. */
+    --pyd-bg: var(--pyd-target-low);
   }
 
   .pyd-member .pyd-member {
@@ -164,6 +188,18 @@
     background: var(--pyd-caution-low);
     border-color: var(--pyd-caution);
     color: var(--pyd-caution);
+  }
+
+  /* Scoped to the row so it outranks the vanilla page's `.pyd-page a` colour. */
+  .pyd-provenance .pyd-badge--added {
+    background: var(--pyd-added-low);
+    border-color: color-mix(in srgb, currentColor 40%, transparent);
+    color: var(--pyd-added);
+    text-decoration: none;
+  }
+
+  .pyd-provenance a.pyd-badge--added:hover {
+    border-color: currentColor;
   }
 
   /* -- Signatures --------------------------------------------------------- */
@@ -313,15 +349,12 @@
     display: none;
   }
 
-  /* Both ends of the provenance row read as metadata, not as prose links, so
-     they are muted until hovered. */
-  .pyd-source-link,
-  .pyd-version-link {
+  /* Reads as metadata, not as a prose link, so it is muted until hovered. */
+  .pyd-source-link {
     color: var(--pyd-text-muted);
   }
 
-  .pyd-source-link:hover,
-  .pyd-version-link:hover {
+  .pyd-source-link:hover {
     color: var(--pyd-accent);
   }
 
