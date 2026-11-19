@@ -4,6 +4,8 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 
 ## Unreleased
 
+- 🛠️ "Added in" badges have no background fill, so they stay quiet on pages with many of them. The `--pyd-added-low` token is gone ([#22](https://github.com/ewels/starlight-pydocs/pull/22))
+
 ## v0.5.0 (2026-11-20)
 
 No configuration changes are needed. Builds now download Python's `objects.inv` from docs.python.org by default; you can drop `'python'` from `inventories`, or set `pythonInventory: false` for offline builds.
