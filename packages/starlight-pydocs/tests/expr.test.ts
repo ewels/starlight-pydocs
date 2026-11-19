@@ -237,9 +237,12 @@ describe('name resolution', () => {
     expect(tokens[0]?.target).toEqual({ kind: 'external', href: inventory['str'] });
   });
 
-  test('leaves builtins unlinked without an inventory', async () => {
+  test('links builtins to docs.python.org without an inventory', async () => {
     const bare = buildAnnotationResolver(demopkg);
-    expect(annotationTokens(name('str'), 'demopkg.utils.describe', bare)).toEqual([{ text: 'str' }]);
+    expect(annotationTokens(name('str'), 'demopkg.utils.describe', bare)[0]?.target).toMatchObject({
+      kind: 'external',
+      href: 'https://docs.python.org/3/builtins/stdtypes.html#str',
+    });
   });
 
   test('leaves unknown names unlinked', () => {
@@ -264,7 +267,14 @@ describe('name resolution', () => {
     const annotation = scores?.object.kind === 'attribute' ? scores.object.annotation : undefined;
     const tokens = annotationTokens(annotation, 'demopkg.report.Report.scores', resolver);
     expect(texts(tokens)).toBe('dict[str, float]');
-    expect(tokens.map((token) => token.target?.kind)).toEqual([undefined, 'external', undefined]);
+    expect(tokens.map((token) => token.target?.kind)).toEqual([
+      'external',
+      undefined,
+      'external',
+      undefined,
+      'external',
+      undefined,
+    ]);
   });
 
   test('without a resolver nothing is linked', () => {
@@ -286,6 +296,39 @@ describe('createAnnotationResolver', () => {
     const resolver = createAnnotationResolver({ isDocumented: () => true });
     expect(resolver.resolve('list[int]', 'pkg')).toBeUndefined();
     expect(resolver.resolve('', 'pkg')).toBeUndefined();
+  });
+
+  test('links builtins to bundled docs.python.org pages without an inventory', () => {
+    const resolver = createAnnotationResolver({ isDocumented: () => false });
+    expect(resolver.resolve('bool', 'pkg')).toEqual({
+      kind: 'external',
+      href: 'https://docs.python.org/3/builtins/functions.html#bool',
+      name: 'bool',
+      role: 'class',
+      source: 'Python 3',
+    });
+    expect(resolver.resolve('None', 'pkg')).toMatchObject({
+      href: 'https://docs.python.org/3/builtins/constants.html#None',
+      role: 'data',
+    });
+    expect(resolver.resolve('str', 'pkg')).toMatchObject({
+      href: 'https://docs.python.org/3/builtins/stdtypes.html#str',
+    });
+    expect(resolver.resolve('NoSuchType', 'pkg')).toBeUndefined();
+  });
+
+  test('accepts Unicode identifiers', () => {
+    const resolver = createAnnotationResolver({ isDocumented: (path) => path === 'pkg.café' });
+    expect(resolver.resolve('pkg.café', 'pkg')).toEqual({ kind: 'internal', path: 'pkg.café' });
+  });
+
+  test('prefers the inventory over the bundled builtin links', () => {
+    const found = { href: 'https://docs.python.org/3.14/builtins/functions.html#bool', source: 'Python 3.14' };
+    const resolver = createAnnotationResolver({
+      isDocumented: () => false,
+      lookupExternal: (path) => (path === 'bool' ? found : undefined),
+    });
+    expect(resolver.resolve('bool', 'pkg')).toMatchObject({ kind: 'external', ...found });
   });
 
   test('falls back to builtins.<name> in the inventory', () => {

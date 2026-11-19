@@ -1,5 +1,7 @@
 /** URL/slug helpers shared by the plugin, integration, routes and middleware. */
 
+export const PYTHON_DOCS_BASE = 'https://docs.python.org/3/';
+
 export function stripLeadingAndTrailingSlashes(path: string): string {
   return path.replace(/^\/+/, '').replace(/\/+$/, '');
 }

@@ -146,13 +146,14 @@ which sections each style recognises.
 
 ## Linking to other projects
 
-Add this once the pages exist. Type annotations that name something outside your
-package, such as `pathlib.Path` or a pandas `DataFrame`, render as plain text. To link
+Add this once the pages exist. Type annotations that name something in the Python
+standard library, such as `str` or `pathlib.Path`, link to docs.python.org by default.
+Names from other projects, such as a pandas `DataFrame`, render as plain text. To link
 them, give the plugin a Sphinx inventory to resolve them against. An inventory is the
 `objects.inv` file that most Python documentation sites publish. It maps object paths
 to page URLs.
 
-```js title="astro.config.mjs" hidden={1-8, 17-22} {12-16}
+```js title="astro.config.mjs" hidden={1-8, 16-21} {12-15}
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 import starlightPydocs, { pydocsSidebarGroup } from 'starlight-pydocs';
@@ -165,7 +166,6 @@ export default defineConfig({
         starlightPydocs({
           packages: [{ name: 'mypkg', search: ['../src'] }],
           inventories: [
-            'python',
             { url: 'https://pandas.pydata.org/docs/objects.inv' },
             { file: './vendor/internal.inv', base: 'https://docs.internal.example/' },
           ],
@@ -177,9 +177,10 @@ export default defineConfig({
 });
 ```
 
-`inventories` is a top-level option, shared by every package. `'python'` is a preset
-for the CPython standard library. Any other project that publishes an `objects.inv`
-file works too, by URL or as a local file.
+`inventories` is a top-level option, shared by every package. Any project that
+publishes an `objects.inv` file works, by URL or as a local file. The plugin adds
+CPython's inventory after your list. Set `pythonInventory: false` to leave it out, for
+example when the build has no network.
 
 `base` is the URL that the inventory's relative links resolve against. It defaults to
 the `objects.inv` URL with its last segment removed. Set it explicitly for a local

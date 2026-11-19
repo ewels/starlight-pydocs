@@ -83,8 +83,8 @@ export function createCrossReferenceResolver(options: CrossReferenceResolverOpti
   return (target, scopePath) => {
     const trimmed = target.trim();
     if (trimmed === '') return undefined;
-    if (scopePath === undefined) return internal(trimmed) ?? options.lookupExternal?.(trimmed);
-    const found = scoped.resolve(trimmed, scopePath);
+    // No scope skips the names-in-scope lookup and keeps the rest of the order.
+    const found = scoped.resolve(trimmed, scopePath ?? '');
     return found?.kind === 'internal' ? internal(found.path) : found?.href;
   };
 }

@@ -73,7 +73,7 @@ describe('signatureTokens', () => {
   test('annotations inside signatures resolve to internal targets', () => {
     const resolver = buildAnnotationResolver(demopkg);
     const tokens = signatureTokens(doc(demopkg, 'demopkg.utils.iter_sections'), { resolver });
-    const linked = tokens.filter((token) => token.target !== undefined);
+    const linked = tokens.filter((token) => token.target?.kind === 'internal');
     expect(linked).toEqual([{ text: 'Report', target: { kind: 'internal', path: 'demopkg.report.Report' } }]);
     expect(tokens.map((token) => token.text).join('')).toBe(signatureText(doc(demopkg, 'demopkg.utils.iter_sections')));
   });

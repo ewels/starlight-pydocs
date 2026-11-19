@@ -36,7 +36,14 @@ describe('normalizeConfig defaults', () => {
       pageMarkdown: true,
       injectStyles: true,
       components: {},
-      inventories: [],
+      inventories: [
+        {
+          url: 'https://docs.python.org/3/objects.inv',
+          file: undefined,
+          base: 'https://docs.python.org/3/',
+          cache: 'revalidate',
+        },
+      ],
       projectRoot: root,
     });
     expect(config.cacheDir).toBe(path.join(root, 'node_modules', '.astro'));
@@ -155,6 +162,44 @@ describe('normalizeConfig inventories', () => {
       base: 'https://docs.python.org/3/',
       cache: 'revalidate',
     });
+  });
+
+  test('adds the python preset after the configured inventories', () => {
+    const config = normalizeConfig(
+      { packages: [{ name: 'demopkg' }], inventories: [{ url: 'https://x.dev/docs/objects.inv' }] },
+      root,
+    );
+    expect(config.inventories.map((inventory) => inventory.url)).toEqual([
+      'https://x.dev/docs/objects.inv',
+      'https://docs.python.org/3/objects.inv',
+    ]);
+  });
+
+  test('does not add the python preset twice', () => {
+    const config = normalizeConfig(
+      { packages: [{ name: 'demopkg' }], inventories: ['python', { url: 'https://x.dev/docs/objects.inv' }] },
+      root,
+    );
+    expect(config.inventories.map((inventory) => inventory.url)).toEqual([
+      'https://docs.python.org/3/objects.inv',
+      'https://x.dev/docs/objects.inv',
+    ]);
+  });
+
+  test('a local copy with the docs.python.org base counts as the python preset', () => {
+    const local = { file: 'python.inv', base: 'https://docs.python.org/3/' };
+    expect(normalizeConfig({ packages: [{ name: 'demopkg' }], inventories: [local] }, root).inventories).toHaveLength(
+      1,
+    );
+  });
+
+  test('pythonInventory: false leaves only the configured inventories', () => {
+    expect(normalizeConfig({ packages: [{ name: 'demopkg' }], pythonInventory: false }, root).inventories).toEqual([]);
+    const config = normalizeConfig(
+      { packages: [{ name: 'demopkg' }], pythonInventory: false, inventories: ['python'] },
+      root,
+    );
+    expect(config.inventories).toHaveLength(1);
   });
 
   test('derives the base from the inventory URL', () => {

@@ -26,6 +26,14 @@ test('a generated module page renders through the built-in layout', async ({ pag
   await expect(signature(page, 'demopkg.report.Report')).toContainText('class Report(');
 });
 
+test('builtins link to docs.python.org with no inventory configured', async ({ page }) => {
+  await page.goto('api/demopkg/utils/');
+
+  const str = signature(page, 'demopkg.utils.describe').getByRole('link', { name: 'str', exact: true });
+  await expect(str).toHaveAttribute('href', 'https://docs.python.org/3/builtins/stdtypes.html#str');
+  await expect(str).toHaveAttribute('title', 'Open docs at docs.python.org');
+});
+
 test('the package page lists its submodules', async ({ page }) => {
   await page.goto('api/demopkg/');
 
@@ -82,6 +90,22 @@ test('a hand-written page documents one object and searches the package', async 
   await input.press('ArrowDown');
   await input.press('Enter');
   await expect(page).toHaveURL(/\/api\/demopkg\/#demopkg\.Report$/);
+});
+
+test('the member a URL fragment points at is highlighted', async ({ page }) => {
+  await page.goto('api/demopkg/#demopkg.Report.generate');
+
+  const method = member(page, 'demopkg.Report.generate');
+  const owner = member(page, 'demopkg.Report');
+
+  // Hovering the class gives it the accent border, which the target's bar must differ from.
+  await owner.locator('> .pyd-heading').hover();
+  await expect(method).toHaveCSS('border-left-width', '5px');
+  await expect(method).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(owner).toHaveCSS('border-left-width', '2px');
+  await expect(owner).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  const accent = await owner.evaluate((element) => getComputedStyle(element).borderLeftColor);
+  await expect(method).not.toHaveCSS('border-left-color', accent);
 });
 
 test('the Content Layer loader exposes the API surface as data', async ({ page }) => {

@@ -13,6 +13,7 @@
 
 import type { Annotation, Expr, ExprOrString } from './types.ts';
 import { isExpr } from './types.ts';
+import { PYTHON_DOCS_BASE } from './paths.ts';
 
 export interface InternalAnnotationTarget {
   kind: 'internal';
@@ -51,86 +52,83 @@ export interface AnnotationResolver {
   resolve(name: string, scopePath: string): AnnotationTarget | undefined;
 }
 
-/**
- * Builtin names worth linking. Only types and constants that appear in
- * annotations; the full builtins namespace would add noise without value.
- */
-const BUILTIN_NAMES = new Set([
-  'bool',
-  'bytearray',
-  'bytes',
-  'complex',
-  'dict',
-  'Ellipsis',
-  'enumerate',
-  'False',
-  'filter',
-  'float',
-  'frozenset',
-  'int',
-  'list',
-  'map',
-  'memoryview',
-  'None',
-  'NotImplemented',
-  'object',
-  'range',
-  'reversed',
-  'set',
-  'slice',
-  'str',
-  'True',
-  'tuple',
-  'type',
-  'zip',
-  // Exceptions and warnings, which show up in `Raises:` sections.
-  'ArithmeticError',
-  'AssertionError',
-  'AttributeError',
-  'BaseException',
-  'DeprecationWarning',
-  'EOFError',
-  'Exception',
-  'FileExistsError',
-  'FileNotFoundError',
-  'FloatingPointError',
-  'GeneratorExit',
-  'ImportError',
-  'IndentationError',
-  'IndexError',
-  'InterruptedError',
-  'IsADirectoryError',
-  'KeyError',
-  'KeyboardInterrupt',
-  'LookupError',
-  'MemoryError',
-  'ModuleNotFoundError',
-  'NameError',
-  'NotADirectoryError',
-  'NotImplementedError',
-  'OSError',
-  'OverflowError',
-  'PermissionError',
-  'RecursionError',
-  'ReferenceError',
-  'RuntimeError',
-  'RuntimeWarning',
-  'StopAsyncIteration',
-  'StopIteration',
-  'SyntaxError',
-  'SystemError',
-  'SystemExit',
-  'TimeoutError',
-  'TypeError',
-  'UnicodeDecodeError',
-  'UnicodeEncodeError',
-  'UserWarning',
-  'ValueError',
-  'Warning',
-  'ZeroDivisionError',
-]);
+const BUILTIN_GROUPS: [page: string, role: string, names: string[]][] = [
+  ['functions', 'class', ['bool', 'complex', 'float', 'int', 'object', 'slice', 'type']],
+  ['functions', 'function', ['enumerate', 'filter', 'map', 'reversed', 'zip']],
+  [
+    'stdtypes',
+    'class',
+    ['bytearray', 'bytes', 'dict', 'frozenset', 'list', 'memoryview', 'range', 'set', 'str', 'tuple'],
+  ],
+  ['constants', 'data', ['Ellipsis', 'False', 'None', 'NotImplemented', 'True']],
+  [
+    'exceptions',
+    'exception',
+    [
+      'ArithmeticError',
+      'AssertionError',
+      'AttributeError',
+      'BaseException',
+      'DeprecationWarning',
+      'EOFError',
+      'Exception',
+      'FileExistsError',
+      'FileNotFoundError',
+      'FloatingPointError',
+      'GeneratorExit',
+      'ImportError',
+      'IndentationError',
+      'IndexError',
+      'InterruptedError',
+      'IsADirectoryError',
+      'KeyError',
+      'KeyboardInterrupt',
+      'LookupError',
+      'MemoryError',
+      'ModuleNotFoundError',
+      'NameError',
+      'NotADirectoryError',
+      'NotImplementedError',
+      'OSError',
+      'OverflowError',
+      'PermissionError',
+      'RecursionError',
+      'ReferenceError',
+      'RuntimeError',
+      'RuntimeWarning',
+      'StopAsyncIteration',
+      'StopIteration',
+      'SyntaxError',
+      'SystemError',
+      'SystemExit',
+      'TimeoutError',
+      'TypeError',
+      'UnicodeDecodeError',
+      'UnicodeEncodeError',
+      'UserWarning',
+      'ValueError',
+      'Warning',
+      'ZeroDivisionError',
+    ],
+  ],
+];
 
-const NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/;
+/**
+ * Builtins worth linking, with where each is documented for sites with no Python
+ * inventory: the types and constants that appear in annotations, and the
+ * exceptions and warnings in `Raises:` sections. CPython moved these pages from
+ * `library/` to `builtins/`; the old paths only redirect.
+ */
+const PYTHON_BUILTINS = new Map<string, Omit<ExternalAnnotationTarget, 'kind'>>(
+  BUILTIN_GROUPS.flatMap(([page, role, names]) =>
+    names.map((name) => [
+      name,
+      { href: `${PYTHON_DOCS_BASE}builtins/${page}.html#${name}`, name, role, source: 'Python 3' },
+    ]),
+  ),
+);
+
+const NAME_PATTERN = /^[\p{ID_Start}_]\p{ID_Continue}*(\.[\p{ID_Start}_]\p{ID_Continue}*)*$/u;
 
 export interface AnnotationResolverOptions {
   /** True when a dotted path is documented on this site. */
@@ -174,13 +172,13 @@ export function createAnnotationResolver(options: AnnotationResolverOptions): An
         }
       }
 
-      // A fully qualified path written out in the annotation.
+      // A fully qualified path written out in the annotation. This also tries the
+      // inventory before the bundled builtins: it names the Python version the site targets.
       const direct = asTarget(name);
       if (direct !== undefined) return direct;
 
-      if (BUILTIN_NAMES.has(name)) {
-        return external(lookupExternal?.(name) ?? lookupExternal?.(`builtins.${name}`));
-      }
+      const builtin = PYTHON_BUILTINS.get(name);
+      if (builtin !== undefined) return external(lookupExternal?.(`builtins.${name}`) ?? builtin);
 
       return undefined;
     },

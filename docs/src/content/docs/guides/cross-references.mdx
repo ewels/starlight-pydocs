@@ -94,8 +94,8 @@ Griffe serialises annotations as expression trees. Every name in one is a bare s
    from.
 2. **A fully qualified path**, when the annotation spells one out (`mypkg.report.Report`).
 3. **The builtins table**, a curated list of the types, constants and exceptions that actually
-   appear in annotations (`str`, `dict`, `ValueError`, …). The plugin links these only when an
-   inventory says where they are documented.
+   appear in annotations (`str`, `dict`, `ValueError`, …). These link through an inventory when
+   one has them, and otherwise straight to their page on docs.python.org.
 4. **The configured Sphinx inventories**, in configuration order, restricted to the `py` domain.
 
 If nothing resolves, the name renders as plain text. The plugin walks compound annotations
@@ -129,7 +129,6 @@ relative URIs resolve against:
 starlightPydocs({
   packages: [{ name: 'mypkg', search: ['../src'] }],
   inventories: [
-    'python',
     { url: 'https://pandas.pydata.org/docs/objects.inv' },
     { url: 'https://example.com/docs/objects.inv', base: 'https://example.com/docs/' },
     { file: './vendor/internal.inv', base: 'https://docs.internal.example/' },
@@ -138,7 +137,8 @@ starlightPydocs({
 ```
 
 - `'python'` is the one built-in preset: CPython's `objects.inv` with
-  `https://docs.python.org/3/` as its base.
+  `https://docs.python.org/3/` as its base. The plugin adds it after your list by default. List
+  it yourself to place it elsewhere, or set `pythonInventory: false` to leave it out.
 - `base` defaults to the inventory URL with its last segment removed, which is right for the
   conventional `…/objects.inv` layout. A local `file` has no URL to derive from, so `base` is
   required there.

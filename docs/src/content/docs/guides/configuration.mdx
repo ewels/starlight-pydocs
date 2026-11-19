@@ -52,7 +52,7 @@ export default defineConfig({
           ],
 
           // [!callout /inventories/] Top-level options, shared by every package.
-          inventories: ['python'],
+          inventories: [{ url: 'https://pandas.pydata.org/docs/objects.inv' }],
           cacheDir: '.cache',
         }),
       ],
@@ -74,6 +74,7 @@ gets documented and how the pages look.
 | `packages`         | `PydocsPackageInput[]`                | required              | The packages to document. At least one.                        |
 | `runner`           | `{ command?, python? }`               | `{}`                  | Overrides for how griffe is invoked. See [How extraction is resolved](#how-extraction-is-resolved). |
 | `inventories`      | `(PydocsInventoryInput \| 'python')[]` | `[]`                 | Sphinx inventories used to link type annotations outwards. See [Inventories](#inventories). |
+| `pythonInventory`  | `boolean`                             | `true`                | Add CPython's inventory after `inventories`. See [Inventories](#inventories). |
 | `publishInventory` | `boolean`                             | `true`                | Serve `objects.inv` for each package.                          |
 | `symbolSearch`     | `boolean`                             | `true`                | Serve `symbols.json` and render the search box.                |
 | `llmsTxt`          | `boolean`                             | `true`                | Serve `llms.txt` for each package.                             |
@@ -113,6 +114,14 @@ inventories: [
   { file: './vendor/internal.inv', base: 'https://docs.internal.example/' },
 ];
 ```
+
+The plugin adds the `'python'` preset after this list, so the standard library links with no
+configuration. Earlier inventories win, so your own entries keep the names they define. If you list
+`'python'` yourself, or any inventory with the base `https://docs.python.org/3/`, such as a local
+copy, it stays where you list it and is not added twice. A local copy then replaces the full
+inventory, so names it does not hold render as plain text. Set `pythonInventory: false`
+to leave it out, for example when the build has no network. Builtins such as `str` and `None` still
+link to docs.python.org without it.
 
 [Cross-references](/starlight-pydocs/guides/cross-references/) covers how annotations and docstring
 references resolve against these.
@@ -249,7 +258,8 @@ revalidates them:
 
 If the network fails, or the server returns an error, and a cached copy exists, starlight-pydocs
 uses the cached copy and logs a warning. A docs build should not fail just because a CDN had a
-brief outage.
+brief outage. A download gives up after 10 seconds. With no cached copy, an inventory that cannot be downloaded is skipped with a
+warning, and the names it would have linked render as plain text.
 
 `cacheDir` defaults to `node_modules/.astro`, which is where Astro keeps its own cache. Point it
 somewhere persistent if your CI caches a different directory. Pre-rendered docstring HTML lives

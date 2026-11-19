@@ -8,7 +8,7 @@
 import path from 'node:path';
 
 import { configError, errorMessage, PydocsError } from './errors.ts';
-import { isUnderBase, stripLeadingAndTrailingSlashes } from './paths.ts';
+import { isUnderBase, PYTHON_DOCS_BASE, stripLeadingAndTrailingSlashes } from './paths.ts';
 
 /** Docstring flavour passed to `griffe dump -d`. */
 export type DocstringStyle = 'google' | 'numpy' | 'sphinx' | 'auto';
@@ -249,6 +249,11 @@ export interface PydocsUserConfig {
   runner?: PydocsRunnerInput | undefined;
   /** Inventories used to link type annotations to other documentation sites. */
   inventories?: PydocsInventoryConfigInput[] | undefined;
+  /**
+   * Add the `'python'` inventory after `inventories`, so the standard library
+   * links with no configuration. Default `true`.
+   */
+  pythonInventory?: boolean | undefined;
   /** Serve `objects.inv` for this site so other projects can link into it. Default `true`. */
   publishInventory?: boolean | undefined;
   /** Serve `symbols.json` and enable the symbol search component. Default `true`. */
@@ -394,7 +399,7 @@ const RELEASE_LINK_PRESETS: Record<PydocsSourceLinkPreset['host'], (repo: string
 };
 
 const INVENTORY_PRESETS: Record<PydocsInventoryPreset, { url: string; base: string }> = {
-  python: { url: 'https://docs.python.org/3/objects.inv', base: 'https://docs.python.org/3/' },
+  python: { url: `${PYTHON_DOCS_BASE}objects.inv`, base: PYTHON_DOCS_BASE },
 };
 
 const PACKAGE_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/;
@@ -779,6 +784,11 @@ export function normalizeConfig(user: PydocsUserConfig, projectRoot: string): Py
   const inventories = inventoriesInput.map((entry, index) =>
     normaliseInventory(entry, `inventories[${index}]`, projectRoot),
   );
+  if (optionalBoolean(user.pythonInventory, 'pythonInventory', true)) {
+    // Last: earlier inventories win. Matched by base, so a vendored copy counts as listed.
+    const python = normaliseInventory('python', 'pythonInventory', projectRoot);
+    if (!inventories.some((inventory) => inventory.base === python.base)) inventories.push(python);
+  }
 
   const components = user.components ?? {};
   if (!isPlainObject(components)) throw configError('components', 'must be an object');

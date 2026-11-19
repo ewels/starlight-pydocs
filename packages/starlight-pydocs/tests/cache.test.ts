@@ -210,6 +210,33 @@ describe('fetchToCache', () => {
     expect(seen[1]?.get('if-modified-since')).toBe('Wed, 21 Oct 2015 07:28:00 GMT');
   });
 
+  test('a timeout while the body streams falls back to the cached copy', async () => {
+    const directory = remoteCacheDirectory(workspace, url);
+    await writeAtomic(path.join(directory, 'objects.inv'), 'cached');
+    const logger = createMemoryLogger();
+    const fetchImpl = async (_input: unknown, init?: RequestInit): Promise<Response> => {
+      const body = new ReadableStream({
+        start(controller) {
+          init?.signal?.addEventListener('abort', () => controller.error(init.signal?.reason));
+        },
+      });
+      return new Response(body);
+    };
+
+    const result = await fetchToCache({
+      url,
+      directory,
+      filename: 'objects.inv',
+      cache: 'revalidate',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      logger,
+      timeoutMs: 10,
+    });
+
+    expect(result).toEqual({ path: path.join(directory, 'objects.inv'), fromCache: true });
+    expect(logger.messages[0]).toMatch(/using the cached copy/);
+  });
+
   test("cache: 'force' never touches the network", async () => {
     const directory = remoteCacheDirectory(workspace, url);
     await writeAtomic(path.join(directory, 'objects.inv'), 'cached');

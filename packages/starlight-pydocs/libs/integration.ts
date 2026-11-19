@@ -153,12 +153,12 @@ async function preparePydocs(options: PydocsSetupOptions): Promise<PydocsSetup> 
   const { logger } = options;
   const config = await resolveVersionTags(normalizeConfig(options.options, fileURLToPath(options.root)));
 
+  // Inventory downloads need nothing from extraction, so they overlap it.
+  const inventoriesLoading = inventories(config, logger);
   const dumpPaths = await extract(config, logger);
-  // Version-ref extraction (git plus griffe) and inventory downloads are
-  // independent, so they run together.
   const [versionsPaths, loadedInventories] = await Promise.all([
     versionPathsFor(config, dumpPaths, logger),
-    inventories(config, logger),
+    inventoriesLoading,
   ]);
 
   const context = createContext(config, {
