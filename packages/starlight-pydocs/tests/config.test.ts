@@ -328,11 +328,6 @@ describe('normalizeConfig errors', () => {
 
     expect(tagsOf('^v[\\d.]+$')).toEqual(/^v[\d.]+$/);
     expect(tagsOf(/^release-/i)).toEqual(/^release-/i);
-    // A global or sticky RegExp would carry lastIndex from one tag to the next.
-    expect(tagsOf(/^v/gy)?.flags).toBe('');
-    expect(
-      normalizeConfig({ packages: [{ name: 'demopkg', versions: { tags: '^v' } }] }, root).packages[0]?.versions,
-    ).toEqual({ refs: [], tags: /^v/ });
   });
 
   test('rejects an invalid tag pattern, and tags together with refs', () => {

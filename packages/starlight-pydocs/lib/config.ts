@@ -345,7 +345,7 @@ export interface PydocsVersionsConfig {
    */
   refs: PydocsVersionRefInput[];
   /** Tag pattern the refs are listed from, when the option uses `tags`. */
-  tags: RegExp | undefined;
+  tags?: RegExp;
 }
 
 export interface PydocsSidebarConfig {
@@ -562,7 +562,7 @@ function normaliseVersions(
   optionPath: string,
   source: NormalisedSource | undefined,
 ): PydocsVersionsConfig {
-  if (input === undefined) return { refs: [], tags: undefined };
+  if (input === undefined) return { refs: [] };
   if (!isPlainObject(input)) {
     throw configError(optionPath, "must be an object with a 'refs' array or a 'tags' regular expression");
   }
@@ -595,13 +595,11 @@ function normaliseVersions(
         label: requireString(entry.label, `${entryPath}.label`),
       };
     }),
-    tags: undefined,
   };
 }
 
 function normaliseTagPattern(input: unknown, optionPath: string): RegExp {
-  // `g` and `y` make `test` stateful across tags, so a match would depend on the one before.
-  if (input instanceof RegExp) return new RegExp(input.source, input.flags.replace(/[gy]/g, ''));
+  if (input instanceof RegExp) return input;
   const pattern = requireString(input, optionPath, 'must be a regular expression, as a string or a RegExp');
   try {
     return new RegExp(pattern);

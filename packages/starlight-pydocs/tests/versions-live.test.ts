@@ -8,12 +8,10 @@
  * touches this project's own git state.
  */
 
-import { onlyPackage } from './helpers.ts';
-import { execFile } from 'node:child_process';
+import { canRun, makeGitRepository, onlyPackage, run } from './helpers.ts';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { promisify } from 'node:util';
 
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 
@@ -28,17 +26,6 @@ import {
 } from '../lib/ref-extract.ts';
 import { resolveExtraction } from '../lib/runner.ts';
 import { versionLabelsFrom } from '../lib/versions.ts';
-
-const run = promisify(execFile);
-
-async function canRun(file: string, args: string[]): Promise<boolean> {
-  try {
-    await run(file, args);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 const available = (await canRun('git', ['--version'])) && (await canRun('uv', ['--version']));
 
@@ -68,7 +55,7 @@ describe.skipIf(!available)('version annotations from a git repository', () => {
   let cacheDir: string;
 
   beforeAll(async () => {
-    repository = await fs.mkdtemp(path.join(os.tmpdir(), 'pydocs-versions-repo-'));
+    repository = await makeGitRepository('pydocs-versions-repo-');
     cacheDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pydocs-versions-cache-'));
 
     const git = async (...args: string[]): Promise<void> => {
@@ -76,13 +63,6 @@ describe.skipIf(!available)('version annotations from a git repository', () => {
     };
     const module = path.join(repository, 'src', 'tinypkg', '__init__.py');
 
-    await git('init', '--quiet');
-    await git('config', 'user.email', 'test@example.com');
-    await git('config', 'user.name', 'Test');
-    // Signing is inherited from the user's global config otherwise, and a signed
-    // tag is an annotated tag, which fails without a message.
-    await git('config', 'commit.gpgsign', 'false');
-    await git('config', 'tag.gpgsign', 'false');
     await fs.mkdir(path.dirname(module), { recursive: true });
 
     await fs.writeFile(module, V1);

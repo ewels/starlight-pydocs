@@ -1,8 +1,11 @@
 /** Shared helpers for the unit tests. Not a test file itself. */
 
+import { execFile } from 'node:child_process';
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 
 import type {
   NormalisedFilters,
@@ -79,4 +82,29 @@ export function memberNames(model: PackageModel, dottedPath: string): string[] {
   const object = model.objectsByPath.get(dottedPath);
   if (object === undefined) throw new Error(`no documented object at ${dottedPath}`);
   return object.members.map((member) => member.name);
+}
+
+export const run = promisify(execFile);
+
+export async function canRun(file: string, args: string[]): Promise<boolean> {
+  try {
+    await run(file, args);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** A new git repository in a temp directory, with an identity and signing off. */
+export async function makeGitRepository(prefix: string): Promise<string> {
+  const repository = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
+  const git = (...args: string[]) => run('git', ['-C', repository, ...args]);
+  await git('init', '--quiet');
+  await git('config', 'user.email', 'test@example.com');
+  await git('config', 'user.name', 'Test');
+  // Signing is inherited from the user's global config otherwise, and a signed
+  // tag is an annotated tag, which fails without a message.
+  await git('config', 'commit.gpgsign', 'false');
+  await git('config', 'tag.gpgsign', 'false');
+  return repository;
 }

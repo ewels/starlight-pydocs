@@ -82,11 +82,7 @@ export async function resolveRepositoryRoot(
 }
 
 /**
- * Fill in `versions.refs` for every package that picks its refs with `versions.tags`.
- *
- * Tags are ordered by git's `creatordate`: the tagger date of an annotated tag
- * and the commit date of a lightweight one, so both kinds sort by when they were
- * made. Ties fall back to the tag name.
+ * Fill in `versions.refs`, oldest tag first, for every package that picks its refs with `versions.tags`.
  *
  * @throws {PydocsError} When the sources are not in a git repository or the
  *   pattern matches no tag.
@@ -108,7 +104,8 @@ export async function resolveVersionTags(
       ]);
       const refs = names
         .split('\n')
-        .filter((name) => name !== '' && tags.test(name))
+        // `search`, unlike `test`, ignores the `lastIndex` a `g` or `y` pattern carries between tags.
+        .filter((name) => name !== '' && name.search(tags) !== -1)
         .map((ref) => ({ ref, label: ref }));
       if (refs.length === 0) {
         throw new PydocsError(

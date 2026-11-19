@@ -3,30 +3,22 @@
  * labels and their order. Needs only `git`, no griffe. Skipped without it.
  */
 
-import { onlyPackage } from './helpers.ts';
-import { execFile } from 'node:child_process';
+import { canRun, makeGitRepository, onlyPackage, run } from './helpers.ts';
 import fs from 'node:fs/promises';
-import os from 'node:os';
 import path from 'node:path';
-import { promisify } from 'node:util';
 
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 
 import { normalizeConfig } from '../lib/config.ts';
 import { resolveVersionTags } from '../lib/ref-extract.ts';
 
-const run = promisify(execFile);
-
-const available = await run('git', ['--version']).then(
-  () => true,
-  () => false,
-);
+const available = await canRun('git', ['--version']);
 
 describe.skipIf(!available)('version refs from git tags', () => {
   let repository: string;
 
   beforeAll(async () => {
-    repository = await fs.mkdtemp(path.join(os.tmpdir(), 'pydocs-version-tags-'));
+    repository = await makeGitRepository('pydocs-version-tags-');
     const git = async (date: string, ...args: string[]): Promise<void> => {
       // The committer date is also the tagger date of an annotated tag.
       await run('git', ['-C', repository, ...args], {
@@ -39,11 +31,6 @@ describe.skipIf(!available)('version refs from git tags', () => {
       await git(date, 'commit', '--quiet', '-m', message);
     };
 
-    await git('2020-01-01T00:00:00Z', 'init', '--quiet');
-    await git('2020-01-01T00:00:00Z', 'config', 'user.email', 'test@example.com');
-    await git('2020-01-01T00:00:00Z', 'config', 'user.name', 'Test');
-    await git('2020-01-01T00:00:00Z', 'config', 'commit.gpgsign', 'false');
-    await git('2020-01-01T00:00:00Z', 'config', 'tag.gpgsign', 'false');
     await fs.mkdir(path.join(repository, 'src', 'tinypkg'), { recursive: true });
 
     // Name order (v1.10.0 < v1.9.0 < v2.0.0) differs from date order on purpose.
@@ -78,8 +65,8 @@ describe.skipIf(!available)('version refs from git tags', () => {
     ]);
   });
 
-  test('takes a RegExp, and a capture group does not change the label', async () => {
-    expect(await refsFor(/^v1\.(\d+)/)).toEqual([
+  test('takes a RegExp, global or not, and a capture group does not change the label', async () => {
+    expect(await refsFor(/^v1\.(\d+)/g)).toEqual([
       { ref: 'v1.9.0', label: 'v1.9.0' },
       { ref: 'v1.10.0rc1', label: 'v1.10.0rc1' },
       { ref: 'v1.10.0', label: 'v1.10.0' },
