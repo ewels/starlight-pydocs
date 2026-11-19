@@ -4,6 +4,8 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 
 ## Unreleased
 
+- ✨ "Added in" labels are green badges, so they stand out under the heading ([#19](https://github.com/ewels/starlight-pydocs/pull/19))
+
 ## v0.4.0 (2026-11-18)
 
 No configuration changes are needed. On Starlight sites, docstring asides now use Starlight's `.starlight-aside` classes instead of `.pyd-aside`, so update any custom CSS that targets `.pyd-aside`. Builds may also log a new warning when docstrings don't match `docstringStyle`.
