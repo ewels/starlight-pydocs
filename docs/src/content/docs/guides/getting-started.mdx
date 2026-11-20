@@ -51,7 +51,7 @@ your docs does not need a working install of the package it documents.
 3. Add the plugin to Starlight, name the package, and reserve a spot in the sidebar for the pages
    it will generate.
 
-   ```js title="astro.config.mjs" {3, 10-15}
+   ```js title="astro.config.mjs" {3, 11-13, 15}
    import starlight from '@astrojs/starlight';
    import { defineConfig } from 'astro/config';
    import starlightPydocs, { pydocsSidebarGroup } from 'starlight-pydocs';
@@ -63,7 +63,7 @@ your docs does not need a working install of the package it documents.
 
          plugins: [
            starlightPydocs({
-             // [!callout /packages/] Name the package and point Griffe at its source.
+             // [!callout /mypkg/] Name the package and point Griffe at its source.
              packages: [{ name: 'mypkg', search: ['../src'] }],
            }),
          ],

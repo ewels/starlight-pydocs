@@ -28,15 +28,14 @@ hero:
 
 import { Card, CardGrid, LinkButton, LinkCard } from '@astrojs/starlight/components';
 
-## Three lines of configuration
+## Two lines of configuration
 
-```js title="astro.config.mjs" {2}
-starlightPydocs({
-  packages: [{ name: 'mypkg', search: ['../src'] }],
-});
+```js title="astro.config.mjs"
+plugins: [ starlightPydocs({packages: [{ name: 'mypkg', search: ['../src'] }]}); ],
+sidebar: [{ label: 'API reference', items: [pydocsSidebarGroup] }],
 ```
 
-This generates one page per module at `/api/mypkg/`, a sidebar tree that mirrors the
+This generates one page per module at `/api/mypkg/`, a sidebar page nav that mirrors the
 package layout, and `symbols.json`, `objects.inv` and `llms.txt`.
 
 ## What you get
