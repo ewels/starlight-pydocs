@@ -294,7 +294,7 @@ describe('resolveExtraction', () => {
       logger,
     });
 
-    expect(logger.messages.some((message) => message.includes('WARNING report.py:1'))).toBe(true);
+    expect(logger.messages).toContain('warn: griffe: WARNING report.py:1: no annotation');
     expect(logger.messages.some((message) => message.includes('INFO loading'))).toBe(false);
   });
 });

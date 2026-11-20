@@ -5,6 +5,7 @@ All notable changes to `starlight-pydocs` are recorded here. New work is added u
 ## Unreleased
 
 - 🛠️ "Added in" badges have no background fill, so they stay quiet on pages with many of them. The `--pyd-added-low` token is gone ([#22](https://github.com/ewels/starlight-pydocs/pull/22))
+- 🛠️ Griffe warnings from older version refs no longer flood the build log; they show only with `--verbose` ([#21](https://github.com/ewels/starlight-pydocs/pull/21))
 
 ## v0.5.0 (2026-11-20)
 
