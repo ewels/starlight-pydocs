@@ -5,6 +5,7 @@
 
 import { canRun, makeGitRepository, onlyPackage, run } from './helpers.ts';
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
@@ -12,6 +13,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { normalizeConfig } from '../lib/config.ts';
 import { createMemoryLogger } from '../lib/logger.ts';
 import { computeVersionAnnotations, resolveVersionTags } from '../lib/ref-extract.ts';
+import type { ExecFileImpl } from '../lib/runner.ts';
 
 const available = await canRun('git', ['--version']);
 
@@ -102,5 +104,49 @@ describe.skipIf(!available)('version refs from git tags', () => {
     await expect(
       computeVersionAnnotations(onlyPackage(config), config, { cacheDir: repository, cwd: repository }),
     ).rejects.toThrow(/'tinypkg' has versions\.tags that resolveVersionTags has not resolved/);
+  });
+
+  test('logs griffe warnings from refs and their summary at debug only', async () => {
+    const cacheDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pydocs-version-tags-cache-'));
+    try {
+      const config = await resolveVersionTags(
+        normalizeConfig(
+          {
+            packages: [{ name: 'tinypkg', search: ['src'], versions: { tags: '^v[\\d.]+$' } }],
+            runner: { command: ['fake-griffe'] },
+            cacheDir,
+          },
+          repository,
+        ),
+      );
+      // The nth griffe run prints n - 1 warnings: 0, 1, then 2 over the three tags.
+      let runs = 0;
+      const execFileImpl: ExecFileImpl = async (file, args, options) => {
+        if (file === 'git') return run('git', args, options);
+        const target = args[args.indexOf('-o') + 1];
+        if (target !== undefined)
+          await fs.writeFile(target, '{"tinypkg":{"kind":"module","name":"tinypkg","path":"tinypkg"}}');
+        const warnings = Array.from({ length: runs++ }, (_, index) => `WARNING a.py:${String(index)}: no annotation`);
+        return { stdout: '', stderr: ['INFO loading', ...warnings].join('\n') };
+      };
+
+      const logger = createMemoryLogger();
+      const context = { cacheDir, cwd: repository, logger, execFileImpl };
+      await computeVersionAnnotations(onlyPackage(config), config, context);
+      expect(logger.messages.filter((message) => message.includes('WARNING'))).toEqual([
+        'debug: griffe: WARNING a.py:0: no annotation',
+        'debug: griffe: WARNING a.py:0: no annotation',
+        'debug: griffe: WARNING a.py:1: no annotation',
+      ]);
+      expect(logger.messages).toContain("debug: 3 griffe warnings from 2 version refs of 'tinypkg' (logged above)");
+      expect(logger.messages.filter((message) => !message.startsWith('debug: '))).toEqual([]);
+
+      // Cached dumps run no griffe, so there is nothing to summarise.
+      logger.messages.length = 0;
+      await computeVersionAnnotations(onlyPackage(config), config, context);
+      expect(logger.messages.filter((message) => message.includes('griffe warning'))).toEqual([]);
+    } finally {
+      await fs.rm(cacheDir, { recursive: true, force: true });
+    }
   });
 });

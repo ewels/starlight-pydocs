@@ -72,6 +72,13 @@ instead:
 The result, a map from object path to version label, is written beside the package's dump. It is
 read back when pages render. Only the label text reaches the browser.
 
+Griffe often warns about old releases, for example about a missing type annotation. Nobody can fix a
+docstring in a release that has shipped, so a normal build does not show these warnings. Run
+`astro build --verbose` or `astro dev --verbose` to see each one, followed by a count such as
+`54 griffe warnings from 41 version refs of 'mypkg' (logged above)`. Warnings about the current
+source still appear as usual. Cached refs do not run griffe, so only the first build has these
+warnings.
+
 ## Picking refs from your tags
 
 Instead of listing every release by hand, give `tags` a regular expression. Every git tag whose

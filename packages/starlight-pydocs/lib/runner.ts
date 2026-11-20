@@ -241,17 +241,25 @@ export interface RunGriffeOptions {
   /** What is being extracted, for log lines and error messages. */
   describe: string;
   context: ExtractionContext;
+  /** Log griffe's warnings at debug, not warn: nobody can fix a docstring in a released ref. */
+  quiet?: boolean | undefined;
 }
 
-/** Run griffe into a cache location, unless the dump is already there. */
-export async function runGriffe(options: RunGriffeOptions): Promise<{ dumpPath: string; fromCache: boolean }> {
+/**
+ * Run griffe into a cache location, unless the dump is already there.
+ *
+ * @returns Where the dump is, and how many warnings griffe printed (0 for a cached dump).
+ */
+export async function runGriffe(
+  options: RunGriffeOptions,
+): Promise<{ dumpPath: string; fromCache: boolean; warnings: number }> {
   const { context, launcher, location, pkg } = options;
   const logger = context.logger ?? silentLogger;
   const execFileImpl = context.execFileImpl ?? defaultExecFile;
 
   if (await fileExists(location.dumpPath)) {
     logger.debug(`reusing cached dump for ${options.describe}: ${location.dumpPath}`);
-    return { dumpPath: location.dumpPath, fromCache: true };
+    return { dumpPath: location.dumpPath, fromCache: true, warnings: 0 };
   }
 
   await fs.mkdir(location.directory, { recursive: true });
@@ -259,12 +267,16 @@ export async function runGriffe(options: RunGriffeOptions): Promise<{ dumpPath: 
   const command = launcher.argv(buildGriffeArgs(pkg, temporary));
 
   logger.debug(`extracting ${options.describe}: ${[command.file, ...command.args].join(' ')}`);
+  let warnings = 0;
   try {
     const { stderr } = await execFileImpl(command.file, command.args, { cwd: context.cwd });
     // Griffe logs progress and unresolved-name warnings to stderr; surface them
     // without failing the build.
     for (const line of stderr.split('\n')) {
-      if (line.trim().startsWith('WARNING')) logger.warn(`griffe: ${line.trim()}`);
+      if (!line.trim().startsWith('WARNING')) continue;
+      warnings += 1;
+      if (options.quiet === true) logger.debug(`griffe: ${line.trim()}`);
+      else logger.warn(`griffe: ${line.trim()}`);
     }
   } catch (cause) {
     await fs.rm(temporary, { force: true });
@@ -284,7 +296,7 @@ export async function runGriffe(options: RunGriffeOptions): Promise<{ dumpPath: 
     );
   }
   await fs.rename(temporary, location.dumpPath);
-  return { dumpPath: location.dumpPath, fromCache: false };
+  return { dumpPath: location.dumpPath, fromCache: false, warnings };
 }
 
 /** The real process runner, exported so sibling modules share one default. */
