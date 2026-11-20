@@ -45,7 +45,6 @@
     --pyd-danger: var(--sl-color-red, #dc2626);
     --pyd-danger-low: var(--sl-color-red-low, #fee2e2);
     --pyd-added: var(--sl-color-green-high, #166534);
-    --pyd-added-low: var(--sl-color-green-low, #dcfce7);
 
     --pyd-radius: 0.375rem;
     --pyd-mono: var(--sl-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
@@ -69,7 +68,6 @@
       --pyd-caution-low: var(--sl-color-orange-low, #431407);
       --pyd-danger-low: var(--sl-color-red-low, #450a0a);
       --pyd-added: var(--sl-color-green-high, #86efac);
-      --pyd-added-low: var(--sl-color-green-low, #052e16);
     }
   }
 
@@ -89,7 +87,6 @@
     --pyd-caution-low: var(--sl-color-orange-low, #431407);
     --pyd-danger-low: var(--sl-color-red-low, #450a0a);
     --pyd-added: var(--sl-color-green-high, #86efac);
-    --pyd-added-low: var(--sl-color-green-low, #052e16);
   }
 
   /* -- Members and headings ------------------------------------------------ */
@@ -192,7 +189,7 @@
 
   /* Scoped to the row so it outranks the vanilla page's `.pyd-page a` colour. */
   .pyd-provenance .pyd-badge--added {
-    background: var(--pyd-added-low);
+    background: none;
     border-color: color-mix(in srgb, currentColor 40%, transparent);
     color: var(--pyd-added);
     text-decoration: none;
