@@ -31,7 +31,7 @@ import { Card, CardGrid, LinkButton, LinkCard } from '@astrojs/starlight/compone
 ## Two lines of configuration
 
 ```js title="astro.config.mjs"
-plugins: [ starlightPydocs({packages: [{ name: 'mypkg', search: ['../src'] }]}); ],
+plugins: [starlightPydocs({ packages: [{ name: 'mypkg', search: ['../src'] }] })],
 sidebar: [{ label: 'API reference', items: [pydocsSidebarGroup] }],
 ```
 
